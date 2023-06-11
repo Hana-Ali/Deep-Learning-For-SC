@@ -5,6 +5,7 @@
 #include <list>
 #include <Python.h>
 #include <iostream>
+#include <fstream>
 #include <typeinfo>
 #include <boost/any.hpp>
 #include <bayesopt/bayesopt.h>
@@ -48,12 +49,12 @@ std::normal_distribution<double> rand_std_normal (0, 1);
 std::uniform_real_distribution<double> rand_std_uniform (0, 1);
 
 // Function declarations
-static PyObject *electrical_to_bold(PyObject *self, PyObject *args);
+std::vector<std::vector<double>> electrical_to_bold();
 double wilson_response_function(double x, double alpha, double theta);
 static PyObject *parsing_wilson_inputs(PyObject *self, PyObject *args);
 double wilson_objective(unsigned int input_dim, const double *initial_query, double* gradient, void *func_data);
 
-static PyObject *electrical_to_bold(PyObject *self, PyObject *args)
+std::vector<std::vector<double>> electrical_to_bold()
 {
     /*
     This is a function that, given electrical activity, will convert it to BOLD signals.
@@ -74,9 +75,6 @@ static PyObject *electrical_to_bold(PyObject *self, PyObject *args)
     */
 
    // ------------- Declare input variables
-    int *number_of_oscillators = new int;
-    int *number_of_integration_steps = new int;
-    double *integration_step_size = new double;
     double *input_e = NULL;
     
     // ------------- Declare state variables
@@ -107,93 +105,80 @@ static PyObject *electrical_to_bold(PyObject *self, PyObject *args)
     double *c2 = new double;
     double *c3 = NULL;
     double *V0 = new double;
-    PyObject *E_array;
     PyObject *temp_variable;
     npy_intp *e_array_size;
 
-    // ------------- Parse input variables
-    if(
-        !PyArg_ParseTuple(
-            args, "Oiid",
-            &E_array, number_of_oscillators, 
-            number_of_integration_steps, integration_step_size
-        )
-    )
-    {
-        return {NULL};
-    };
-
     // Define input variables
-    input_e = new double[*number_of_oscillators];
+    input_e = new double[*::wilson_number_of_oscillators];
 
     // ------------- Declare output variables
-    double* output_bold = new double[*number_of_oscillators];
+    double* output_bold = new double[*::wilson_number_of_oscillators];
     PyObject *BOLD_array;
-    npy_intp dimensions[2] = {*number_of_oscillators, *number_of_integration_steps + 1};
+    npy_intp dimensions[2] = {*::wilson_number_of_oscillators, *::wilson_number_of_integration_steps + 1};
     BOLD_array = PyArray_EMPTY(2, dimensions, NPY_FLOAT64, 0);
         
     // ------------- Define state variables
-    f = new double[*number_of_oscillators];
-    q = new double[*number_of_oscillators];
-    s = new double[*number_of_oscillators];
-    v = new double[*number_of_oscillators];
-    differential_f = new double[*number_of_oscillators];
-    differential_q = new double[*number_of_oscillators];
-    differential_s = new double[*number_of_oscillators];
-    differential_v = new double[*number_of_oscillators];
-    differential_f2 = new double[*number_of_oscillators];
-    differential_q2 = new double[*number_of_oscillators];
-    differential_s2 = new double[*number_of_oscillators];
-    differential_v2 = new double[*number_of_oscillators];
-    activity_f = new double[*number_of_oscillators];
-    activity_q = new double[*number_of_oscillators];
-    activity_s = new double[*number_of_oscillators];
-    activity_v = new double[*number_of_oscillators];
+    f = new double[*::wilson_number_of_oscillators];
+    q = new double[*::wilson_number_of_oscillators];
+    s = new double[*::wilson_number_of_oscillators];
+    v = new double[*::wilson_number_of_oscillators];
+    differential_f = new double[*::wilson_number_of_oscillators];
+    differential_q = new double[*::wilson_number_of_oscillators];
+    differential_s = new double[*::wilson_number_of_oscillators];
+    differential_v = new double[*::wilson_number_of_oscillators];
+    differential_f2 = new double[*::wilson_number_of_oscillators];
+    differential_q2 = new double[*::wilson_number_of_oscillators];
+    differential_s2 = new double[*::wilson_number_of_oscillators];
+    differential_v2 = new double[*::wilson_number_of_oscillators];
+    activity_f = new double[*::wilson_number_of_oscillators];
+    activity_q = new double[*::wilson_number_of_oscillators];
+    activity_s = new double[*::wilson_number_of_oscillators];
+    activity_v = new double[*::wilson_number_of_oscillators];
 
     // ------------- Define helper variables
-    alpha = new double[*number_of_oscillators];
-    gamma = new double[*number_of_oscillators];
-    kappa = new double[*number_of_oscillators];
-    rho = new double[*number_of_oscillators];
-    tau = new double[*number_of_oscillators];
-    c1 = new double[*number_of_oscillators];
-    c3 = new double[*number_of_oscillators];
+    alpha = new double[*::wilson_number_of_oscillators];
+    gamma = new double[*::wilson_number_of_oscillators];
+    kappa = new double[*::wilson_number_of_oscillators];
+    rho = new double[*::wilson_number_of_oscillators];
+    tau = new double[*::wilson_number_of_oscillators];
+    c1 = new double[*::wilson_number_of_oscillators];
+    c3 = new double[*::wilson_number_of_oscillators];
 
     std::default_random_engine generator(1);
 
     // ------------- Check numpy array with electrical signal to ensure correct dimensions and type
     // Check it's a numpy array
-    if (!PyArray_Check(E_array))
+    if (!PyArray_Check(::wilson_electrical_activity))
     {
-        std::string warning_string = "Expected a numpy array for the electrical activity, but it is " + std::to_string(PyArray_Check(E_array));
+        std::string warning_string = "Expected a numpy array for the electrical activity, but it is " + std::to_string(PyArray_Check(::wilson_electrical_activity));
         PyErr_SetString(PyExc_TypeError, warning_string.c_str());
-        return {NULL};
+        return {};
     }
     // Check it's a 2D array
-    if (PyArray_NDIM(E_array) != 2)
+    if (PyArray_NDIM(::wilson_electrical_activity) != 2)
     {
-        std::string warning_string = "Expected a 2D numpy array for the electrical activity, but it is " + std::to_string(PyArray_NDIM(E_array)) + "D";
+        std::string warning_string = "Expected a 2D numpy array for the electrical activity, but it is " + std::to_string(PyArray_NDIM(::wilson_electrical_activity)) + "D";
         PyErr_SetString(PyExc_TypeError, warning_string.c_str());
-        return {NULL};
+        return {};
     }
     // Check it's a float64 array
-    if (PyArray_TYPE(E_array) != NPY_FLOAT64)
+    if (PyArray_TYPE(::wilson_electrical_activity) != NPY_FLOAT64)
     {
-        std::string warning_string = "Expected a float64 numpy array for the electrical activity, but it is " + std::to_string(PyArray_TYPE(E_array));
+        std::string warning_string = "Expected a float64 numpy array for the electrical activity, but it is " + std::to_string(PyArray_TYPE(::wilson_electrical_activity));
         PyErr_SetString(PyExc_TypeError, warning_string.c_str());
-        return {NULL};
+        return {};
     }
     // Check it has the correct dimensions
-    e_array_size = PyArray_DIMS(E_array);
-    if (e_array_size[0] != *number_of_oscillators || e_array_size[1] != *number_of_integration_steps + 1)
+    e_array_size = PyArray_DIMS(::wilson_electrical_activity);
+    if (e_array_size[0] != *::wilson_number_of_oscillators || e_array_size[1] != *::wilson_number_of_integration_steps + 1)
     {   
         std::string warning_string = "Expected a numpy array with the dimensions (*num_osc, *n_step + 1) for the electrical activity, but it's " + std::to_string(e_array_size[0]) + "x" + std::to_string(e_array_size[1]);
         PyErr_SetString(PyExc_TypeError, warning_string.c_str());
-        return {NULL};
+        return {};
     }
 
     // ------------- Initialize values of state variables, [0, 0.1]
-    for (int i = 0; i < *number_of_oscillators; i++)
+    for (int i = 0; i < *::wilson_number_of_oscillators; i++)
     {
         // Initialize state variables
         f[i] = rand_std_uniform(generator) * 0.1;
@@ -205,7 +190,7 @@ static PyObject *electrical_to_bold(PyObject *self, PyObject *args)
     // ------------- Initialize values of helper variables
     *c2 = 2.000;
     *V0 = 0.020;
-    for (int i = 0; i < *number_of_oscillators; i++)
+    for (int i = 0; i < *::wilson_number_of_oscillators; i++)
     {
         // Initialize helper variables
         alpha[i] = 1 / (0.320 + rand_std_normal(generator) * 0.039);
@@ -218,7 +203,7 @@ static PyObject *electrical_to_bold(PyObject *self, PyObject *args)
     }
 
     // ------------- Initialize output matrix
-    for (int i = 0; i < *number_of_oscillators; i++)
+    for (int i = 0; i < *::wilson_number_of_oscillators; i++)
     {
         output_bold[i] = c1[i] * (1 - q[i]);
         output_bold[i] += *c2 * (1 - q[i] / v[i]);
@@ -227,19 +212,19 @@ static PyObject *electrical_to_bold(PyObject *self, PyObject *args)
     }
 
     // ------------- CONVERSIONS BABEY
-    for (int step = 1; step <= *number_of_integration_steps; step++)
+    for (int step = 1; step <= *::wilson_number_of_integration_steps; step++)
     {
         // Get the electrical signal for this timestep from the Python input array
-        for (int i = 0; i < *number_of_oscillators; i++)
+        for (int i = 0; i < *::wilson_number_of_oscillators; i++)
         {
-            temp_variable = PyArray_GETITEM(E_array, PyArray_GETPTR2(E_array, i, step));
+            temp_variable = PyArray_GETITEM(::wilson_electrical_activity, PyArray_GETPTR2(::wilson_electrical_activity, i, step));
             input_e[i] = PyFloat_AsDouble(temp_variable);
             // Decrease reference for next
             Py_DECREF(temp_variable);
         }
 
         // ------------ Heun's Method - Step 1
-        for (int i = 0; i < *number_of_oscillators; i++)
+        for (int i = 0; i < *::wilson_number_of_oscillators; i++)
         {
             // Calculate differentials
             differential_f[i] = s[i];
@@ -252,13 +237,13 @@ static PyObject *electrical_to_bold(PyObject *self, PyObject *args)
             differential_v[i] = (f[i] - pow(v[i], alpha[i])) / tau[i];
 
             // First estimate of the new activity values
-            activity_f[i] = f[i] + *integration_step_size * differential_f[i];
-            activity_q[i] = q[i] + *integration_step_size * differential_q[i];
-            activity_s[i] = s[i] + *integration_step_size * differential_s[i];
-            activity_v[i] = v[i] + *integration_step_size * differential_v[i];
+            activity_f[i] = f[i] + *::wilson_integration_step_size * differential_f[i];
+            activity_q[i] = q[i] + *::wilson_integration_step_size * differential_q[i];
+            activity_s[i] = s[i] + *::wilson_integration_step_size * differential_s[i];
+            activity_v[i] = v[i] + *::wilson_integration_step_size * differential_v[i];
         }
         // ------------ Heun's Method - Step 2
-        for (int j = 0; j < *number_of_oscillators; j++)
+        for (int j = 0; j < *::wilson_number_of_oscillators; j++)
         {
             // Calculate differentials
             differential_f2[j] = activity_s[j];
@@ -271,54 +256,117 @@ static PyObject *electrical_to_bold(PyObject *self, PyObject *args)
             differential_v2[j] = (activity_f[j] - pow(activity_v[j], alpha[j])) / tau[j];
 
             // Second estimate of the new activity values
-            f[j] += *integration_step_size / 2 * (differential_f[j] + differential_f2[j]);
-            q[j] += *integration_step_size / 2 * (differential_q[j] + differential_q2[j]);
-            s[j] += *integration_step_size / 2 * (differential_s[j] + differential_s2[j]);
-            v[j] += *integration_step_size / 2 * (differential_v[j] + differential_v2[j]);
+            f[j] += *::wilson_integration_step_size / 2 * (differential_f[j] + differential_f2[j]);
+            q[j] += *::wilson_integration_step_size / 2 * (differential_q[j] + differential_q2[j]);
+            s[j] += *::wilson_integration_step_size / 2 * (differential_s[j] + differential_s2[j]);
+            v[j] += *::wilson_integration_step_size / 2 * (differential_v[j] + differential_v2[j]);
         }
 
         // Calculate BOLD signal
-        for (int osc = 0; osc < *number_of_oscillators; osc++)
+        for (int osc = 0; osc < *::wilson_number_of_oscillators; osc++)
         {
             output_bold[osc] = c1[osc] * (1 - q[osc]);
             output_bold[osc] += *c2 * (1 - q[osc] / v[osc]);
             output_bold[osc] += c3[osc] * (1 - v[osc]);
             output_bold[osc] *= *V0;
+            // Put into temporary variable
+            temp_variable = PyFloat_FromDouble(output_bold[osc]);
+            // Set item in BOLD_array
+            PyArray_SETITEM(BOLD_array, PyArray_GETPTR2(BOLD_array, osc, step), temp_variable);
+            // Decrease reference for next
+            Py_DECREF(temp_variable);
         }
     }
 
-    // ------------- Process the BOLD signal
-    printf("----------- Processing BOLD signal -----------\n");
-    int num_rows = *number_of_oscillators;
-    int num_columns = *number_of_integration_steps + 1;
-    int order = 4;
-    double cutoffLow = 0.5;
-    double cutoffHigh = 10;
-    double sampling_rate = 127;
-    double *bold_filtered = process_BOLD(output_bold, num_rows, num_columns, order,
-                                         cutoffLow, cutoffHigh, sampling_rate);
+    // ------------- Unpack the BOLD signal
+    printf("----------- Unpacking BOLD signal -----------\n");
+    // Printing the dimensions of the BOLD_array
+    npy_intp BOLD_dims[] = {PyArray_NDIM(BOLD_array)};
+    BOLD_dims[0] = PyArray_DIM(BOLD_array, 0);
+    BOLD_dims[1] = PyArray_DIM(BOLD_array, 1);
 
-    printf("Filtered array is: ", bold_filtered);
+    // Create a vector of doubles, to store the entire BOLD signal
+    std::vector<std::vector<double>> unpack_bold;
+    PyObject* time_sample;
+    
+    for (int i = 0; i < BOLD_dims[0]; ++i)
+    {   
+        printf("In processing signal %d\n", i);
+        
+        // Create another vector of doubles, to store timesamples for each BOLD signal
+        std::vector<double> samples_array;
+        
+        // For each BOLD signal in the BOLD signals, for each timestep
+        for (int j = 0; j < BOLD_dims[1]; ++j)
+        {   
+            // if (j % 10000 == 0)
+            //     printf("In timesample %d\n", j);
+            
+            // This will store the value in the bold array
+            double value;
 
-    // Put into bold array
-    for (int step = 1; step <= *number_of_integration_steps; step++)
+            // Get the time_sample point
+            time_sample = PyArray_GETITEM(BOLD_array, PyArray_GETPTR2(BOLD_array, i, j));
+
+            // Check thet each time sample is a float
+            if(PyFloat_Check(time_sample))
+                value = PyFloat_AsDouble(time_sample);
+            else {
+                printf("Not floats!!!");
+                PyErr_SetString(PyExc_TypeError, "must pass in list of list of number");
+                return {};
+            }
+            samples_array.push_back(value);
+            // Decrement the pointer reference
+            Py_DECREF(time_sample);
+        }
+        unpack_bold.push_back(samples_array);
+    }
+
+    // Saving it just for a sanity check
+    printf("----------- Saving unpacked BOLD signal -----------\n");
+    std::ofstream myfile;
+    myfile.open("temp_arrays/unpacked_bold.csv");
+    
+    for (size_t i = 0; i < BOLD_dims[0]; ++i)
     {
-        for (int osc = 0; osc < *number_of_oscillators; osc++)
-            {
-                // Put into temporary variable
-                temp_variable = PyFloat_FromDouble(bold_filtered[osc]);
-                // Set item in BOLD_array
-                PyArray_SETITEM(BOLD_array, PyArray_GETPTR2(BOLD_array, osc, step), temp_variable);
-                // Decrease reference for next
-                Py_DECREF(temp_variable);
+        for (size_t j = 0; j < BOLD_dims[1]; ++j)
+            if (j < (BOLD_dims[1] - 1)) {
+                myfile << unpack_bold[i][j] << ",";
+            }
+            else if (j == (BOLD_dims[1] - 1)) {
+                myfile << unpack_bold[i][j] << "\n";
             }
     }
 
+    printf("----------- Filtering the BOLD signal -----------\n");
+    // Defining filter parameters
+    // int order = 4;
+    // double cutoffLow = 0.5;
+    // double cutoffHigh = 10;
+    // double sampling_rate = 127;
+    // std::vector<std::vector<double>> bold_filtered = process_BOLD(unpack_bold, BOLD_dims[0], BOLD_dims[1], order,
+    //                                                                 cutoffLow, cutoffHigh, sampling_rate);
+
+
+    // // Saving it just for a sanity check
+    // printf("----------- Saving filtered BOLD signal -----------\n");
+    // std::ofstream myfile2;
+    // myfile2.open("temp_arrays/filtered_bold.csv");
+    
+    // for (size_t i = 0; i < BOLD_dims[0]; ++i)
+    // {
+    //     for (size_t j = 0; j < BOLD_dims[1]; ++j)
+    //         if (j < (BOLD_dims[1] - 1)) {
+    //             myfile2 << bold_filtered[i][j] << ",";
+    //         }
+    //         else if (j == (BOLD_dims[1] - 1)) {
+    //             myfile2 << bold_filtered[i][j] << "\n";
+    //         }
+    // }
+
     // ------------- Free memory
     // Delete input variables
-    delete number_of_oscillators;
-    delete number_of_integration_steps;
-    delete integration_step_size;
     delete[] input_e;
 
     // Delete state variables
@@ -351,7 +399,7 @@ static PyObject *electrical_to_bold(PyObject *self, PyObject *args)
     delete V0;
 
     // ------------- Return output
-    return BOLD_array;
+    return unpack_bold;
 }
 
 // Response function for Wilson Model
@@ -531,14 +579,14 @@ static PyObject* parsing_wilson_inputs(PyObject* self, PyObject *args)
             // Get the lower_idxs matrix
             temp_variable = PyArray_GETITEM(lower_idxs, PyArray_GETPTR2(lower_idxs, i, j));
             *temp_long = PyLong_AsLong(temp_variable);
-            ::wilson_lower_idxs_mat[i * *::wilson_number_of_oscillators + j] = (int)*temp_long;
+            ::wilson_lower_idxs_mat[i * *::wilson_number_of_oscillators + j] = *temp_long;
             // Decrease reference for next
             Py_DECREF(temp_variable);
 
             // Get the upper_idxs matrix
             temp_variable = PyArray_GETITEM(upper_idxs, PyArray_GETPTR2(upper_idxs, i, j));
             *temp_long = PyLong_AsLong(temp_variable);
-            ::wilson_upper_idxs_mat[i * *::wilson_number_of_oscillators + j] = (int)*temp_long;
+            ::wilson_upper_idxs_mat[i * *::wilson_number_of_oscillators + j] = *temp_long;
             // Decrease reference for next
             Py_DECREF(temp_variable);
         }
@@ -662,8 +710,9 @@ double wilson_objective(unsigned int input_dim, const double *initial_query, dou
     // ------------ TEMPORAL INTEGRATION
     printf("---- Temporal integration ----\n");
     for (int step = 1; step <= *::wilson_number_of_integration_steps; step++)
-    {
-        printf("-- Temporal integration step %d --\n", step);
+    {   
+        if (step % 10000 == 0)
+            printf("-- Temporal integration step %d --\n", step);
         // printf("-- Heun's Method - Step 1 --\n");
         // ------------ Heun's Method - Step 1
         for (int node = 0; node < *::wilson_number_of_oscillators; node++)
@@ -810,7 +859,7 @@ double wilson_objective(unsigned int input_dim, const double *initial_query, dou
     // printf("---- Check output variables ----\n");
     // check_type((boost::any)::wilson_electrical_activity, "struct __object * __ptr64", "wilson_electrical_activity");
 
-    printf("---- Free memory ----\n");
+    printf("---- Free memory - Electrical ----\n");
 
     // Delete single-value helper variables
     delete temp_long;
@@ -833,22 +882,29 @@ double wilson_objective(unsigned int input_dim, const double *initial_query, dou
     // Delete noise array
     delete[] noises_array;
 
-    // ------------- Return output variables
-    printf("---- Shape of electrical activity: %d ----\n", PyArray_NDIM(::wilson_electrical_activity));
-    printf("electrical_activity: ", ::wilson_electrical_activity);
-    // return ::wilson_electrical_activity;
+    // ------------- Got electrical activity
+    printf("---- Shape of electrical activity: %d x %d----\n", PyArray_DIMS(::wilson_electrical_activity)[0], 
+                                                                PyArray_DIMS(::wilson_electrical_activity)[1]);
+
+    // ------------- Convert the signal to BOLD
+    printf("---- Converting electrical activity to BOLD ----\n");
+    std::vector<std::vector<double>> bold_signal = electrical_to_bold();
+
+    // Printing shape of bold signal
+    printf("---- Shape of BOLD signal: %d x %d----\n", bold_signal.size(), bold_signal[0].size());
+
 
     return 1;
 }
 
 // Function that wraps these functions into methods of a module
 static PyMethodDef IntegrationMethods[] = {
-    { // BOLD model
-        "electrical_to_bold",
-        electrical_to_bold,
-        METH_VARARGS,
-        "Solves the BOLD model equations, and returns BOLD activity"
-    },
+    // { // BOLD model
+    //     "electrical_to_bold",
+    //     electrical_to_bold,
+    //     METH_VARARGS,
+    //     "Solves the BOLD model equations, and returns BOLD activity"
+    // },
     {
         "wilson_model",
         parsing_wilson_inputs,

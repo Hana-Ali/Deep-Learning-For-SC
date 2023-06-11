@@ -224,36 +224,53 @@ double *ComputeDenCoeffs(int FilterOrder, double Lcutoff, double Ucutoff)
     return DenomCoeffs;
 }
 
-double filter(int ord, double *a, double *b, int np, double *x, double *y)
+std::vector<double> filter(int order, double *denom_coeff, double *numer_coeff, int number_samples, 
+                            std::vector<double> original_signal, std::vector<double> filtered_signal)
 {
     int i, j;
-    y[0]= b[0] * x[0];
-    for (i = 1;i < ord+1; i++)
+
+    // Initialize the filtered signal
+    filtered_signal[0] = numer_coeff[0] * original_signal[0];
+
+    // For every order of the filter
+    for (i = 1; i < order+1; i++)
     {
-     y[i]=0.0;
-     for (j=0;j<i+1;j++)
-      y[i]=y[i]+b[j]*x[i-j];
-     for (j=0;j<i;j++)
-      y[i]=y[i]-a[j+1]*y[i-j-1];
-    }
-    for (i=ord+1;i<np+1;i++)
-    {
-     y[i]=0.0;
-     for (j=0;j<ord+1;j++)
-      y[i]=y[i]+b[j]*x[i-j];
-     for (j=0;j<ord;j++)
-      y[i]=y[i]-a[j+1]*y[i-j-1];
+        // Initialize ith element to 0
+        filtered_signal[i] = 0.0;
+        
+        // Filtering - numerator
+        for (j = 0; j < i + 1; j++)
+            filtered_signal[i] = filtered_signal[i] + numer_coeff[j] * original_signal[i - j];
+        // Filtering - denominator
+        for (j = 0; j < i; j++)
+            filtered_signal[i] = filtered_signal[i] - denom_coeff[j + 1] * filtered_signal[i - j - 1];
     }
 
-    return *y;
+    // Order to number of samples - filtering
+    for (i = order + 1; i < number_samples + 1; i++)
+    {   
+        // Initialize ith element to 0
+        filtered_signal[i] = 0.0;
+        
+        // Filtering - numerator
+        for (j = 0; j < order + 1; j++)
+            filtered_signal[i] = filtered_signal[i] + numer_coeff[j] * original_signal[i - j];
+
+        // Filtering - denominator
+        for (j = 0; j < order; j++)
+            filtered_signal[i] = filtered_signal[i] - denom_coeff[j + 1] * filtered_signal[i - j - 1];
+    }
+
+    return filtered_signal;
 }
 
 
 // Function to process the BOLD data - same as in Python helper_funcs.py file
-double *process_BOLD(double *BOLD_signal, int num_rows, int num_columns, int order, double samplingFrequency, double cutoffFrequencyLow, double cutoffFrequencyHigh)
+std::vector<std::vector<double>> process_BOLD(std::vector<std::vector<double>> BOLD_signal, int num_rows, int num_columns, int order, 
+                                                double samplingFrequency, double cutoffFrequencyLow, double cutoffFrequencyHigh)
 {   
     // Create the filtered signal object
-    double *filteredSignal = new double[num_rows * num_columns];
+    std::vector<std::vector<double>> filteredSignal;
 
     // Create filter objects
     // These values are as a ratio of f/fs, where fs is sampling rate, and f is cutoff frequency
@@ -269,19 +286,21 @@ double *process_BOLD(double *BOLD_signal, int num_rows, int num_columns, int ord
     printf("Finding the mean across the columns\n");
     double *mean = new double[num_columns];
     // Calculate the mean across the columns
-    for (int col = 0; col < num_columns; col++) {
+    for (int row = 0; row < num_rows; row++) {
         double colSum = 0.0;
-        for (int row = 0; row < num_rows; row++) {
-            colSum += BOLD_signal[row, col];
+        for (int col = 0; col < num_columns; col++) {
+            colSum += BOLD_signal[row][col];
+            // printf("column %d, colSum is: %lf\n", col, colSum);
         }
-        mean[col] = colSum / num_rows;
+        printf("Row %i, column sum is %f\n", row, colSum);
+        mean[row] = colSum / num_rows;
     }
 
     // Remove the mean from each column
     printf("Removing the mean from each column\n");
-    for (int row = 0; row < num_rows; ++row) {
-        for (int col = 0; col < num_columns; ++col) {
-            BOLD_signal[row, col] -= mean[col];
+    for (int row = 0; row < num_rows; row++) {
+        for (int col = 0; col < num_columns; col++) {
+            BOLD_signal[row][col] -= mean[col];
         }
     }
 
@@ -298,10 +317,10 @@ double *process_BOLD(double *BOLD_signal, int num_rows, int num_columns, int ord
     // Applying the filter forwards and backwards
     printf("Applying the filter forwards and backwards\n");
     for (int row = 0; row < num_rows; row++)
-        filteredSignal[row] = filter(order, DenC, NumC, num_columns, &BOLD_signal[row], &filteredSignal[row]);
+        filteredSignal[row] = filter(order, DenC, NumC, num_columns, BOLD_signal[row], filteredSignal[row]);
     
     for (int row = num_rows - 1; row >= 0; row--)
-        filteredSignal[row] = filter(order, DenC, NumC, num_columns, &BOLD_signal[row], &filteredSignal[row]);
+        filteredSignal[row] = filter(order, DenC, NumC, num_columns, BOLD_signal[row], filteredSignal[row]);
 
     return filteredSignal;
 }

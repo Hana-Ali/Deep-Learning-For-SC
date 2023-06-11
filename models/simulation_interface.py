@@ -189,92 +189,91 @@ def wilson_electrical_sim(args):
     check_shape(simulation_results, (number_oscillators, number_integration_steps + 1), 'wilson_simulation_results')
 
     # --------- Convert electrical to BOLD
-    sim_bold = sim.electrical_to_bold(simulation_results, 
-                                          number_oscillators,
-                                          number_integration_steps,
-                                          integration_step_size)
-    # Check results shape
-    check_shape(sim_bold, (number_oscillators, number_integration_steps + 1), 'wilson_simulation_bold')
+    # sim_bold = sim.electrical_to_bold()
 
-    # --------- Ignore initialization (and downsample?)
-    sim_bold = sim_bold[:, start_save_idx - downsampling_rate + 1 :]
-    # sim_bold = sim_bold[:, start_save_idx:]
+    # np.savetxt('BOLD_array.csv', sim_bold, delimiter=",")
+    # # Check results shape
+    # check_shape(sim_bold, (number_oscillators, number_integration_steps + 1), 'wilson_simulation_bold')
 
-    # --------- Determine order parameter
-    R_mean, R_std = determine_order_R(simulation_results, number_oscillators, int(1 / integration_step_size))
+    # # --------- Ignore initialization (and downsample?)
+    # sim_bold = sim_bold[:, start_save_idx - downsampling_rate + 1 :]
+    # # sim_bold = sim_bold[:, start_save_idx:]
 
-    # --------- Calculate FC
-    # sim_bold = process_BOLD(sim_bold)
-    sim_FC = np.corrcoef(sim_bold)
-    np.fill_diagonal(sim_FC, 0.0)
-    np.savetxt('bold.csv', sim_bold, fmt="% .4f", delimiter=",")
-    np.savetxt('sim_FC.csv', sim_FC, fmt="% .8f", delimiter=",")
+    # # --------- Determine order parameter
+    # R_mean, R_std = determine_order_R(simulation_results, number_oscillators, int(1 / integration_step_size))
 
-    # Check the same of the simulated FC matrix
-    check_shape(sim_FC, (number_oscillators, number_oscillators), 'sim_FC')
+    # # --------- Calculate FC
+    # # sim_bold = process_BOLD(sim_bold)
+    # sim_FC = np.corrcoef(sim_bold)
+    # np.fill_diagonal(sim_FC, 0.0)
+    # np.savetxt('bold.csv', sim_bold, fmt="% .4f", delimiter=",")
+    # np.savetxt('sim_FC.csv', sim_FC, fmt="% .8f", delimiter=",")
+
+    # # Check the same of the simulated FC matrix
+    # check_shape(sim_FC, (number_oscillators, number_oscillators), 'sim_FC')
     
-    # --------- Calculate simFC <-> empFC correlation
-    empFC_simFC_corr = determine_similarity(FC, sim_FC)
+    # # --------- Calculate simFC <-> empFC correlation
+    # empFC_simFC_corr = determine_similarity(FC, sim_FC)
 
-    # --------- Save the results
-    # Define folder path for all simulations
-    folder_name = "wilson_Coupling{:.4f}Delay{:.4f}\\".format(coupling_strength, delay)
-    # Define main paths for each thing
-    electric_path_main = os.path.join(write_path, folder_name)
-    bold_path_main = os.path.join(write_path, folder_name)
-    FC_path_main = os.path.join(write_path, folder_name)
-    R_path_main = os.path.join(write_path, folder_name)
-    empFC_simFC_corr_path_main = os.path.join(write_path, folder_name)
-    # Make paths if they don't exist
-    if not os.path.exists(electric_path_main):
-        os.makedirs(electric_path_main)
-    if not os.path.exists(bold_path_main):
-        os.makedirs(bold_path_main)
-    if not os.path.exists(FC_path_main):
-        os.makedirs(FC_path_main)
-    if not os.path.exists(R_path_main):
-        os.makedirs(R_path_main)
-    if not os.path.exists(empFC_simFC_corr_path_main):
-        os.makedirs(empFC_simFC_corr_path_main)
-    # Define paths for this simulation
-    electric_path = os.path.join(electric_path_main, "electric.csv")
-    bold_path = os.path.join(bold_path_main, "bold.csv")
-    FC_path = os.path.join(FC_path_main, "FC.csv")
-    R_path = os.path.join(R_path_main, "R.csv")
-    empFC_simFC_corr_path = os.path.join(empFC_simFC_corr_path_main, "empFC_simFC_corr.csv")
+    # # --------- Save the results
+    # # Define folder path for all simulations
+    # folder_name = "wilson_Coupling{:.4f}Delay{:.4f}\\".format(coupling_strength, delay)
+    # # Define main paths for each thing
+    # electric_path_main = os.path.join(write_path, folder_name)
+    # bold_path_main = os.path.join(write_path, folder_name)
+    # FC_path_main = os.path.join(write_path, folder_name)
+    # R_path_main = os.path.join(write_path, folder_name)
+    # empFC_simFC_corr_path_main = os.path.join(write_path, folder_name)
+    # # Make paths if they don't exist
+    # if not os.path.exists(electric_path_main):
+    #     os.makedirs(electric_path_main)
+    # if not os.path.exists(bold_path_main):
+    #     os.makedirs(bold_path_main)
+    # if not os.path.exists(FC_path_main):
+    #     os.makedirs(FC_path_main)
+    # if not os.path.exists(R_path_main):
+    #     os.makedirs(R_path_main)
+    # if not os.path.exists(empFC_simFC_corr_path_main):
+    #     os.makedirs(empFC_simFC_corr_path_main)
+    # # Define paths for this simulation
+    # electric_path = os.path.join(electric_path_main, "electric.csv")
+    # bold_path = os.path.join(bold_path_main, "bold.csv")
+    # FC_path = os.path.join(FC_path_main, "FC.csv")
+    # R_path = os.path.join(R_path_main, "R.csv")
+    # empFC_simFC_corr_path = os.path.join(empFC_simFC_corr_path_main, "empFC_simFC_corr.csv")
 
-    print('paths are', electric_path, bold_path, FC_path, R_path, empFC_simFC_corr_path)
+    # print('paths are', electric_path, bold_path, FC_path, R_path, empFC_simFC_corr_path)
 
-    # Downsample BOLD
-    sim_bold = sim_bold[:, downsampling_rate - 1 :: downsampling_rate]
-    # Save the results
-    np.savetxt(electric_path, simulation_results, delimiter=",")
-    np.savetxt(bold_path, sim_bold, fmt="% .4f", delimiter=",")
-    np.savetxt(FC_path, sim_FC, fmt="% .8f", delimiter=",")
-    np.savetxt(R_path, np.array([R_mean, R_std]), delimiter=",")
-    np.savetxt(empFC_simFC_corr_path, np.array([empFC_simFC_corr]), delimiter=",")
+    # # Downsample BOLD
+    # sim_bold = sim_bold[:, downsampling_rate - 1 :: downsampling_rate]
+    # # Save the results
+    # np.savetxt(electric_path, simulation_results, delimiter=",")
+    # np.savetxt(bold_path, sim_bold, fmt="% .4f", delimiter=",")
+    # np.savetxt(FC_path, sim_FC, fmt="% .8f", delimiter=",")
+    # np.savetxt(R_path, np.array([R_mean, R_std]), delimiter=",")
+    # np.savetxt(empFC_simFC_corr_path, np.array([empFC_simFC_corr]), delimiter=",")
 
-    # Save the plots
-    plt.figure()
-    print('sim_bold shape is', sim_bold.shape)
-    # print('After expand dims, the first is dim', np.expand_dims(sim_bold[0, :], axis=0).shape)
-    plt.imshow(np.expand_dims(sim_bold[0, :], axis=0))
-    # cmap
-    plt.set_cmap('jet')
-    plt.savefig(os.path.join(bold_path_main, "bold.png"))
+    # # Save the plots
+    # plt.figure()
+    # print('sim_bold shape is', sim_bold.shape)
+    # # print('After expand dims, the first is dim', np.expand_dims(sim_bold[0, :], axis=0).shape)
+    # plt.imshow(np.expand_dims(sim_bold[0, :], axis=0))
+    # # cmap
+    # plt.set_cmap('jet')
+    # plt.savefig(os.path.join(bold_path_main, "bold.png"))
 
-    plt.figure()
-    plt.imshow(sim_FC)
-    plt.savefig(os.path.join(FC_path_main, "FC.png"))
+    # plt.figure()
+    # plt.imshow(sim_FC)
+    # plt.savefig(os.path.join(FC_path_main, "FC.png"))
     
-    # --------- Return the results
-    # Create dictionary of results
-    results = {
-        'coupling_strength': coupling_strength,
-        'delay': delay,
-        'R_mean': R_mean,
-        'R_std': R_std,
-        'empFC_simFC_corr': empFC_simFC_corr
-    }
+    # # --------- Return the results
+    # # Create dictionary of results
+    # results = {
+    #     'coupling_strength': coupling_strength,
+    #     'delay': delay,
+    #     'R_mean': R_mean,
+    #     'R_std': R_std,
+    #     'empFC_simFC_corr': empFC_simFC_corr
+    # }
 
-    return results
+    return 0
