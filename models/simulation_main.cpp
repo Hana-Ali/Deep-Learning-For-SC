@@ -341,29 +341,29 @@ std::vector<std::vector<double>> electrical_to_bold()
 
     printf("----------- Filtering the BOLD signal -----------\n");
     // Defining filter parameters
-    // int order = 4;
-    // double cutoffLow = 0.5;
-    // double cutoffHigh = 10;
-    // double sampling_rate = 127;
-    // std::vector<std::vector<double>> bold_filtered = process_BOLD(unpack_bold, BOLD_dims[0], BOLD_dims[1], order,
-    //                                                                 cutoffLow, cutoffHigh, sampling_rate);
+    int order = 4;
+    double cutoffLow = 1.5;
+    double cutoffHigh = 2.5;
+    double sampling_rate = 20;
+    std::vector<std::vector<double>> bold_filtered = process_BOLD(unpack_bold, BOLD_dims[0], BOLD_dims[1], order,
+                                                                    cutoffLow, cutoffHigh, sampling_rate);
 
 
-    // // Saving it just for a sanity check
-    // printf("----------- Saving filtered BOLD signal -----------\n");
-    // std::ofstream myfile2;
-    // myfile2.open("temp_arrays/filtered_bold.csv");
+    // Saving it just for a sanity check
+    printf("----------- Saving filtered BOLD signal -----------\n");
+    std::ofstream myfile2;
+    myfile2.open("temp_arrays/filtered_bold.csv");
     
-    // for (size_t i = 0; i < BOLD_dims[0]; ++i)
-    // {
-    //     for (size_t j = 0; j < BOLD_dims[1]; ++j)
-    //         if (j < (BOLD_dims[1] - 1)) {
-    //             myfile2 << bold_filtered[i][j] << ",";
-    //         }
-    //         else if (j == (BOLD_dims[1] - 1)) {
-    //             myfile2 << bold_filtered[i][j] << "\n";
-    //         }
-    // }
+    for (size_t i = 0; i < BOLD_dims[0]; ++i)
+    {
+        for (size_t j = 0; j < BOLD_dims[1]; ++j)
+            if (j < (BOLD_dims[1] - 1)) {
+                myfile2 << bold_filtered[i][j] << ",";
+            }
+            else if (j == (BOLD_dims[1] - 1)) {
+                myfile2 << bold_filtered[i][j] << "\n";
+            }
+    }
 
     // ------------- Free memory
     // Delete input variables
@@ -891,7 +891,7 @@ double wilson_objective(unsigned int input_dim, const double *initial_query, dou
     std::vector<std::vector<double>> bold_signal = electrical_to_bold();
 
     // Printing shape of bold signal
-    printf("---- Shape of BOLD signal: %d x %d----\n", bold_signal.size(), bold_signal[0].size());
+    printf("---- Shape of BOLD signal: %zd x %zd----\n", bold_signal.size(), bold_signal[0].size());
 
 
     return 1;
