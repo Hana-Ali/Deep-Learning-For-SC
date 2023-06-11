@@ -291,7 +291,12 @@ static PyObject *electrical_to_bold(PyObject *self, PyObject *args)
     printf("----------- Processing BOLD signal -----------\n");
     int num_rows = *number_of_oscillators;
     int num_columns = *number_of_integration_steps + 1;
-    double *bold_filtered = process_BOLD(output_bold, num_rows, num_columns, 4, 0.7, 0.01, 0.1);
+    int order = 4;
+    double cutoffLow = 0.5;
+    double cutoffHigh = 10;
+    double sampling_rate = 127;
+    double *bold_filtered = process_BOLD(output_bold, num_rows, num_columns, order,
+                                         cutoffLow, cutoffHigh, sampling_rate);
 
     printf("Filtered array is: ", bold_filtered);
 

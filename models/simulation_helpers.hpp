@@ -42,124 +42,6 @@ void check_type(boost::any input, const std::string& expected_type, const std::s
 //     }
 // }
 
-// Butterworth bandpass filter class
-class ButterworthBandpassFilter {
-private:
-    int order;
-    double samplingFrequency;
-    double cutoffFrequencyLow;
-    double cutoffFrequencyHigh;
-    std::vector<double> coefficients;
-
-public:
-    public:
-    ButterworthBandpassFilter(int filterOrder, double samplingFreq, double cutoffFreqLow, double cutoffFreqHigh)
-        : order(filterOrder),
-          samplingFrequency(samplingFreq),
-          cutoffFrequencyLow(cutoffFreqLow),
-          cutoffFrequencyHigh(cutoffFreqHigh) {
-        calculateCoefficients();
-    }
-
-    double* filter(double* input, int num_rows, int num_columns, int order) {
-
-        double* filteredSignal = new double[num_rows * num_columns];
-
-        for (int channel = 0; channel < num_rows; ++channel) {
-            static double* inputs = new double [order + 1, 0.0];
-            static double* outputs = new double [order + 1, 0.0];
-
-            printf("Filtering row %d\n", channel);
-            for (int sample = 0; sample < num_columns; ++sample) {
-                double inputValue = input[channel, sample];
-
-                // Forward filtering
-                double forwardOutput = 0.0;
-                for (int i = 0; i <= order; ++i) {
-                    forwardOutput += coefficients[i] * inputs[i];
-                    inputs[i] = inputValue;
-                    inputValue = inputs[i + 1];
-                }
-
-                // Backward filtering
-                double backwardOutput = 0.0;
-                for (int i = order; i >= 0; --i) {
-                    backwardOutput += coefficients[i] * outputs[i];
-                    outputs[i] = forwardOutput;
-                    forwardOutput = outputs[i - 1];
-                }
-
-                filteredSignal[channel, sample] = backwardOutput;
-            }
-        }
-
-        return filteredSignal;
-    }
-
-private:
-    void calculateCoefficients() {
-        coefficients.resize(order + 1, 0.0);
-
-        double wcLow = 2.0 * M_PI * cutoffFrequencyLow / samplingFrequency;
-        double wcHigh = 2.0 * M_PI * cutoffFrequencyHigh / samplingFrequency;
-        double wcLowSquared = wcLow * wcLow;
-        double wcHighSquared = wcHigh * wcHigh;
-        double wcProduct = wcLow * wcHigh;
-
-        double denominator = wcHigh - wcLow;
-        for (int k = 0; k <= order; ++k) {
-            double numerator = sin((2 * k + 1) * M_PI / (2 * order));
-            double factor = 1.0;
-            if (k == order / 2) {
-                if (order % 2 == 0)
-                    factor = wcProduct;
-                else
-                    factor = 2 * wcLow;
-            } else {
-                factor = 2 * wcProduct * sin((k + 0.5) * M_PI / order);
-            }
-            coefficients[k] = numerator / (denominator * factor);
-        }
-    }
-};
-
-// Function to process the BOLD data - same as in Python helper_funcs.py file
-double *process_BOLD(double *BOLD_signal, int num_rows, int num_columns, int order, double samplingFrequency, double cutoffFrequencyLow, double cutoffFrequencyHigh)
-{   
-    // Create the filtered signal object
-    double *filteredSignal = new double[num_rows * num_columns];
-
-    // Create the Butterworth bandpass filter
-    printf("Creating the Butterworth bandpass filter\n");
-    ButterworthBandpassFilter butter_filter(order, samplingFrequency, cutoffFrequencyLow, cutoffFrequencyHigh);
-
-    // Find the mean across the columns
-    printf("Finding the mean across the columns\n");
-    double *mean = new double[num_columns];
-    // Calculate the mean across the columns
-    for (int col = 0; col < num_columns; ++col) {
-        double colSum = 0.0;
-        for (int row = 0; row < num_rows; ++row) {
-            colSum += BOLD_signal[row, col];
-        }
-        mean[col] = colSum / num_rows;
-    }
-
-    // Remove the mean from each column
-    printf("Removing the mean from each column\n");
-    for (int row = 0; row < num_rows; ++row) {
-        for (int col = 0; col < num_columns; ++col) {
-            BOLD_signal[row, col] -= mean[col];
-        }
-    }
-
-    // Apply the zero-phase filter to each signal
-    printf("Applying the zero-phase filter to each signal\n");
-    filteredSignal = butter_filter.filter(BOLD_signal, num_rows, num_columns, order);
-
-    return filteredSignal;
-}
-
 #define N 10 //The number of images which construct a time series for each pixel
 #define PI 3.1415926535897932384626433832795
 
@@ -342,11 +224,11 @@ double *ComputeDenCoeffs(int FilterOrder, double Lcutoff, double Ucutoff)
     return DenomCoeffs;
 }
 
-void filter(int ord, double *a, double *b, int np, double *x, double *y)
+double filter(int ord, double *a, double *b, int np, double *x, double *y)
 {
-    int i,j;
-    y[0]=b[0] * x[0];
-    for (i=1;i<ord+1;i++)
+    int i, j;
+    y[0]= b[0] * x[0];
+    for (i = 1;i < ord+1; i++)
     {
      y[i]=0.0;
      for (j=0;j<i+1;j++)
@@ -362,52 +244,64 @@ void filter(int ord, double *a, double *b, int np, double *x, double *y)
      for (j=0;j<ord;j++)
       y[i]=y[i]-a[j+1]*y[i-j-1];
     }
+
+    return *y;
 }
 
-int main(int argc, char *argv[])
-{
-    (void)argc;
-    (void)argv;
-    //Frequency bands is a vector of values - Lower Frequency Band and Higher Frequency Band
 
-    //First value is lower cutoff and second value is higher cutoff
-    //f1 = 0.5Gz f2=10Gz
-    //fs=127Gz
-    //Kotelnikov/2=Nyquist (127/2)
-    double FrequencyBands[2] = {0.5/(127.0/2.0),10.0/(127.0/2.0)};//these values are as a ratio of f/fs, where fs is sampling rate, and f is cutoff frequency
-    //and therefore should lie in the range [0 1]
-    //Filter Order
-    int FiltOrd = 2;//5;
+// Function to process the BOLD data - same as in Python helper_funcs.py file
+double *process_BOLD(double *BOLD_signal, int num_rows, int num_columns, int order, double samplingFrequency, double cutoffFrequencyLow, double cutoffFrequencyHigh)
+{   
+    // Create the filtered signal object
+    double *filteredSignal = new double[num_rows * num_columns];
 
-    //Pixel Time Series
-    /*int PixelTimeSeries[N];
-    int outputSeries[N];
-    */
+    // Create filter objects
+    // These values are as a ratio of f/fs, where fs is sampling rate, and f is cutoff frequency
+    double FrequencyBands[2] = {
+        cutoffFrequencyLow/(samplingFrequency/2.0),
+        cutoffFrequencyHigh/(samplingFrequency/2.0)
+    };
     //Create the variables for the numerator and denominator coefficients
     double *DenC = 0;
     double *NumC = 0;
-    //Pass Numerator Coefficients and Denominator Coefficients arrays into function, will return the same
 
-    printf("\n");
-
-    //is A in matlab function and the numbers are correct
-    DenC = ComputeDenCoeffs(FiltOrd, FrequencyBands[0], FrequencyBands[1]);
-    for(int k = 0; k<2*FiltOrd+1; k++)
-    {
-     printf("DenC is: %lf\n", DenC[k]);
+    // Find the mean across the columns
+    printf("Finding the mean across the columns\n");
+    double *mean = new double[num_columns];
+    // Calculate the mean across the columns
+    for (int col = 0; col < num_columns; col++) {
+        double colSum = 0.0;
+        for (int row = 0; row < num_rows; row++) {
+            colSum += BOLD_signal[row, col];
+        }
+        mean[col] = colSum / num_rows;
     }
 
-    printf("\n");
-
-    NumC = ComputeNumCoeffs(FiltOrd,FrequencyBands[0],FrequencyBands[1],DenC);
-    for(int k = 0; k<2*FiltOrd+1; k++)
-    {
-     printf("NumC is: %lf\n", NumC[k]);
+    // Remove the mean from each column
+    printf("Removing the mean from each column\n");
+    for (int row = 0; row < num_rows; ++row) {
+        for (int col = 0; col < num_columns; ++col) {
+            BOLD_signal[row, col] -= mean[col];
+        }
     }
 
+    // Finding the coefficients of the filter
+    printf("Finding the coefficients of the filter\n");
+    DenC = ComputeDenCoeffs(order, FrequencyBands[0], FrequencyBands[1]);
+    for(int k = 0; k<2*order+1; k++)
+        printf("DenC is: %lf\n", DenC[k]);
 
-    double y[5];
-    double x[5]={1,2,3,4,5};
-    filter(5, DenC, NumC, 5, x, y);
-    return 1;
+    NumC = ComputeNumCoeffs(order,FrequencyBands[0],FrequencyBands[1],DenC);
+    for(int k = 0; k<2*order+1; k++)
+        printf("NumC is: %lf\n", NumC[k]);
+
+    // Applying the filter forwards and backwards
+    printf("Applying the filter forwards and backwards\n");
+    for (int row = 0; row < num_rows; row++)
+        filteredSignal[row] = filter(order, DenC, NumC, num_columns, &BOLD_signal[row], &filteredSignal[row]);
+    
+    for (int row = num_rows - 1; row >= 0; row--)
+        filteredSignal[row] = filter(order, DenC, NumC, num_columns, &BOLD_signal[row], &filteredSignal[row]);
+
+    return filteredSignal;
 }
