@@ -4,11 +4,13 @@
 
 #include <cmath>
 #include <vector>
-#include <stdexcept>
 #include <numeric>
-#include <algorithm>
 #include <complex>
+#include <stdexcept>
+#include <algorithm>
 #include <boost/any.hpp>
+#include <gsl/gsl_vector.h>
+#include <gsl/gsl_statistics.h>
 
 #ifndef M_PI
     #define M_PI 3.14159265358979323846
@@ -221,7 +223,7 @@ std::vector<double> ComputeHP(int FilterOrder)
 	return NumCoeffs;
 }
 
-std::vector<double> filter(std::vector<double> denom_coeff, std::vector<double> numer_coeff, int number_samples, 
+std::vector<double> filter(std::vector<double> numer_coeff, std::vector<double> denom_coeff, int number_samples, 
                             std::vector<double> original_signal, std::vector<double> filtered_signal)
 {
     int len_x = original_signal.size();
@@ -232,10 +234,10 @@ std::vector<double> filter(std::vector<double> denom_coeff, std::vector<double> 
 
 	if (len_a == 1)
 	{
-		for (int m = 0; m<len_x; m++)
+		for (int m = 0; m < len_x; m++)
 		{
 			filtered_signal[m] = numer_coeff[0] * original_signal[m] + zi[0];
-			for (int i = 1; i<len_b; i++)
+			for (int i = 1; i < len_b; i++)
 			{
 				zi[i - 1] = numer_coeff[i] * original_signal[m] + zi[i];//-coeff_a[i]*filter_x[m];
 			}
@@ -246,7 +248,7 @@ std::vector<double> filter(std::vector<double> denom_coeff, std::vector<double> 
 		for (int m = 0; m<len_x; m++)
 		{
 			filtered_signal[m] = numer_coeff[0] * original_signal[m] + zi[0];
-			for (int i = 1; i<len_b; i++)
+			for (int i = 1; i < len_b; i++)
 			{
 				zi[i - 1] = numer_coeff[i] * original_signal[m] + zi[i] - numer_coeff[i] * filtered_signal[m];
 			}
@@ -256,13 +258,12 @@ std::vector<double> filter(std::vector<double> denom_coeff, std::vector<double> 
     return filtered_signal;
 }
 
-
 // Function to process the BOLD data - same as in Python helper_funcs.py file
 std::vector<std::vector<double>> process_BOLD(std::vector<std::vector<double>> BOLD_signal, int num_rows, int num_columns, int order, 
                                                 double samplingFrequency, double cutoffFrequencyLow, double cutoffFrequencyHigh)
 {   
     // Create the filtered signal object
-    std::vector<std::vector<double>> filteredSignal;
+    std::vector<std::vector<double>> filteredSignal(num_rows, std::vector<double>(num_columns));
 
     // Create filter objects
     // These values are as a ratio of f/fs, where fs is sampling rate, and f is cutoff frequency
@@ -306,13 +307,60 @@ std::vector<std::vector<double>> process_BOLD(std::vector<std::vector<double>> B
     for(int k = 0; k<2*order+1; k++)
         printf("NumC is: %lf\n", NumC[k]);
 
+	// Printing sizes of both vectors
+	printf("BOLD_signal size is %d x %d\n", BOLD_signal.size(), BOLD_signal[0].size());
+	printf("filteredSignal size is %d x %d\n", filteredSignal.size(), filteredSignal[0].size());
+
     // Applying the filter forwards and backwards
     printf("Applying the filter forwards and backwards\n");
     for (int row = 0; row < num_rows; row++)
-        filteredSignal[row] = filter(DenC, NumC, num_columns, BOLD_signal[row], filteredSignal[row]);
+        filteredSignal[row] = filter(NumC, DenC, num_columns, BOLD_signal[row], filteredSignal[row]);
     
     for (int row = num_rows - 1; row >= 0; row--)
-        filteredSignal[row] = filter(DenC, NumC, num_columns, BOLD_signal[row], filteredSignal[row]);
+        filteredSignal[row] = filter(NumC, DenC, num_columns, BOLD_signal[row], filteredSignal[row]);
+
+	// Z-scoring the final filtered signal
+	printf("Z-scoring the final filtered signal\n");
+	for (int row = 0; row < num_rows; row++) {
+		double mean = 0.0;
+		double std = 0.0;
+		for (int col = 0; col < num_columns; col++) {
+			mean += filteredSignal[row][col];
+		}
+		mean /= num_columns;
+		for (int col = 0; col < num_columns; col++) {
+			std += pow(filteredSignal[row][col] - mean, 2);
+		}
+		std /= num_columns;
+		std = sqrt(std);
+		for (int col = 0; col < num_columns; col++) {
+			filteredSignal[row][col] = (filteredSignal[row][col] - mean) / std;
+		}
+	}
 
     return filteredSignal;
+}
+
+// Function to find the functional connectivity matrix from the BOLD signal
+std::vector<std::vector<double>> determine_FC(std::vector<std::vector<double>> BOLD_signal)
+{
+	// Create a correlation matrix of size BOLD_signal.size() x BOLD_signal.size()
+	std::vector<std::vector<double>> correlation_matrix(BOLD_signal.size(), std::vector<double>(BOLD_signal.size()));
+
+	// For every row (brain region) of the BOLD_signal
+	for (int i = 0; i < BOLD_signal.size(); i++)
+	{
+		// For every other row (brain region) of the BOLD_signal
+		for (int j = 0; j < BOLD_signal.size(); j++)
+		{
+			// // Convert the signal vectors to the appropriate format for gsl
+			// gsl_vector_const_view gsl_BOLD_i = gsl_vector_const_view_array(BOLD_signal[i].data(), BOLD_signal[i].size());
+			// gsl_vector_const_view gsl_BOLD_j = gsl_vector_const_view_array(BOLD_signal[j].data(), BOLD_signal[j].size());
+			double correlation = gsl_stats_correlation(BOLD_signal[i].data(), 1, BOLD_signal[j].data(), 1, BOLD_signal[i].size());
+			correlation_matrix[i][j] = correlation;
+			printf("Correlation between %d and %d is %lf\n", i, j, correlation);
+		}
+	}
+
+	return correlation_matrix;
 }

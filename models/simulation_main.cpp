@@ -9,8 +9,9 @@
 #include <typeinfo>
 #include <boost/any.hpp>
 #include <bayesopt/bayesopt.h>
-#include <bayesopt/bayesopt.hpp>
 #include <numpy/arrayobject.h>
+#include <gsl/gsl_statistics.h>
+#include <bayesopt/bayesopt.hpp>
 #include "simulation_helpers.hpp"
 
 // ------------------------------------- DEFINING GLOBAL PARAMETERS -------------------------------------
@@ -362,6 +363,28 @@ std::vector<std::vector<double>> electrical_to_bold()
             }
             else if (j == (BOLD_dims[1] - 1)) {
                 myfile2 << bold_filtered[i][j] << "\n";
+            }
+    }
+
+    // ------------- Determining the FC from the BOLD signal
+    printf("----------- Determining FC from BOLD signal -----------\n");
+    std::vector<std::vector<double>> sim_FC = determine_FC(bold_filtered);
+
+    // Checking the size of the output
+    printf("FC matrix of size %d x %d\n", sim_FC.size(), sim_FC[0].size());
+
+    printf("----------- Saving FC from BOLD signal -----------\n");
+    std::ofstream myfile3;
+    myfile3.open("temp_arrays/sim_FC.csv");
+    
+    for (size_t i = 0; i < BOLD_dims[0]; ++i)
+    {
+        for (size_t j = 0; j < BOLD_dims[1]; ++j)
+            if (j < (BOLD_dims[1] - 1)) {
+                myfile3 << sim_FC[i][j] << ",";
+            }
+            else if (j == (BOLD_dims[1] - 1)) {
+                myfile3 << sim_FC[i][j] << "\n";
             }
     }
 
