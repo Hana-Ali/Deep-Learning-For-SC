@@ -76,6 +76,22 @@ cutoffLow = 1.5
 cutoffHigh = 2.5
 sampling_rate = 20
 
+# Defining Bayesian Optimization parameters
+n_iterations = 50
+n_inner_iterations = 10
+n_init_samples = 10
+n_iter_relearn = 10
+init_method = 1
+verbose_level = 2
+log_file = 'wilson_bo_log.txt'
+surr_name = "sGaussianProcessML"
+sc_type = 0
+l_type = 3
+l_all = False
+epsilon = 0.01
+force_jump = 0
+crit_name = "cIntegratedEI"
+
 #%% Start main program
 if __name__ == "__main__":
 
@@ -133,6 +149,22 @@ if __name__ == "__main__":
     check_type(cutoffLow, float, 'cutoffLow')
     check_type(cutoffHigh, float, 'cutoffHigh')
     check_type(sampling_rate, float, 'sampling_rate')
+
+    # Checking Bayesian Optimization parameters
+    check_type(n_iterations, int, 'n_iterations')
+    check_type(n_inner_iterations, int, 'n_inner_iterations')
+    check_type(n_init_samples, int, 'n_init_samples')
+    check_type(n_iter_relearn, int, 'n_iter_relearn')
+    check_type(init_method, int, 'init_method')
+    check_type(verbose_level, int, 'verbose_level')
+    check_type(log_file, str, 'log_file')
+    check_type(surr_name, str, 'surr_name')
+    check_type(sc_type, int, 'sc_type')
+    check_type(l_type, int, 'l_type')
+    check_type(l_all, bool, 'l_all')
+    check_type(epsilon, float, 'epsilon')
+    check_type(force_jump, int, 'force_jump')
+    check_type(crit_name, str, 'crit_name')
 
 
     #%% Load empirical data
@@ -199,7 +231,21 @@ if __name__ == "__main__":
         order,
         cutoffLow,
         cutoffHigh,
-        sampling_rate
+        sampling_rate,
+        n_iterations,
+        n_inner_iterations,
+        n_init_samples,
+        n_iter_relearn,
+        init_method,
+        verbose_level,
+        log_file,
+        surr_name,
+        sc_type,
+        l_type,
+        l_all,
+        epsilon,
+        force_jump,
+        crit_name
     ]
 
     #%% Run the simulation and get results

@@ -43,6 +43,20 @@ def wilson_electrical_sim(args):
         args[30] : double, low cutoff frequency of filter
         args[31] : double, high cutoff frequency of filter
         args[32] : double, sampling frequency of filter
+        args[33] : int, number of iterations (BO)
+        args[34] : int, number of inner iterations (BO)
+        args[35] : int, number of initial samples (BO)
+        args[36] : number of iterations to relearn (BO)
+        args[37] : int, initial method (BO)
+        args[38] : int, verbose level (BO)
+        args[39] : string, log file (BO)
+        args[40] : string, surrogate name (BO)
+        args[41] : int, SC type (BO)
+        args[42] : int, L type (BO)
+        args[43] : bool, L all (BO)
+        args[44] : double, epsilon (BO)
+        args[45] : bool, force jump (BO)
+        args[46] : string, criterion name (BO)
 
     Returns
     -------
@@ -60,7 +74,7 @@ def wilson_electrical_sim(args):
 
     print('------------ In wilson_electrical_sim ------------')
     # --------- Check length of the input arguments
-    num_params_expected = 33
+    num_params_expected = 47
 
     if len(args) != num_params_expected:
         exception_msg = 'Exception in WC model. Expected {} arguments, got {}'.format(num_params_expected, str(len(args)))
@@ -101,6 +115,20 @@ def wilson_electrical_sim(args):
     cutoffLow = args[30]
     cutoffHigh = args[31]
     sampling_rate = args[32]
+    n_iterations = args[33]
+    n_inner_iterations = args[34]
+    n_init_samples = args[35]
+    n_iter_relearn = args[36]
+    init_method = args[37]
+    verbose_level = args[38]
+    log_file = args[39]
+    surr_name = args[40]
+    sc_type = args[41]
+    l_type = args[42]
+    l_all = args[43]
+    epsilon = args[44]
+    force_jump = args[45]
+    crit_name = args[46]
 
 
     # --------- Check the type of the input arguments
@@ -138,6 +166,20 @@ def wilson_electrical_sim(args):
     check_type(cutoffLow, float, 'cutoffLow')
     check_type(cutoffHigh, float, 'cutoffHigh')
     check_type(sampling_rate, float, 'sampling_rate')
+    check_type(n_iterations, int, 'n_iterations')
+    check_type(n_inner_iterations, int, 'n_inner_iterations')
+    check_type(n_init_samples, int, 'n_init_samples')
+    check_type(n_iter_relearn, int, 'n_iter_relearn')
+    check_type(init_method, int, 'init_method')
+    check_type(verbose_level, int, 'verbose_level')
+    check_type(log_file, str, 'log_file')
+    check_type(surr_name, str, 'surr_name')
+    check_type(sc_type, int, 'sc_type')
+    check_type(l_type, int, 'l_type')
+    check_type(l_all, bool, 'l_all')
+    check_type(epsilon, float, 'epsilon')
+    check_type(force_jump, bool, 'force_jump')
+    check_type(crit_name, str, 'crit_name')
 
     # --------- Check the type of data in the input arguments
     check_type(initial_cond_e[0], np.float64, 'initial_cond_e[0]')
@@ -208,7 +250,21 @@ def wilson_electrical_sim(args):
         BOLD,
         num_BOLD_subjects,
         num_BOLD_regions,
-        num_BOLD_timepoints
+        num_BOLD_timepoints,
+        n_iterations,
+        n_inner_iterations,
+        n_init_samples,
+        n_iter_relearn,
+        init_method,
+        verbose_level,
+        log_file,
+        surr_name,
+        sc_type,
+        l_type,
+        l_all,
+        epsilon,
+        force_jump,
+        crit_name
     )
 
     print('------------ After simulation ------------')
