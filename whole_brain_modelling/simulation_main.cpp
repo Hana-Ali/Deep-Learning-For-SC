@@ -52,15 +52,7 @@ double *wilson_sampling_rate = new double;
 double *emp_BOLD_signals = NULL;
 // Create a vector of doubles, to store the empirical FC
 std::vector<std::vector<double>> emp_FC;
-// BO_Wilson_parameters
-typedef enum {
-    L_FIXED,
-    L_EMPIRICAL,
-    L_DISCRETE,
-    L_MCMC,
-    L_ERROR = -1
-} learning_type;
-
+// Bayesian Optimization parameters
 typedef enum {
     SC_MTL,
     SC_ML,
@@ -68,6 +60,13 @@ typedef enum {
     SC_LOOCV,
     SC_ERROR = -1
 } score_type;
+typedef enum {
+    L_FIXED,
+    L_EMPIRICAL,
+    L_DISCRETE,
+    L_MCMC,
+    L_ERROR = -1
+} learning_type;
 int *wilson_BO_n_iter = new int;
 int *wilson_BO_n_inner_iter = new int;
 int *wilson_BO_iter_relearn = new int;
@@ -76,8 +75,8 @@ int *wilson_BO_init_method = new int;
 int *wilson_BO_verbose_level = new int;
 std::string wilson_BO_log_file = NULL;
 std::string wilson_BO_surrogate = NULL;
-score_type wilson_BO_sc_type;
-learning_type wilson_BO_l_type;
+score_type wilson_BO_sc_type = SC_MTL;
+learning_type wilson_BO_l_type = L_MCMC;
 bool *wilson_BO_l_all = false;
 double *wilson_BO_epsilon = new double;
 int *wilson_BO_force_jump = new int;
@@ -504,6 +503,20 @@ static PyObject* parsing_wilson_inputs(PyObject* self, PyObject *args)
         args[30] : int, number of BOLD subjects
         args[31] : int, number of BOLD regions
         args[32] : int, number of BOLD timepoints
+        args[33] : int, number of BO iterations
+        args[34] : int, number of BO inner iterations
+        args[35] : int, number of BO iterations before relearning
+        args[36] : int, number of BO initial samples
+        args[37] : int, BO initial method
+        args[38] : int, BO verbose level
+        args[39] : string, BO log file
+        args[40] : string, BO surrogate
+        args[41] : int, BO score type
+        args[42] : int, BO learning type
+        args[43] : bool, BO learn all
+        args[44] : float, BO epsilon
+        args[45] : int, BO force jump
+        args[46] : string, BO criterion name
     
     Returns
     -------
@@ -558,7 +571,7 @@ static PyObject* parsing_wilson_inputs(PyObject* self, PyObject *args)
     printf("---- Parsing input variables ----\n");
     if(
         !PyArg_ParseTuple(
-            args, "OOiddddddddddddddidOOOOid",
+            args, "OOiddddddddddddddidOOOOididddOiiiiiiiiissiibdis",
             &coupling_strength, &delay, 
             ::wilson_number_of_oscillators, ::wilson_c_ee, 
             ::wilson_c_ei, ::wilson_c_ie, ::wilson_c_ii, 
@@ -572,7 +585,12 @@ static PyObject* parsing_wilson_inputs(PyObject* self, PyObject *args)
             ::wilson_noise_type, ::wilson_noise_amplitude,
             ::wilson_order, ::wilson_cutoffLow, ::wilson_cutoffHigh, 
             ::wilson_sampling_rate, &BOLD_signals,
-            &num_BOLD_subjects, &num_BOLD_regions, &num_BOLD_timepoints
+            num_BOLD_subjects, num_BOLD_regions, num_BOLD_timepoints,
+            ::wilson_BO_n_iter, ::wilson_BO_n_inner_iter, ::wilson_BO_iter_relearn,
+            ::wilson_BO_init_samples, ::wilson_BO_init_method, ::wilson_BO_verbose_level,
+            &::wilson_BO_log_file, &::wilson_BO_surrogate, ::wilson_BO_sc_type,
+            ::wilson_BO_l_type, ::wilson_BO_l_all, ::wilson_BO_epsilon,
+            ::wilson_BO_force_jump, &::wilson_BO_crit_name
         )
     )
     {
@@ -956,6 +974,11 @@ static PyObject* parsing_wilson_inputs(PyObject* self, PyObject *args)
 // Define the objective function for the Wilson model
 double wilson_objective(unsigned int input_dim, const double *initial_query, double* gradient, void *func_data)
 {
+
+    // IMPORTANT
+    // ONE WAY TO THINK ABOUT REFACTORING THIS IS THAT THE COUPLING STRENGTH AND DELAY ARE IN THE INITIAL QUERY, AND HERE
+    // WE CALCULATE THE MATRICES RATHER THAN IN THE PYTHON FILE
+
     /*
     This is the goal or objective function that will be used by Bayesian Optimization to find the optimal parameters for the Wilson model.
 
