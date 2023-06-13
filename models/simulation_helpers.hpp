@@ -364,3 +364,54 @@ std::vector<std::vector<double>> determine_FC(std::vector<std::vector<double>> B
 
 	return correlation_matrix;
 }
+
+double pearsoncoeff(std::vector<double> X, std::vector<double> Y)
+{
+	double sum_X = 0, sum_Y = 0, sum_XY = 0;
+    double squareSum_X = 0, squareSum_Y = 0;
+ 
+    for (int i = 0; i < X.size(); i++)
+    {
+        // sum of elements of array X.
+        sum_X += X[i];
+ 
+        // sum of elements of array Y.
+        sum_Y += Y[i];
+ 
+        // sum of X[i] * Y[i].
+        sum_XY = sum_XY + X[i] * Y[i];
+ 
+        // sum of square of array elements.
+        squareSum_X = squareSum_X + X[i] * X[i];
+        squareSum_Y = squareSum_Y + Y[i] * Y[i];
+    }
+ 
+    // use formula for calculating correlation coefficient.
+    float corr = (float)(X.size() * sum_XY - sum_X * sum_Y)
+                  / sqrt((X.size() * squareSum_X - sum_X * sum_X)
+                      * (X.size() * squareSum_Y - sum_Y * sum_Y));
+ 
+    return corr;
+}
+
+// Function to find the functional connectivity matrix from the BOLD signal
+std::vector<std::vector<double>> determine_FC_nogsl(std::vector<std::vector<double>> BOLD_signal)
+{
+	// Create a correlation matrix of size BOLD_signal.size() x BOLD_signal.size()
+	std::vector<std::vector<double>> correlation_matrix(BOLD_signal.size(), std::vector<double>(BOLD_signal.size()));
+
+	// For every row (brain region) of the BOLD_signal
+	for (int i = 0; i < BOLD_signal.size(); i++)
+	{
+		// For every other row (brain region) of the BOLD_signal
+		for (int j = 0; j < BOLD_signal.size(); j++)
+		{
+			double correlation = pearsoncoeff(BOLD_signal[i], BOLD_signal[j]);
+			correlation_matrix[i][j] = correlation;
+			printf("Correlation between %d and %d is %lf\n", i, j, correlation);
+		}
+	}
+
+	return correlation_matrix;
+}
+
