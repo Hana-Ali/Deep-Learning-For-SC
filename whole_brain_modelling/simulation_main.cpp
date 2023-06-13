@@ -43,6 +43,15 @@ int *wilson_lower_idxs_mat = NULL;
 int *wilson_upper_idxs_mat = NULL;
 double *wilson_output_e = NULL;
 PyObject *wilson_electrical_activity;
+// Filter wilson parameters
+int *wilson_order;
+double *wilson_cutoffLow;
+double *wilson_cutoffHigh;
+double *wilson_sampling_rate;
+// Empirical BOLD signals
+double *emp_BOLD_signals = NULL;
+// Create a vector of doubles, to store the empirical FC
+std::vector<std::vector<double>> emp_FC;
 
 
 // Defining random distributions
@@ -341,13 +350,8 @@ std::vector<std::vector<double>> electrical_to_bold()
     }
 
     printf("----------- Filtering the BOLD signal -----------\n");
-    // Defining filter parameters
-    int order = 4;
-    double cutoffLow = 1.5;
-    double cutoffHigh = 2.5;
-    double sampling_rate = 20;
-    std::vector<std::vector<double>> bold_filtered = process_BOLD(unpack_bold, BOLD_dims[0], BOLD_dims[1], order,
-                                                                    cutoffLow, cutoffHigh, sampling_rate);
+    std::vector<std::vector<double>> bold_filtered = process_BOLD(unpack_bold, BOLD_dims[0], BOLD_dims[1], *::wilson_order,
+                                                                    *::wilson_cutoffLow, *::wilson_cutoffHigh, *::wilson_sampling_rate);
 
 
     // Saving it just for a sanity check
@@ -363,28 +367,6 @@ std::vector<std::vector<double>> electrical_to_bold()
             }
             else if (j == (BOLD_dims[1] - 1)) {
                 myfile2 << bold_filtered[i][j] << "\n";
-            }
-    }
-
-    // ------------- Determining the FC from the BOLD signal
-    printf("----------- Determining FC from BOLD signal -----------\n");
-    std::vector<std::vector<double>> sim_FC = determine_FC(bold_filtered);
-
-    // Checking the size of the output
-    printf("FC matrix of size %d x %d\n", sim_FC.size(), sim_FC[0].size());
-
-    printf("----------- Saving FC from BOLD signal -----------\n");
-    std::ofstream myfile3;
-    myfile3.open("temp_arrays/sim_FC.csv");
-    
-    for (size_t i = 0; i < BOLD_dims[0]; ++i)
-    {
-        for (size_t j = 0; j < BOLD_dims[1]; ++j)
-            if (j < (BOLD_dims[1] - 1)) {
-                myfile3 << sim_FC[i][j] << ",";
-            }
-            else if (j == (BOLD_dims[1] - 1)) {
-                myfile3 << sim_FC[i][j] << "\n";
             }
     }
 
@@ -422,7 +404,7 @@ std::vector<std::vector<double>> electrical_to_bold()
     delete V0;
 
     // ------------- Return output
-    return unpack_bold;
+    return bold_filtered;
 }
 
 // Response function for Wilson Model
@@ -484,6 +466,14 @@ static PyObject* parsing_wilson_inputs(PyObject* self, PyObject *args)
         args[22] : array, initial conditions i
         args[23] : int, noise type
         args[24] : float, noise amplitude
+        args[25] : int, filter order
+        args[26] : float, cutoff low
+        args[27] : float, cutoff high
+        args[28] : float, sampling rate
+        args[29] : array, BOLD signals
+        args[30] : int, number of BOLD subjects
+        args[31] : int, number of BOLD regions
+        args[32] : int, number of BOLD timepoints
     
     Returns
     -------
@@ -508,6 +498,7 @@ static PyObject* parsing_wilson_inputs(PyObject* self, PyObject *args)
     PyObject *upper_idxs;
     PyObject *initial_cond_e;
     PyObject *initial_cond_i;
+    PyObject *BOLD_signals;
 
     // ------------- Declare helper variables
     long *temp_long = new long;
@@ -526,6 +517,9 @@ static PyObject* parsing_wilson_inputs(PyObject* self, PyObject *args)
     double *activity_I = NULL;
     double *noises_array = NULL;
     PyObject *temp_variable;
+    int *num_BOLD_subjects = NULL;
+    int *num_BOLD_regions = NULL;
+    int *num_BOLD_timepoints = NULL;
 
     // ------------- Declare output variables
     npy_intp dimensions[2];
@@ -545,7 +539,10 @@ static PyObject* parsing_wilson_inputs(PyObject* self, PyObject *args)
             ::wilson_integration_step_size,
             &lower_idxs, &upper_idxs, 
             &initial_cond_e, &initial_cond_i,
-            ::wilson_noise_type, ::wilson_noise_amplitude
+            ::wilson_noise_type, ::wilson_noise_amplitude,
+            ::wilson_order, ::wilson_cutoffLow, ::wilson_cutoffHigh, 
+            ::wilson_sampling_rate, &BOLD_signals,
+            &num_BOLD_subjects, &num_BOLD_regions, &num_BOLD_timepoints
         )
     )
     {
@@ -561,6 +558,7 @@ static PyObject* parsing_wilson_inputs(PyObject* self, PyObject *args)
     ::wilson_delay_mat = new double[*::wilson_number_of_oscillators * *::wilson_number_of_oscillators];
     ::wilson_lower_idxs_mat = new int[*::wilson_number_of_oscillators * *::wilson_number_of_oscillators];
     ::wilson_upper_idxs_mat = new int[*::wilson_number_of_oscillators * *::wilson_number_of_oscillators];
+    ::emp_BOLD_signals = new double[*num_BOLD_subjects * *num_BOLD_regions * *num_BOLD_timepoints];
 
     // Allocate memory for output variables
     dimensions[0] = *::wilson_number_of_oscillators;
@@ -623,6 +621,192 @@ static PyObject* parsing_wilson_inputs(PyObject* self, PyObject *args)
         }
     }
 
+    // ------------ Get the BOLD signals for processing
+    printf("---- Get the empirical BOLD signals for processing ----\n");
+    npy_intp emp_BOLD_dims[] = {PyArray_NDIM(BOLD_signals)};
+    emp_BOLD_dims[0] = PyArray_DIM(BOLD_signals, 0);
+    emp_BOLD_dims[1] = PyArray_DIM(BOLD_signals, 1);
+    emp_BOLD_dims[2] = PyArray_DIM(BOLD_signals, 2);
+
+    // Create a vector of vectors of vectors for the BOLD signals for all subjects
+    std::vector<std::vector<std::vector<double>>> unpack_emp_BOLD;
+    PyObject* time_sample;
+
+    // For each subject
+    for (int subject = 0; subject < emp_BOLD_dims[0]; ++subject)
+    {   
+        printf("In processing subject %d\n", subject);
+        // Create another vector of vector of doubles, to store each subject's 100 region signals
+        std::vector<std::vector<double>> subject_regions;
+        
+        // For each BOLD signal in the BOLD signals, for each timestep
+        for (int region = 0; region < emp_BOLD_dims[1]; ++region)
+        {   
+            if (region % 10 == 0)
+                printf("In region %d\n", region);
+
+                // Create a last vector of doubles, to store the timesamples for each signal
+                std::vector<double> region_timesamples;
+
+            for (int timepoint = 0; timepoint < emp_BOLD_dims[2]; ++timepoint)
+            {
+                // This will store the value in the bold array
+                double value;
+
+                // Get the time_sample point
+                time_sample = PyArray_GETITEM(emp_BOLD_signals, PyArray_GETPTR3(emp_BOLD_signals, subject, region, timepoint));
+
+                // Check thet each time sample is a float
+                if(PyFloat_Check(time_sample))
+                    value = PyFloat_AsDouble(time_sample);
+                else {
+                    printf("Not floats!!!");
+                    PyErr_SetString(PyExc_TypeError, "Empirical BOLD is not in the correct format");
+                    return {};
+                }
+
+                region_timesamples.push_back(value);
+                // Decrement the pointer reference
+                Py_DECREF(time_sample);
+            }
+            subject_regions.push_back(region_timesamples);
+        }
+        unpack_emp_BOLD.push_back(subject_regions);
+    }
+    
+
+    // Saving it just for a sanity check
+    printf("----------- Saving unpacked empirical BOLD signal -----------\n");
+    std::ofstream myfile;
+    myfile.open("temp_arrays/unpacked_emp_BOLD.csv");
+
+    for (size_t i = 0; i < emp_BOLD_dims[0]; ++i)
+    {
+        for (size_t j = 0; j < emp_BOLD_dims[1]; ++j)
+        {
+            for (size_t k = 0; k < emp_BOLD_dims[2]; ++k)
+                if (k < (emp_BOLD_dims[2] - 1)) {
+                    myfile << unpack_emp_BOLD[i][j][k] << ",";
+                }
+                else if (k == (emp_BOLD_dims[2] - 1)) {
+                    myfile << unpack_emp_BOLD[i][j][k] << "\n";
+                }
+        }
+    }
+
+    printf("----------- Filtering the empirical BOLD signal -----------\n");
+    // Create a vector that stores for ALL SUBJECTS
+    std::vector<std::vector<std::vector<double>>> emp_bold_filtered;
+    
+    // For each subject
+    for (int subject = 0; subject < emp_BOLD_dims[0]; ++subject)
+    {
+        printf("In filtering subject %d\n", subject);
+
+        // Filter the bold signals per subject
+        std::vector<std::vector<double>> subject_bold_filtered = process_BOLD(unpack_emp_BOLD[subject], emp_BOLD_dims[1], emp_BOLD_dims[2], *::wilson_order,
+                                                                    *::wilson_cutoffLow, *::wilson_cutoffHigh, *::wilson_sampling_rate);
+        // Add the subject to the vector of all subjects
+        emp_bold_filtered.push_back(subject_bold_filtered);
+    }
+
+    // Saving it just for a sanity check
+    printf("----------- Saving filtered empirical BOLD signal -----------\n");
+    std::ofstream myfile2;
+    myfile2.open("temp_arrays/filtered_emp_BOLD.csv");
+
+    for (size_t i = 0; i < emp_BOLD_dims[0]; ++i)
+    {
+        for (size_t j = 0; j < emp_BOLD_dims[1]; ++j)
+        {
+            for (size_t k = 0; k < emp_BOLD_dims[2]; ++k)
+                if (k < (emp_BOLD_dims[2] - 1)) {
+                    myfile2 << emp_bold_filtered[i][j][k] << ",";
+                }
+                else if (k == (emp_BOLD_dims[2] - 1)) {
+                    myfile2 << emp_bold_filtered[i][j][k] << "\n";
+                }
+        }
+    }
+
+    // ------------- Getting the empirical FC
+    printf("----------- Getting the empirical FC -----------\n");
+    // Create a vector of vectors of vectors for the FC for all subjects
+    std::vector<std::vector<std::vector<double>>> unpack_emp_FC;
+
+    // For each subject
+    for (int subject = 0; subject < emp_BOLD_dims[0]; subject++)
+    {
+        // Create another vector of vector of doubles, to store each subject's FC
+        std::vector<std::vector<double>> subject_FCs = determine_FC(emp_bold_filtered[subject]);
+        // Add the subject to the vector of all subjects
+        unpack_emp_FC.push_back(subject_FCs);
+    }
+
+    // Saving it just for a sanity check
+    printf("----------- Saving unpacked empirical FC -----------\n");
+    std::ofstream myfile3;
+    myfile3.open("temp_arrays/emp_FC_all.csv");
+
+    for (size_t i = 0; i < emp_BOLD_dims[0]; ++i)
+    {
+        for (size_t j = 0; j < emp_BOLD_dims[1]; ++j)
+        {
+            for (size_t k = 0; k < emp_BOLD_dims[1]; ++k)
+                if (k < (emp_BOLD_dims[1] - 1)) {
+                    myfile3 << unpack_emp_FC[i][j][k] << ",";
+                }
+                else if (k == (emp_BOLD_dims[1] - 1)) {
+                    myfile3 << unpack_emp_FC[i][j][k] << "\n";
+                }
+        }
+    }
+
+    // ------------- Finding the average across subjects
+    printf("----------- Finding the average across subjects -----------\n");
+    // Note that this average FC is what's gonna be stored in the empFC global variable
+
+    // For each region
+    for (int i = 0; i < emp_BOLD_dims[1]; i++)
+    {
+        // Create a vector of doubles for each *other* region
+        std::vector<double> region_avg;
+
+        // For each other region
+        for (int j = 0; j < emp_BOLD_dims[1]; j++)
+        {
+            // Create a vector of doubles for each subject
+            std::vector<double> subject_values;
+
+            // For each subject
+            for (int k = 0; k < emp_BOLD_dims[0]; k++)
+            {
+                subject_values.push_back(unpack_emp_FC[i][j][k]);
+            }
+            // Get the mean of the subject values
+            double mean = gsl_stats_mean(subject_values.data(), 1, subject_values.size());
+            region_avg.push_back(mean);
+        }
+        ::emp_FC.push_back(region_avg);
+    }
+
+    // Saving it just for a sanity check
+    printf("----------- Saving average empirical FC -----------\n");
+    std::ofstream myfile4;
+    myfile4.open("temp_arrays/empFC.csv");
+
+    for (size_t i = 0; i < emp_BOLD_dims[1]; ++i)
+    {
+        for (size_t j = 0; j < emp_BOLD_dims[1]; ++j)
+            if (j < (emp_BOLD_dims[1] - 1)) {
+                myfile4 << ::emp_FC[i][j] << ",";
+            }
+            else if (j == (emp_BOLD_dims[1] - 1)) {
+                myfile4 << ::emp_FC[i][j] << "\n";
+            }
+    }
+    
+
     // ------------ Send data to objective function
     printf("---- Send data to objective function ----\n");
 
@@ -661,6 +845,7 @@ static PyObject* parsing_wilson_inputs(PyObject* self, PyObject *args)
     delete[] ::wilson_lower_idxs_mat;
     delete[] ::wilson_upper_idxs_mat;
     delete[] ::wilson_output_e;
+    delete[] ::emp_BOLD_signals;
 
     // Delete single-value helper variables
     delete temp_long;
@@ -671,6 +856,9 @@ static PyObject* parsing_wilson_inputs(PyObject* self, PyObject *args)
     delete input_lower;
     delete input_upper;
     delete input_final;
+    delete num_BOLD_subjects;
+    delete num_BOLD_regions;
+    delete num_BOLD_timepoints;
 
     // Delete differential variables
     delete[] differential_E;
@@ -911,25 +1099,49 @@ double wilson_objective(unsigned int input_dim, const double *initial_query, dou
 
     // ------------- Convert the signal to BOLD
     printf("---- Converting electrical activity to BOLD ----\n");
+    // Defining filter parameters
+    int order = 4;
+    double cutoffLow = 1.5;
+    double cutoffHigh = 2.5;
+    double sampling_rate = 20;
     std::vector<std::vector<double>> bold_signal = electrical_to_bold();
 
     // Printing shape of bold signal
     printf("---- Shape of BOLD signal: %zd x %zd----\n", bold_signal.size(), bold_signal[0].size());
 
+        // ------------- Determining the FC from the BOLD signal
+    printf("----------- Determining FC from BOLD signal -----------\n");
+    std::vector<std::vector<double>> sim_FC = determine_FC(bold_signal);
+
+    // Checking the size of the output
+    printf("FC matrix of size %d x %d\n", sim_FC.size(), sim_FC[0].size());
+
+    printf("----------- Saving FC from BOLD signal -----------\n");
+    std::ofstream myfile3;
+    myfile3.open("temp_arrays/sim_FC.csv");
+    
+    for (size_t i = 0; i < bold_signal.size(); ++i)
+    {
+        for (size_t j = 0; j < bold_signal[0].size(); ++j)
+            if (j < (bold_signal[0].size() - 1)) {
+                myfile3 << sim_FC[i][j] << ",";
+            }
+            else if (j == (bold_signal[0].size() - 1)) {
+                myfile3 << sim_FC[i][j] << "\n";
+            }
+    }
+
+    printf("----------- Comparing sim_FC with emp_FC -----------\n");
+    
+    
 
     return 1;
 }
 
 // Function that wraps these functions into methods of a module
 static PyMethodDef IntegrationMethods[] = {
-    // { // BOLD model
-    //     "electrical_to_bold",
-    //     electrical_to_bold,
-    //     METH_VARARGS,
-    //     "Solves the BOLD model equations, and returns BOLD activity"
-    // },
     {
-        "wilson_model",
+        "parsing_wilson_inputs",
         parsing_wilson_inputs,
         METH_VARARGS,
         "Solves the Wilson-Cowan model equations, and returns electrical activity"
@@ -942,7 +1154,7 @@ static PyMethodDef IntegrationMethods[] = {
 // Function that wraps the methods in a module
 static struct PyModuleDef SimulationsModule = {
     PyModuleDef_HEAD_INIT,
-    "SimulationsModule",
+    "simulations",
     "Module containing functions for simulation compiled in C",
     -1,
     IntegrationMethods
@@ -952,6 +1164,5 @@ static struct PyModuleDef SimulationsModule = {
 PyMODINIT_FUNC PyInit_simulations(void)
 {
     import_array();
-    Py_Initialize();
     return PyModule_Create(&SimulationsModule);
 }

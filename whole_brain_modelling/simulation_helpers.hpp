@@ -3,7 +3,9 @@
 #define _USE_MATH_DEFINES
 
 #include <cmath>
+#include <string>
 #include <vector>
+#include <fstream>
 #include <numeric>
 #include <complex>
 #include <stdexcept>
@@ -23,7 +25,12 @@ std::vector<double> ComputeLP(int FilterOrder);
 std::vector<double> ComputeHP(int FilterOrder);
 std::vector<double> filter(std::vector<double> denom_coeff, std::vector<double> numer_coeff, int number_samples, 
                             std::vector<double> original_signal, std::vector<double> filtered_signal);
-
+std::vector<std::vector<double>> process_BOLD(std::vector<std::vector<double>> BOLD_signal, int num_rows, int num_columns, int order, 
+							double samplingFrequency, double cutoffFrequencyLow, double cutoffFrequencyHigh);
+std::vector<std::vector<double>> determine_FC(std::vector<std::vector<double>> BOLD_signal);
+double pearsoncoeff(std::vector<double> X, std::vector<double> Y);
+std::vector<std::vector<double>> determine_FC_nogsl(std::vector<std::vector<double>> BOLD_signal);
+std::vector<std::vector<double>> get_emp_FC(std::string &file_path);
 
 // Function to check the data type of a variable
 void check_type(boost::any input, const std::string& expected_type, const std::string& input_name) {
@@ -413,5 +420,40 @@ std::vector<std::vector<double>> determine_FC_nogsl(std::vector<std::vector<doub
 	}
 
 	return correlation_matrix;
+}
+
+// Function to find get the functional connectivity from input files
+std::vector<std::vector<double>> get_emp_FC(std::string &file_path)
+{
+	// Open the file given in the path
+	std::ifstream file(file_path);
+	if (!file.is_open()) {
+		throw std::invalid_argument("The file " + file_path + " could not be opened");
+	}
+	else {
+		printf("The file %s was opened successfully\n", file_path.c_str());
+	}
+
+	// Create a vector to store the data
+	std::vector<std::vector<double>> data;
+
+	// Read the data from the file
+	std::string line;
+	while (std::getline(file, line)) {
+		// Create a vector to store the data in the line
+		std::vector<double> line_data;
+
+		// Create a stringstream of the line
+		std::stringstream ss(line);
+
+		// Read the data from the stringstream
+		double value;
+		while (ss >> value) {
+			line_data.push_back(value);
+		}
+
+		// Add the line data to the data vector
+		data.push_back(line_data);
+	}
 }
 

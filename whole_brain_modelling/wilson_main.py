@@ -70,6 +70,12 @@ noise_amplitude = 0.001
 # Defining the number of oscillators
 number_oscillators = 100
 
+# Defining filter parameters
+order = 4
+cutoffLow = 1.5
+cutoffHigh = 2.5
+sampling_rate = 20
+
 #%% Start main program
 if __name__ == "__main__":
 
@@ -122,9 +128,17 @@ if __name__ == "__main__":
     # Checking number of oscillators
     check_type(number_oscillators, int, 'number_oscillators')
 
+    # Checking filter parameters
+    check_type(order, int, 'order')
+    check_type(cutoffLow, float, 'cutoffLow')
+    check_type(cutoffHigh, float, 'cutoffHigh')
+    check_type(sampling_rate, float, 'sampling_rate')
+
+
     #%% Load empirical data
     SC_matrix = get_empirical_SC(root_path)
     FC_matrix = get_empirical_FC(root_path)
+    BOLD_signals = get_empirical_BOLD(root_path)
 
     #%% Check number of available threads - multiprocessing tingz
 
@@ -178,9 +192,14 @@ if __name__ == "__main__":
         initial_conditions_i,
         SC_matrix,
         FC_matrix,
+        BOLD_signals,
         noise_type,
         noise_amplitude,
-        write_path
+        write_path,
+        order,
+        cutoffLow,
+        cutoffHigh,
+        sampling_rate
     ]
 
     #%% Run the simulation and get results

@@ -35,9 +35,14 @@ def wilson_electrical_sim(args):
         args[22] : array, initial conditions_i
         args[23] : array, SC matrix
         args[24] : array, FC matrix
-        args[25] : int, noise type
-        args[26] : float, noise amplitude
-        args[27] : string, write path
+        args[25] : array, BOLD matrix
+        args[26] : int, noise type
+        args[27] : float, noise amplitude
+        args[28] : string, write path,
+        args[29] : double, order of filter
+        args[30] : double, low cutoff frequency of filter
+        args[31] : double, high cutoff frequency of filter
+        args[32] : double, sampling frequency of filter
 
     Returns
     -------
@@ -55,7 +60,7 @@ def wilson_electrical_sim(args):
 
     print('------------ In wilson_electrical_sim ------------')
     # --------- Check length of the input arguments
-    num_params_expected = 28
+    num_params_expected = 33
 
     if len(args) != num_params_expected:
         exception_msg = 'Exception in WC model. Expected {} arguments, got {}'.format(num_params_expected, str(len(args)))
@@ -88,9 +93,14 @@ def wilson_electrical_sim(args):
     initial_cond_i = args[22]
     SC = args[23]
     FC = args[24]
-    noise_type = args[25]
-    noise_amplitude = args[26]
-    write_path = args[27]
+    BOLD = args[25]
+    noise_type = args[26]
+    noise_amplitude = args[27]
+    write_path = args[28]
+    order = args[29]
+    cutoffLow = args[30]
+    cutoffHigh = args[31]
+    sampling_rate = args[32]
 
 
     # --------- Check the type of the input arguments
@@ -120,9 +130,14 @@ def wilson_electrical_sim(args):
     check_type(initial_cond_i, np.ndarray, 'initial_cond_i')
     check_type(SC, np.ndarray, 'SC')
     check_type(FC, np.ndarray, 'FC')
+    check_type(BOLD, np.ndarray, 'BOLD')
     check_type(noise_type, int, 'noise_type')
     check_type(noise_amplitude, float, 'noise_amplitude')
     check_type(write_path, str, 'write_path')
+    check_type(order, int, 'order')
+    check_type(cutoffLow, float, 'cutoffLow')
+    check_type(cutoffHigh, float, 'cutoffHigh')
+    check_type(sampling_rate, float, 'sampling_rate')
 
     # --------- Check the type of data in the input arguments
     check_type(initial_cond_e[0], np.float64, 'initial_cond_e[0]')
@@ -148,6 +163,10 @@ def wilson_electrical_sim(args):
     )
     delay_matrix = delay * SC
 
+    num_BOLD_subjects = BOLD.shape[0]
+    num_BOLD_regions = BOLD.shape[1]
+    num_BOLD_timepoints = BOLD.shape[2]
+
     # --------- Define the index matrices for integration (WHAT IS THIS)
     print('-- Defining index matrices --')
     upper_idx = np.floor(delay_matrix / integration_step_size).astype(int)
@@ -156,7 +175,7 @@ def wilson_electrical_sim(args):
     print('------------ Before simulation ------------')
 
     # --------- SIMULATION TIME BABEY
-    simulation_results = sim.wilson_model(
+    simulation_results = sim.parsing_wilson_inputs(
         coupling_matrix,
         delay_matrix,
         number_oscillators,
@@ -181,7 +200,15 @@ def wilson_electrical_sim(args):
         initial_cond_e,
         initial_cond_i,
         noise_type,
-        noise_amplitude
+        noise_amplitude,
+        order,
+        cutoffLow,
+        cutoffHigh,
+        sampling_rate,
+        BOLD,
+        num_BOLD_subjects,
+        num_BOLD_regions,
+        num_BOLD_timepoints
     )
 
     print('------------ After simulation ------------')

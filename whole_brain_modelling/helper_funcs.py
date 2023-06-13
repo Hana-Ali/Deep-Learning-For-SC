@@ -127,6 +127,19 @@ def get_empirical_FC(path):
 
     return FC_final
 
+# Function to get the BOLD signals
+def get_empirical_BOLD(path):
+    # Define paths, load matrices, and stack into array shape
+    BOLD_path = os.path.join(path, 'Schaefer100_BOLD_HCP.mat')
+    BOLD_all = sio.loadmat(BOLD_path)
+    BOLD_all = np.array(BOLD_all['BOLD_timeseries_HCP'])
+    BOLD_all = np.concatenate(BOLD_all, axis=0)
+    BOLD_all = np.array([subject for subject in BOLD_all])
+
+    # Return unprocessed BOLD
+    return BOLD_all
+
+
 # Determine the R order parameter
 def determine_order_R(BOLD_signal, number_of_parcels, start_index):
     """"
