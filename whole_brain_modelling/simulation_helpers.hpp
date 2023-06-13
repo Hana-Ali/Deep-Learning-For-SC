@@ -31,6 +31,8 @@ std::vector<std::vector<double>> determine_FC(std::vector<std::vector<double>> B
 double pearsoncoeff(std::vector<double> X, std::vector<double> Y);
 std::vector<std::vector<double>> determine_FC_nogsl(std::vector<std::vector<double>> BOLD_signal);
 std::vector<std::vector<double>> get_emp_FC(std::string &file_path);
+template <typename T>
+std::vector<T> flatten(const std::vector<std::vector<T>> & vec);
 
 // Function to check the data type of a variable
 void check_type(boost::any input, const std::string& expected_type, const std::string& input_name) {
@@ -457,3 +459,11 @@ std::vector<std::vector<double>> get_emp_FC(std::string &file_path)
 	}
 }
 
+// Function to flatten 2D arrays
+template <typename T>
+std::vector<T> flatten(const std::vector<std::vector<T>> & vec) {   
+    std::vector<T> result;
+    for (const auto & v : vec)
+        result.insert(result.end(), v.begin(), v.end());                                                                                         
+    return result;
+}

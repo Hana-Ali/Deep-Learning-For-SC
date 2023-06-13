@@ -44,14 +44,44 @@ int *wilson_upper_idxs_mat = NULL;
 double *wilson_output_e = NULL;
 PyObject *wilson_electrical_activity;
 // Filter wilson parameters
-int *wilson_order;
-double *wilson_cutoffLow;
-double *wilson_cutoffHigh;
-double *wilson_sampling_rate;
+int *wilson_order = new int;
+double *wilson_cutoffLow = new double;
+double *wilson_cutoffHigh = new double;
+double *wilson_sampling_rate = new double;
 // Empirical BOLD signals
 double *emp_BOLD_signals = NULL;
 // Create a vector of doubles, to store the empirical FC
 std::vector<std::vector<double>> emp_FC;
+// BO_Wilson_parameters
+typedef enum {
+    L_FIXED,
+    L_EMPIRICAL,
+    L_DISCRETE,
+    L_MCMC,
+    L_ERROR = -1
+} learning_type;
+
+typedef enum {
+    SC_MTL,
+    SC_ML,
+    SC_MAP,
+    SC_LOOCV,
+    SC_ERROR = -1
+} score_type;
+int *wilson_BO_n_iter = new int;
+int *wilson_BO_n_inner_iter = new int;
+int *wilson_BO_iter_relearn = new int;
+int *wilson_BO_init_samples = new int;
+int *wilson_BO_init_method = new int;
+int *wilson_BO_verbose_level = new int;
+std::string wilson_BO_log_file = NULL;
+std::string wilson_BO_surrogate = NULL;
+score_type wilson_BO_sc_type;
+learning_type wilson_BO_l_type;
+bool *wilson_BO_l_all = false;
+double *wilson_BO_epsilon = new double;
+int *wilson_BO_force_jump = new int;
+std::string wilson_BO_crit_name = NULL;
 
 
 // Defining random distributions
@@ -807,11 +837,60 @@ static PyObject* parsing_wilson_inputs(PyObject* self, PyObject *args)
     }
     
 
-    // ------------ Send data to objective function
-    printf("---- Send data to objective function ----\n");
+    // ------------ Run Bayesian Optimization
+    printf("---- Define Bayesian Optimization Parameters ----\n");
 
-    // Call the objective function
-    wilson_objective(2, NULL, NULL, NULL);
+    // Bayesian Optimization parameters
+    bayesopt::Parameters bo_parameters = initialize_parameters_to_default();
+
+    bo_parameters.n_iterations = *::wilson_BO_n_iter;
+    bo_parameters.n_inner_iterations = *::wilson_BO_n_inner_iter;
+    bo_parameters.n_init_samples = *::wilson_BO_init_samples;
+    bo_parameters.n_iter_relearn = *::wilson_BO_n_inner_iter;
+    bo_parameters.init_method = *::wilson_BO_init_method;
+    bo_parameters.verbose_level = *::wilson_BO_verbose_level;
+    bo_parameters.log_filename = ::wilson_BO_log_file;
+    bo_parameters.surr_name = ::wilson_BO_surrogate;
+    bo_parameters.sc_type = ::wilson_BO_sc_type;
+    bo_parameters.l_type = ::wilson_BO_l_type;
+    bo_parameters.l_all = ::wilson_BO_l_all;
+    bo_parameters.epsilon = *::wilson_BO_epsilon;
+    bo_parameters.force_jump = *::wilson_BO_force_jump;
+    bo_parameters.crit_name = ::wilson_BO_crit_name;
+
+    // Call Bayesian Optimization    
+    // wilson_objective(2, NULL, NULL, NULL);
+    int num_dimensions = 2;
+    double *lower_bounds = new double[num_dimensions];
+    double *upper_bounds = new double[num_dimensions];
+    for (int i = 0; i < num_dimensions; i++) {
+        lower_bounds[i] = 0;
+        upper_bounds[i] = 1;
+    }
+    double *minimizer = new double[num_dimensions];
+    for (int i = 0; i < num_dimensions; i++) {
+        minimizer[i] = 0;
+    }
+    double minimizer_value[128];
+    
+    printf("---- Run Bayesian Optimization ----\n");
+    int wilson_BO_output = bayes_optimization(num_dimensions, &wilson_objective, NULL, lower_bounds, upper_bounds, 
+                                                minimizer, minimizer_value, bo_parameters.generate_bopt_params());
+
+    // Note that the output of Bayesian Optimization will just be an error message, which we can output
+    printf("---- Bayesian Optimization output ----\n");
+    if (wilson_BO_output == 0) {
+        printf("Bayesian Optimization was successful!\n");
+    }
+    else {
+        printf("Bayesian Optimization was unsuccessful!. Output is %d\n", wilson_BO_output);
+    }
+
+    // Note that the output minimizer is stored in the minimizer array
+    printf("---- Bayesian Optimization minimizer ----\n");
+    for (int i = 0; i < num_dimensions; i++) {
+        printf("Minimizer value for dimension %d is %f\n", i, minimizer[i]);
+    }
 
     // ------------- Free memory
     printf("---- Free memory ----\n");
@@ -1132,10 +1211,15 @@ double wilson_objective(unsigned int input_dim, const double *initial_query, dou
     }
 
     printf("----------- Comparing sim_FC with emp_FC -----------\n");
-    
-    
+    // First, flatten the arrays
+    std::vector<double> flat_sim_FC = flatten(sim_FC);
+    std::vector<double> flat_emp_FC = flatten(::emp_FC);
 
-    return 1;
+    // Then, calculate the correlation
+    double objective_corr = gsl_stats_correlation(flat_sim_FC.data(), 1, flat_emp_FC.data(), 1, flat_sim_FC.size());
+    
+    // This is finally the objective value
+    return objective_corr;
 }
 
 // Function that wraps these functions into methods of a module
