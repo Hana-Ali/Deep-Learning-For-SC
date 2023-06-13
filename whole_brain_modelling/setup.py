@@ -14,7 +14,9 @@ simulation_mod = Extension('simulations',
                               ],
                               library_dirs=[
                                   "C:\\src\\vcpkg\\installed\\x64-windows\\lib",
-                                  "C:\\src\\vcpkg\\installed\\x86-windows\\lib"
+                                  "C:\\src\\vcpkg\\installed\\x86-windows\\lib",
+                                  "C:\\msys64\\mingw64\\bin",
+                                  "-LC:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Dissertation\\Notebooks\\MyCodes\\models"
                               ],
                               libraries=[
                               "gsl",

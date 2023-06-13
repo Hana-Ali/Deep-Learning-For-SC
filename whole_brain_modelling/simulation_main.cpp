@@ -940,9 +940,9 @@ static PyMethodDef IntegrationMethods[] = {
 };
 
 // Function that wraps the methods in a module
-static struct PyModuleDef simulations = {
+static struct PyModuleDef SimulationsModule = {
     PyModuleDef_HEAD_INIT,
-    "simulations",
+    "SimulationsModule",
     "Module containing functions for simulation compiled in C",
     -1,
     IntegrationMethods
@@ -952,5 +952,6 @@ static struct PyModuleDef simulations = {
 PyMODINIT_FUNC PyInit_simulations(void)
 {
     import_array();
-    return PyModule_Create(&simulations);
+    Py_Initialize();
+    return PyModule_Create(&SimulationsModule);
 }
