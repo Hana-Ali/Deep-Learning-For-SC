@@ -3,7 +3,7 @@
 #%% Import libraries
 from sklearn.preprocessing import MinMaxScaler
 from helper_funcs import *
-from simulation_interface import *
+from wilson_interface import *
 import matplotlib.pyplot as plt
 import scipy.signal as signal
 import multiprocessing as mp

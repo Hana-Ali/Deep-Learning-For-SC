@@ -3,7 +3,7 @@ from distutils.core import setup, Extension
 import numpy
 
 simulation_mod = Extension('simulations',
-                              sources = ['simulation_main.cpp'],
+                              sources = ['simulation_wilson.cpp'],
                               language="c++",
                               include_dirs=[numpy.get_include(),
                               "C:\\Users\\shahi\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\numpy\\core\\include",
@@ -31,7 +31,7 @@ simulation_mod = Extension('simulations',
 # The main setup command
 setup(name = 'DissertationModels',
       version="1.0",
-      description="Simulation models and temporal integration for different model",
+      description="Simulation models and temporal integration for the Wilson Cowan model",
       ext_modules=[simulation_mod],
       # py_modules=['simulation_interface'],
 )                            
