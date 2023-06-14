@@ -16,6 +16,9 @@
 
 // ------------------------------------- DEFINING GLOBAL PARAMETERS -------------------------------------
 //wilson
+double *coupling_strength = new double;
+double *delay = new double;
+double *structural_connectivity_mat = new double;
 int *wilson_number_of_oscillators = new int;                   
 double *wilson_c_ee = new double;                      
 double *wilson_c_ei = new double;
@@ -53,20 +56,20 @@ double *emp_BOLD_signals = NULL;
 // Create a vector of doubles, to store the empirical FC
 std::vector<std::vector<double>> emp_FC;
 // Bayesian Optimization parameters
-typedef enum {
-    SC_MTL,
-    SC_ML,
-    SC_MAP,
-    SC_LOOCV,
-    SC_ERROR = -1
-} score_type;
-typedef enum {
-    L_FIXED,
-    L_EMPIRICAL,
-    L_DISCRETE,
-    L_MCMC,
-    L_ERROR = -1
-} learning_type;
+// typedef enum {
+//     SC_MTL,
+//     SC_ML,
+//     SC_MAP,
+//     SC_LOOCV,
+//     SC_ERROR = -1
+// } score_type;
+// typedef enum {
+//     L_FIXED,
+//     L_EMPIRICAL,
+//     L_DISCRETE,
+//     L_MCMC,
+//     L_ERROR = -1
+// } learning_type;
 int *wilson_BO_n_iter = new int;
 int *wilson_BO_n_inner_iter = new int;
 int *wilson_BO_iter_relearn = new int;
@@ -470,53 +473,54 @@ static PyObject* parsing_wilson_inputs(PyObject* self, PyObject *args)
     Parameters
     ----------
     args : tuple, input model arguments
-        args[0] : array, coupling strength
-        args[1] : array, delay
-        args[2] : int, number of oscillators
-        args[3] : float, c_ee
-        args[4] : float, c_ei
-        args[5] : float, c_ie
-        args[6] : float, c_ii
-        args[7] : float, tau_e
-        args[8] : float, tau_i
-        args[9] : float, r_e
-        args[10] : float, r_i
-        args[11] : float, alpha_e
-        args[12] : float, alpha_i
-        args[13] : float, theta_e
-        args[14] : float, theta_i
-        args[15] : float, external_e
-        args[16] : float, external_i
-        args[17] : int, number of integration steps
-        args[18] : float, integration step size
-        args[19] : array, lower_idxs
-        args[20] : array, upper_idxs
-        args[21] : array, initial conditions e
-        args[22] : array, initial conditions i
-        args[23] : int, noise type
-        args[24] : float, noise amplitude
-        args[25] : int, filter order
-        args[26] : float, cutoff low
-        args[27] : float, cutoff high
-        args[28] : float, sampling rate
-        args[29] : array, BOLD signals
-        args[30] : int, number of BOLD subjects
-        args[31] : int, number of BOLD regions
-        args[32] : int, number of BOLD timepoints
-        args[33] : int, number of BO iterations
-        args[34] : int, number of BO inner iterations
-        args[35] : int, number of BO iterations before relearning
-        args[36] : int, number of BO initial samples
-        args[37] : int, BO initial method
-        args[38] : int, BO verbose level
-        args[39] : string, BO log file
-        args[40] : string, BO surrogate
-        args[41] : int, BO score type
-        args[42] : int, BO learning type
-        args[43] : bool, BO learn all
-        args[44] : float, BO epsilon
-        args[45] : int, BO force jump
-        args[46] : string, BO criterion name
+        args[0] : float, coupling strength
+        args[1] : float, delay
+        args[2] : array, structural connectivity
+        args[3] : int, number of oscillators
+        args[4] : float, c_ee
+        args[5] : float, c_ei
+        args[6] : float, c_ie
+        args[7] : float, c_ii
+        args[8] : float, tau_e
+        args[9] : float, tau_i
+        args[10] : float, r_e
+        args[11] : float, r_i
+        args[12] : float, alpha_e
+        args[13] : float, alpha_i
+        args[14] : float, theta_e
+        args[15] : float, theta_i
+        args[16] : float, external_e
+        args[17] : float, external_i
+        args[18] : int, number of integration steps
+        args[19] : float, integration step size
+        args[20] : array, lower_idxs
+        args[21] : array, upper_idxs
+        args[22] : array, initial conditions e
+        args[23] : array, initial conditions i
+        args[24] : int, noise type
+        args[25] : float, noise amplitude
+        args[26] : int, filter order
+        args[27] : float, cutoff low
+        args[28] : float, cutoff high
+        args[29] : float, sampling rate
+        args[30] : array, BOLD signals
+        args[31] : int, number of BOLD subjects
+        args[32] : int, number of BOLD regions
+        args[33] : int, number of BOLD timepoints
+        args[34] : int, number of BO iterations
+        args[35] : int, number of BO inner iterations
+        args[36] : int, number of BO iterations before relearning
+        args[37] : int, number of BO initial samples
+        args[38] : int, BO initial method
+        args[39] : int, BO verbose level
+        args[40] : string, BO log file
+        args[41] : string, BO surrogate
+        args[42] : int, BO score type
+        args[43] : int, BO learning type
+        args[44] : bool, BO learn all
+        args[45] : float, BO epsilon
+        args[46] : int, BO force jump
+        args[47] : string, BO criterion name
     
     Returns
     -------
@@ -535,13 +539,14 @@ static PyObject* parsing_wilson_inputs(PyObject* self, PyObject *args)
     // ------------- Declare input variables - not arrays
     printf("----------------- In CPP file for Wilson Function -----------------\n");
     // ------------- Declare input variables - arrays
-    PyObject *coupling_strength;
-    PyObject *delay;
+    // PyObject *coupling_strength;
+    // PyObject *delay;
     PyObject *lower_idxs;
     PyObject *upper_idxs;
     PyObject *initial_cond_e;
     PyObject *initial_cond_i;
     PyObject *BOLD_signals;
+    PyObject *structural_connec;
 
     // ------------- Declare helper variables
     long *temp_long = new long;
@@ -571,8 +576,8 @@ static PyObject* parsing_wilson_inputs(PyObject* self, PyObject *args)
     printf("---- Parsing input variables ----\n");
     if(
         !PyArg_ParseTuple(
-            args, "OOiddddddddddddddidOOOOididddOiiiiiiiiissiibdis",
-            &coupling_strength, &delay, 
+            args, "ddOiddddddddddddddidOOOOididddOiiiiiiiiissiibdis",
+            ::coupling_strength, ::delay, &structural_connec,
             ::wilson_number_of_oscillators, ::wilson_c_ee, 
             ::wilson_c_ei, ::wilson_c_ie, ::wilson_c_ii, 
             ::wilson_tau_e, ::wilson_tau_i, ::wilson_r_e, 
@@ -602,11 +607,10 @@ static PyObject* parsing_wilson_inputs(PyObject* self, PyObject *args)
     // Allocate memory for input and helper variables
     ::wilson_e_values = new double[*::wilson_number_of_oscillators];
     ::wilson_i_values = new double[*::wilson_number_of_oscillators];
-    ::wilson_coupling_mat = new double[*::wilson_number_of_oscillators * *::wilson_number_of_oscillators];
-    ::wilson_delay_mat = new double[*::wilson_number_of_oscillators * *::wilson_number_of_oscillators];
     ::wilson_lower_idxs_mat = new int[*::wilson_number_of_oscillators * *::wilson_number_of_oscillators];
     ::wilson_upper_idxs_mat = new int[*::wilson_number_of_oscillators * *::wilson_number_of_oscillators];
     ::emp_BOLD_signals = new double[*num_BOLD_subjects * *num_BOLD_regions * *num_BOLD_timepoints];
+    ::structural_connectivity_mat = new double[*::wilson_number_of_oscillators * *::wilson_number_of_oscillators];
 
     // Allocate memory for output variables
     dimensions[0] = *::wilson_number_of_oscillators;
@@ -633,15 +637,9 @@ static PyObject* parsing_wilson_inputs(PyObject* self, PyObject *args)
         // ------------ Matrices
         for (int j = 0; j < *::wilson_number_of_oscillators; j++)
         {   
-            // Get the coupling strength matrix
-            temp_variable = PyArray_GETITEM(coupling_strength, PyArray_GETPTR2(coupling_strength, i, j));
-            ::wilson_coupling_mat[i * *::wilson_number_of_oscillators + j] = PyFloat_AsDouble(temp_variable);
-            // Decrease reference for next
-            Py_DECREF(temp_variable);
-
-            // Get the delay matrix
-            temp_variable = PyArray_GETITEM(delay, PyArray_GETPTR2(delay, i, j));
-            ::wilson_delay_mat[i * *::wilson_number_of_oscillators + j] = PyFloat_AsDouble(temp_variable);
+            // Get the structural connectivity matrix
+            temp_variable = PyArray_GETITEM(structural_connec, PyArray_GETPTR2(structural_connec, i, j));
+            ::structural_connectivity_mat[i * *::wilson_number_of_oscillators + j] = PyFloat_AsDouble(temp_variable);
             // Decrease reference for next
             Py_DECREF(temp_variable);
 
@@ -886,9 +884,8 @@ static PyObject* parsing_wilson_inputs(PyObject* self, PyObject *args)
         upper_bounds[i] = 1;
     }
     double *minimizer = new double[num_dimensions];
-    for (int i = 0; i < num_dimensions; i++) {
-        minimizer[i] = 0;
-    }
+    minimizer[0] = *::coupling_strength;
+    minimizer[1] = *::delay;
     double minimizer_value[128];
     
     printf("---- Run Bayesian Optimization ----\n");
@@ -1016,9 +1013,20 @@ double wilson_objective(unsigned int input_dim, const double *initial_query, dou
     double *activity_E = new double[*::wilson_number_of_oscillators];
     double *activity_I = new double[*::wilson_number_of_oscillators];
     double *noises_array = new double[*::wilson_number_of_oscillators];
+    ::wilson_coupling_mat = new double[*::wilson_number_of_oscillators * *::wilson_number_of_oscillators];
+    ::wilson_delay_mat = new double[*::wilson_number_of_oscillators * *::wilson_number_of_oscillators];
+
 
     // ------------ Random generation
     std::default_random_engine generator(1);
+
+    // ------------ Create the coupling matrix
+    printf("---- Create the coupling matrix ----\n");
+    // ::wilson_coupling_mat
+
+    // ------------ Create the delay matrix
+    printf("---- Create the delay matrix ----\n");
+    // ::wilson_delay_mat
 
     // ------------ TEMPORAL INTEGRATION
     printf("---- Temporal integration ----\n");

@@ -218,8 +218,9 @@ def wilson_electrical_sim(args):
 
     # --------- SIMULATION TIME BABEY
     simulation_results = sim.parsing_wilson_inputs(
-        coupling_matrix,
-        delay_matrix,
+        coupling_strength,
+        delay,
+        SC,
         number_oscillators,
         c_ee,
         c_ei,

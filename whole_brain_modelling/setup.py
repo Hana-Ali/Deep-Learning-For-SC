@@ -18,10 +18,13 @@ simulation_mod = Extension('simulations',
                                   "C:\\src\\vcpkg\\installed\\x64-windows\\lib",
                                   "C:\\src\\vcpkg\\installed\\x86-windows\\lib",
                                   "C:\\msys64\\mingw64\\bin",
+                                  "C:\\cpp_libs\\include\\bayesopt\\build_msvc\\lib\\Release"
                               ],
                               libraries=[
                               "gsl",
-                              "gslcblas"
+                              "gslcblas",
+                              "bayesopt",
+                              "nlopt"
                               ]
                             )
 

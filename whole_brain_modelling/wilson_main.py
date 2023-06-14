@@ -18,15 +18,8 @@ root_path = 'C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\im
 write_path = "C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Dissertation\\Notebooks\\MyCodes\\results"
 
 # Defining optimization parameters
-coupling_min = 0.0
-coupling_max = 1.5
-coupling_strength = 0.5
-coupling_number = 50
-
-delay_min = 0.0
-delay_max = 0.5
-delay = 0.1
-delay_number = 50
+coupling_strength = 0.0
+delay = 0.0
 
 # Defining fixed parameters
 c_ee = 16.0
@@ -71,10 +64,10 @@ noise_amplitude = 0.001
 number_oscillators = 100
 
 # Defining filter parameters
-order = 4
-cutoffLow = 1.5
-cutoffHigh = 2.5
-sampling_rate = 20
+order = 2
+cutoffLow = 0.01
+cutoffHigh = 0.1
+sampling_rate = 1 / 0.7
 
 # Defining Bayesian Optimization parameters
 n_iterations = 50
@@ -105,12 +98,8 @@ if __name__ == "__main__":
     check_type(root_path, str, 'root_path')
 
     # Checking optimization parameters
-    check_type(coupling_min, float, 'coupling_min')
-    check_type(coupling_max, float, 'coupling_max')
-    check_type(coupling_number, int, 'coupling_number')
-    check_type(delay_min, float, 'delay_min')
-    check_type(delay_max, float, 'delay_max')
-    check_type(delay_number, int, 'delay_number')
+    check_type(coupling_strength, float, 'coupling_strength')
+    check_type(delay, float, 'delay')
 
     # Checking fixed parameters
     check_type(c_ee, float, 'c_ee')
