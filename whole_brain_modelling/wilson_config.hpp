@@ -47,6 +47,8 @@ class WilsonConfig
         double tau_i{};
         double r_e{};
         double r_i{};
+        double k_e{};
+        double k_i{};
         double alpha_e{};
         double alpha_i{};
         double theta_e{};
@@ -54,8 +56,9 @@ class WilsonConfig
         double external_e{};
         double external_i{};
         // Parameters used for the simulation
+        double time_simulated{}; // seconds
+        double integration_step_size{}; // seconds
         int number_of_integration_steps{};
-        double integration_step_size{};
         std::vector<std::vector<double>> lower_idxs_mat{}; 
         std::vector<std::vector<double>> upper_idxs_mat{};
         std::vector<double> e_values{};
