@@ -148,8 +148,12 @@ class wilson_model:
             # Initialize the delay input
             long_range_connections = E[:, :i]
 
-            # Initialize the delay matrix
-            
+            # Compute some differences
+            Ed = long_range_connections[:,::-1][np.arange(number_of_regions), self.delay.T].T
+            L = weights - 1*np.diag(weights.sum(1))
+
+            # Calculating the coupling matrix
+            coupling_matrix = self.coupling_strength * np.sum(L*Ed.T, axis=1)
 
             # Calculating the external input
             external_input = np.zeros(number_of_regions, 2)
@@ -158,20 +162,20 @@ class wilson_model:
 
             # Calculating the input
             inp = np.zeros(number_of_regions, 2)
-            inp[:, 0] = self.c_ee * E[0] - self.c_ei * I[0] + external_input[:, 0]
-            inp[:, 1] = self.c_ie * E[1] - self.c_ii * I[1] + external_input[:, 1]
+            inp[:, 0] = self.c_ee * E - self.c_ei * I + external_input[:, 0]
+            inp[:, 1] = self.c_ie * E - self.c_ii * I + external_input[:, 1]
 
             # Calculating the sigmoidal response
             E_response = self.sigmoidal(inp[:, 0])
             I_response = self.sigmoidal(inp[:, 1])
 
             # Calculating the derivative
-            E_derivative = (-E[0] + self.r_e * E_response * (self.alpha_e * E[0] - self.k_e) + coupling_matrix[0, 0] * E[0] + coupling_matrix[0, 1] * E[1] + delay_matrix[0, 0] * E[0] + delay_matrix[0, 1] * E[1]) / self.tau_e
-            I_derivative = (-I[0] + self.r_i * I_response * (self.alpha_i * I[0] - self.k_i) + coupling_matrix[1, 0] * I[0] + coupling_matrix[1, 1] * I[1] + delay_matrix[1, 0] * I[0] + delay_matrix[1, 1] * I[1]) / self.tau_i
+            E_derivative = (-E + self.r_e * E_response * (self.alpha_e * E - self.k_e) + coupling_matrix[0, 0] * E + coupling_matrix[0, 1] * E[1] + delay_matrix[0, 0] * E + delay_matrix[0, 1] * E[1]) / self.tau_e
+            I_derivative = (-I + self.r_i * I_response * (self.alpha_i * I - self.k_i) + coupling_matrix[1, 0] * I + coupling_matrix[1, 1] * I[1] + delay_matrix[1, 0] * I + delay_matrix[1, 1] * I[1]) / self.tau_i
 
             # Calculating the next state
-            E[0] = E[0] + integration_step_size * E_derivative
-            I[0] = I[0] + integration_step_size * I_derivative
+            E = E + integration_step_size * E_derivative
+            I = I + integration_step_size * I_derivative
 
             # Storing the output
             output_matrix[0, i] = E[0]
