@@ -2,8 +2,6 @@ import simulations as sim
 from helper_funcs import *
 import numpy as np
 
-# New
-
 def wilson_electrical_sim(args):
     """"
     This function will simulate the Wilson-Cowan model with electrical coupling

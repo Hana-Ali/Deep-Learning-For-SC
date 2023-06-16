@@ -15,6 +15,8 @@
 #include "simulation_helpers.hpp"
 #include "wilson_config.hpp"
 
+// New
+
 // Response function for Wilson Model
 double response_function(double x, double alpha, double theta)
 {
