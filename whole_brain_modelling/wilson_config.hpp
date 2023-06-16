@@ -4,6 +4,8 @@
 #include <string>
 #include <random>
 
+// New
+
 // Define a Wilson configuration class for the whole brain model
 class WilsonConfig 
 {
