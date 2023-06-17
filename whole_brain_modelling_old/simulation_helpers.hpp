@@ -2,8 +2,6 @@
 
 #define _USE_MATH_DEFINES
 
-// Helper functions for the simulation
-
 #include <cmath>
 #include <string>
 #include <vector>
@@ -11,6 +9,7 @@
 #include <numeric>
 #include <complex>
 #include <stdexcept>
+#include <algorithm>
 #include <boost/any.hpp>
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_statistics.h>
@@ -467,49 +466,4 @@ std::vector<T> flatten(const std::vector<std::vector<T>> & vec) {
     for (const auto & v : vec)
         result.insert(result.end(), v.begin(), v.end());                                                                                         
     return result;
-}
-
-// New
-
-// Saving 2D data in files
-void save_data_2D(std::vector<std::vector<double>> data, std::string file_path) {
-	// Open the file given in the path
-	std::ofstream file(file_path);
-	if (!file.is_open()) {
-		throw std::invalid_argument("The file " + file_path + " could not be opened");
-	}
-	else {
-		printf("The file %s was opened successfully\n", file_path.c_str());
-	}
-
-	// Write the data to the file
-	for (int i = 0; i < data.size(); i++) {
-		for (int j = 0; j < data[0].size(); j++) {
-			file << data[i][j] << " ";
-		}
-		file << "\n";
-	}
-}
-
-// Saving 3D data in files
-void save_data_3D(std::vector<std::vector<std::vector<double>>> data, std::string file_path) {
-	// Open the file given in the path
-	std::ofstream file(file_path);
-	if (!file.is_open()) {
-		throw std::invalid_argument("The file " + file_path + " could not be opened");
-	}
-	else {
-		printf("The file %s was opened successfully\n", file_path.c_str());
-	}
-
-	// Write the data to the file
-	for (int i = 0; i < data.size(); i++) {
-		for (int j = 0; j < data[0].size(); j++) {
-			for (int k = 0; k < data[0][0].size(); k++) {
-				file << data[i][j][k] << " ";
-			}
-			file << "\n";
-		}
-		file << "\n";
-	}
 }

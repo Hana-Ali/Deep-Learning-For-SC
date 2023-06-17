@@ -1,67 +1,40 @@
-#define PY_SSIZE_T_CLEAN
-#include <math.h>
 #include <random>
 #include <string>
-#include <list>
-#include <Python.h>
-#include <iostream>
 #include <fstream>
-#include <typeinfo>
-#include <boost/any.hpp>
 #include <bayesopt/bayesopt.h>
-#include <numpy/arrayobject.h>
 #include <gsl/gsl_statistics.h>
 #include <bayesopt/bayesopt.hpp>
 #include "simulation_helpers.hpp"
 #include "wilson_config.hpp"
 
-// Response function for Wilson Model
+/**
+ * @brief Helper function to find the response of the Wilson model
+ * @param x Input value
+ * @param alpha Alpha parameter
+ * @param theta Theta parameter
+ * @return Response of the Wilson model
+*/
 double response_function(double x, double alpha, double theta)
 {
-    /*
-    Given a value x, this function returns the value of the sigmoid function with parameters alpha and theta.
-
-    Parameters
-    ----------
-    x : double, input value
-    alpha : double, sigmoid parameter (steepness)
-    theta : double, sigmoid parameter (inflection point position)
-
-    Returns
-    -------
-    y : double, sigmoid function value at x
-    */
-    // return 1 / (1 + exp(-alpha * (x - theta)));
-
     double S = 1 / (1 + exp(-alpha * (x - theta)));
     S -= 1 / (1 + exp(alpha * theta));
 
     return S;
 }
 
+/**
+ * @brief Changes electrical activity to a BOLD signal
+ * @param electrical_activity Electrical activity of the brain
+ * @param number_of_oscillators Number of oscillators in the brain
+ * @param number_of_integration_steps Number of integration steps
+ * @param integration_step_size Integration step size
+ * @return BOLD signal
+*/
 std::vector<std::vector<double>> Wilson::electrical_to_bold(std::vector<std::vector<double>>& electrical_activity,
                                                             int number_of_oscillators,
                                                             int number_of_integration_steps,
                                                             float integration_step_size)
-{
-    /*
-    This is a function that, given electrical activity, will convert it to BOLD signals.
-    It does so using the Balloon-Windkessel model. Again, the differential equation follows
-    Heun's Method
-
-    Parameters
-    ----------
-    args : tuple, input model arguments
-        args[0] : array, electrical activity of each node (input_e)
-        args[1] : int, number of oscillators (number_of_oscillators)
-        args[2] : int, number of integration steps (number_of_integration_steps)
-        args[3] : float, integration step size (integration_step_size)
-
-    Returns
-    -------
-    BOLD_signal : array, BOLD signal of each node
-    */
-    
+{   
     // ------------- Declare state variables
     struct BOLDParams {
         double f;
@@ -209,7 +182,10 @@ std::vector<std::vector<double>> Wilson::electrical_to_bold(std::vector<std::vec
     return unpack_bold;
 }
    
-// Moving config
+/**
+ * @brief Constructor for the Wilson class
+ * @param config WilsonConfig object that contains the parameters for the Wilson model
+*/
 Wilson::Wilson(WilsonConfig config)
     : config(std::move(config))
     , electrical_activity{
@@ -218,24 +194,76 @@ Wilson::Wilson(WilsonConfig config)
 {
 }
 
-// Defining the main Wilson simulator function
+/**
+ * @brief Run the Wilson model simulation, main function
+ * @return Minimizer value for the Wilson model
+ * @note This function is called from Python
+*/
 double* Wilson::run_simulation()
-{
-    // Checking config is valid for everything we've saved
-    if (!config.check_validity())
-    {
-        throw std::runtime_error("Not valid config");
-    }
-    printf("----------------- In CPP file for Wilson Function -----------------\n");
+{ 
+    // Define the config parameters
+    config.c_ee = 16.0;
+    config.c_ei = 12.0;
+    config.c_ie = 15.0;
+    config.c_ii = 3.0;
+    config.tau_e = 8.0;
+    config.tau_i = 8.0;
+    config.r_e = 1.0;
+    config.r_i = 1.0;
+    config.k_e = 1.0;
+    config.alpha_e = 1.0;
+    config.alpha_i = 1.0;
+    config.theta_e = 4.0;
+    config.theta_i = 3.7;
+    config.external_e = 0.1;
+    config.external_i = 0.1;
+    config.time_simulated = 510.0;
+    config.integration_step_size = 0.002;
+    config.number_of_integration_steps = int(config.time_simulated / config.integration_step_size);
+    config.noise = WilsonConfig::Noise::NOISE_UNIFORM;
+    config.noise_amplitude = 0.001;
+    config.number_of_oscillators = 100;
+    config.coupling_strength = 0.0;
+    config.delay = 0.0;
+    config.order = 2;
+    config.cutoffLow = 0.01;
+    config.cutoffHigh = 0.1;
+    config.sampling_rate = 1.0 / 0.7;
+    config.BO_n_iter = 30;
+    config.BO_n_inner_iter = 10;
+    config.BO_init_samples = 10;
+    config.BO_iter_relearn = 10;
+    config.BO_init_method = 1;
+    config.BO_verbose_level = 2;
+    config.BO_log_file = "temp_arrays/BO_log_file.txt";
+    config.BO_surrogate = "sGaussianProcessML";
+    config.BO_sc_type = WilsonConfig::ScoreType::SC_MTL;
+    config.BO_l_type = WilsonConfig::LearningType::L_MCMC;
+    config.BO_l_all = false;
+    config.BO_epsilon = 0.01;
+    config.BO_force_jump = false;
+    config.BO_crit_name = "cLCB";
 
-    // TODO: Not sure if we can use wilson_electrical_activity directly
-    output_e = electrical_activity;
+    srand(time(0));
+    std::generate(config.e_values.begin(), config.e_values.end(), rand);
+    std::generate(config.i_values.begin(), config.i_values.end(), rand);
+
+    // NEED TO PASS IN STRUCTURAL CONNECTIVITY MATRIX AND EMPIRICAL BOLD SIGNALS
+
+    // // Checking config is valid for everything we've saved
+    // if (!config.check_validity())
+    // {
+    //     throw std::runtime_error("Not valid config");
+    // }
+    printf("----------------- In CPP file for Wilson Function -----------------\n");
+    config.output_e = std::vector<std::vector<double>>(config.number_of_oscillators,
+                                                       std::vector<double>(config.number_of_integration_steps + 1, nan("")));
     // ------------- Convert input variables to C++ types
     printf("---- Converting input variables to C++ types ----\n");
     for (int i = 0; i < config.number_of_oscillators; i++)
     {
         // ------------ Initialize output matrix
-        output_e[i][0] = config.e_values[i];
+        config.output_e[i][0] = config.e_values[i];
         // Other values in matrix are NaN
     }
 
@@ -255,7 +283,7 @@ double* Wilson::run_simulation()
     // Create a vector that stores for ALL SUBJECTS
     std::vector<std::vector<std::vector<double>>> emp_bold_filtered;
 
-// For each subject
+    // For each subject
     for (int subject = 0; subject < emp_BOLD_dims[0]; ++subject)
     {
         printf("In filtering subject %d\n", subject);
@@ -348,7 +376,7 @@ double* Wilson::run_simulation()
     // wilson_objective(2, NULL, NULL, NULL);
     const int num_dimensions = 2;
     double lower_bounds[num_dimensions] = { 0.0, 0.0 };
-    double upper_bounds[num_dimensions] = { 1.0, 1.0 };
+    double upper_bounds[num_dimensions] = { 1.0, 100.0 };
 
     double minimizer[num_dimensions] = { config.coupling_strength, config.delay };
     double minimizer_value[128];
@@ -378,37 +406,25 @@ double* Wilson::run_simulation()
         printf("Minimizer value for dimension %d is %f\n", i, minimizer[i]);
     }
 
+    // Maybe return the minimizer value with the minimizer
     return minimizer;
 }
 
-// Define the objective function for the Wilson model
+/**
+ * @brief Objective function for the Wilson model, used in BO
+ * @param input_dim Dimension of the input vector (2)
+ * @param initial_query Initial query point (initial coupling/delay)
+ * @param gradient Gradient of the objective function (NULL)
+ * @param func_data Pointer to the Wilson object that contains the config
+ * @return Objective function value
+*/
 double Wilson::wilson_objective(unsigned int input_dim,
                                 const double *initial_query,
                                 double* gradient,
                                 void *func_data)
 {
-
-    // IMPORTANT
-    // ONE WAY TO THINK ABOUT REFACTORING THIS IS THAT THE COUPLING STRENGTH AND DELAY ARE IN THE INITIAL QUERY, AND HERE
-    // WE CALCULATE THE MATRICES RATHER THAN IN THE PYTHON FILE
-
-    /*
-    This is the goal or objective function that will be used by Bayesian Optimization to find the optimal parameters for the Wilson model.
-
-    Parameters
-    ----------
-    input_dim : unsigned int, number of parameters
-    initial_query : array, initial parameter values
-    gradient : array, gradient of the objective function
-    func_data : void, additional data for the objective function (which I think means data for the wilson model)
-    
-    Returns
-    -------
-    objective_value : double, value of the objective function
-    */
-
     // ------------- Getting function data
-    auto& instance = *(static_cast<Wilson*>(func_data));
+    auto& wilson_data = *(static_cast<Wilson*>(func_data));
 
     // ------------- Declare input variables - arrays
     printf("---- Declare helper variables ----\n");
@@ -420,39 +436,79 @@ double Wilson::wilson_objective(unsigned int input_dim,
     double input_lower;
     double input_upper;
     double input_final;
-    auto differential_E = std::vector<double>(instance.config.number_of_oscillators);
-    auto differential_I = std::vector<double>(instance.config.number_of_oscillators);
-    auto differential_E2 = std::vector<double>(instance.config.number_of_oscillators);
-    auto differential_I2 = std::vector<double>(instance.config.number_of_oscillators);
-    auto activity_E = std::vector<double>(instance.config.number_of_oscillators);
-    auto activity_I = std::vector<double>(instance.config.number_of_oscillators);
-    auto noises_array = std::vector<double>(instance.config.number_of_oscillators);
-    instance.delay_mat =
-      std::vector<std::vector<double>>(instance.config.number_of_oscillators,
-                                       std::vector<double>(instance.config.number_of_oscillators));
-    instance.coupling_mat =
-      std::vector<std::vector<double>>(instance.config.number_of_oscillators,
-                                       std::vector<double>(instance.config.number_of_oscillators));
+    auto differential_E = std::vector<double>(wilson_data.config.number_of_oscillators);
+    auto differential_I = std::vector<double>(wilson_data.config.number_of_oscillators);
+    auto differential_E2 = std::vector<double>(wilson_data.config.number_of_oscillators);
+    auto differential_I2 = std::vector<double>(wilson_data.config.number_of_oscillators);
+    auto activity_E = std::vector<double>(wilson_data.config.number_of_oscillators);
+    auto activity_I = std::vector<double>(wilson_data.config.number_of_oscillators);
+    auto noises_array = std::vector<double>(wilson_data.config.number_of_oscillators);
+
+    wilson_data.config.coupling_strength = initial_query[0];
+    wilson_data.config.delay = initial_query[1];
+
+    // ------------- Defining the matrices that will keep changing
+    printf("---- Define matrices that will keep changing ----\n");
+    wilson_data.coupling_mat = std::vector<std::vector<double>>(wilson_data.config.number_of_oscillators,
+                                                                std::vector<double>(wilson_data.config.number_of_oscillators));
+    for (int i = 0; i < wilson_data.config.number_of_oscillators; i++)
+    {
+      for (int j = 0; j < wilson_data.config.number_of_oscillators; j++)
+      {
+        if (i == j)
+          wilson_data.coupling_mat[i][j] = wilson_data.config.c_ee;
+        else
+          wilson_data.coupling_mat[i][j] = wilson_data.config.coupling_strength * wilson_data.config.structural_connectivity_mat[i][j];
+      }
+    }
+
+    wilson_data.delay_mat = std::vector<std::vector<double>>(wilson_data.config.number_of_oscillators,
+                                                             std::vector<double>(wilson_data.config.number_of_oscillators));
+    for (int i = 0; i < wilson_data.config.number_of_oscillators; i++)
+    {
+      for (int j = 0; j < wilson_data.config.number_of_oscillators; j++)
+      {
+        if (i == j)
+          wilson_data.delay_mat[i][j] = 0;
+        else
+          wilson_data.delay_mat[i][j] = wilson_data.config.delay * wilson_data.config.structural_connectivity_mat[i][j];
+      }
+    }
+
+    // Create the indices matrices
+    wilson_data.config.lower_idxs_mat = std::vector<std::vector<int>>(wilson_data.config.number_of_oscillators,
+                                                                       std::vector<int>(wilson_data.config.number_of_oscillators));
+    
+    for (int i = 0; i < wilson_data.config.number_of_oscillators; i++)
+    {
+      for (int j = 0; j < wilson_data.config.number_of_oscillators; j++)
+      {
+        temp_long = wilson_data.delay_mat[i][j] / wilson_data.config.integration_step_size;
+        wilson_data.config.lower_idxs_mat[i][j] = (int)temp_long;
+      }
+    }
+    wilson_data.config.upper_idxs_mat = std::vector<std::vector<int>>(wilson_data.config.number_of_oscillators,
+                                                                std::vector<int>(wilson_data.config.number_of_oscillators));
+    for (int i = 0; i < wilson_data.config.number_of_oscillators; i++)
+    {
+      for (int j = 0; j < wilson_data.config.number_of_oscillators; j++)
+      {
+        wilson_data.config.upper_idxs_mat[i][j] = wilson_data.config.lower_idxs_mat[i][j] + 1;
+      }
+    }
+
     // ------------ Random generation
     std::default_random_engine generator(1);
 
-    // ------------ Create the coupling matrix
-    printf("---- Create the coupling matrix ----\n");
-    // ::wilson_coupling_mat
-
-    // ------------ Create the delay matrix
-    printf("---- Create the delay matrix ----\n");
-    // ::wilson_delay_mat
-
     // ------------ TEMPORAL INTEGRATION
     printf("---- Temporal integration ----\n");
-    for (int step = 1; step <= instance.config.number_of_integration_steps; step++)
+    for (int step = 1; step <= wilson_data.config.number_of_integration_steps; step++)
     {
       if (step % 10000 == 0)
         printf("-- Temporal integration step %d --\n", step);
       // printf("-- Heun's Method - Step 1 --\n");
       // ------------ Heun's Method - Step 1
-      for (int node = 0; node < instance.config.number_of_oscillators; node++)
+      for (int node = 0; node < wilson_data.config.number_of_oscillators; node++)
       {
         // printf("-- Heun's 1: Node %d --\n", node);
         // ------------ Initializations
@@ -460,46 +516,50 @@ double Wilson::wilson_objective(unsigned int input_dim,
         node_input = 0;
 
         // Initialize noise
-        if ((int)instance.config.noise == 0)
+        if (wilson_data.config.noise == WilsonConfig::Noise::NOISE_NONE)
         {
           noises_array[node] = 0;
         }
-        else if((int)instance.config.noise == 1)
+        else if(wilson_data.config.noise == WilsonConfig::Noise::NOISE_UNIFORM)
         {
-          noises_array[node] = instance.config.noise_amplitude * (2 * instance.rand_std_uniform(generator) - 1);
+          noises_array[node] = wilson_data.config.noise_amplitude * (2 * wilson_data.rand_std_uniform(generator) - 1);
         }
-        else if((int)instance.config.noise == 2)
+        else if(wilson_data.config.noise == WilsonConfig::Noise::NOISE_NORMAL)
         {
-          noises_array[node] = instance.config.noise_amplitude * instance.rand_std_normal(generator);
+          noises_array[node] = wilson_data.config.noise_amplitude * wilson_data.rand_std_normal(generator);
+        }
+        else
+        {
+          throw std::invalid_argument("Invalid noise type");
         }
 
         // printf("-- Heun's 1: Node %d - Noise: %f --\n", node, noises_array[node]);
 
         // ------------ Calculate input to node
         // Consider all other nodes, but only if the lower delay index is lower than the time point
-        for (int other_node = 0; other_node < instance.config.number_of_oscillators; other_node++)
+        for (int other_node = 0; other_node < wilson_data.config.number_of_oscillators; other_node++)
         {
           // printf("-- Heun's 1: Node %d - Other node %d --\n", node, other_node);
-          if (step > instance.config.lower_idxs_mat[node][other_node])
+          if (step > wilson_data.config.lower_idxs_mat[node][other_node])
           {
             // Retrieve the difference between the 'true' delay and the one corresponding to the upper index
-            delay_difference = instance.delay_mat[node][other_node];
-            delay_difference -= (double)instance.config.upper_idxs_mat[node][other_node] *
-                                        instance.config.integration_step_size;
+            delay_difference = wilson_data.delay_mat[node][other_node];
+            delay_difference -= (double)wilson_data.config.upper_idxs_mat[node][other_node] *
+                                        wilson_data.config.integration_step_size;
 
             // Retrieve the time point indices corresponding with the lower and upper delay indices
-            index_lower = step - 1 - instance.config.lower_idxs_mat[node][other_node];
-            index_upper = step - 1 - instance.config.upper_idxs_mat[node][other_node];
+            index_lower = step - 1 - wilson_data.config.lower_idxs_mat[node][other_node];
+            index_upper = step - 1 - wilson_data.config.upper_idxs_mat[node][other_node];
 
             // Retrieve the activities corresponding to the lower and upper delay indices
-            input_lower = instance.output_e[other_node][index_lower];
-            input_upper = instance.output_e[other_node][index_upper];
+            input_lower = wilson_data.config.output_e[other_node][index_lower];
+            input_upper = wilson_data.config.output_e[other_node][index_upper];
 
             // From the previously retrieved values, estimate the input to oscillator k from oscillator j
             input_final = input_upper;
-            input_final += (input_lower - input_upper) / instance.config.integration_step_size * delay_difference;
+            input_final += (input_lower - input_upper) / wilson_data.config.integration_step_size * delay_difference;
             // From this estimation, determine the quantile, final input
-            input_final *= instance.coupling_mat[node][other_node];
+            input_final *= wilson_data.coupling_mat[node][other_node];
             // Add this to the total input to oscillator k
             node_input += input_final;
           }
@@ -509,33 +569,33 @@ double Wilson::wilson_objective(unsigned int input_dim,
         // ------------ Calculate Equations
         // Excitatory population (without noise and time) differentials
         differential_E[node] = node_input -
-                               instance.config.c_ei * instance.config.i_values[node] -
-                               instance.config.external_e;
-        differential_E[node] = - instance.config.e_values[node] +
-                                 (1 - instance.config.r_e * instance.config.e_values[node]) *
-                                 response_function(differential_E[node], instance.config.alpha_e, instance.config.theta_e);
+                               wilson_data.config.c_ei * wilson_data.config.i_values[node] -
+                               wilson_data.config.external_e;
+        differential_E[node] = - wilson_data.config.e_values[node] +
+                                 (1 - wilson_data.config.r_e * wilson_data.config.e_values[node]) *
+                                 response_function(differential_E[node], wilson_data.config.alpha_e, wilson_data.config.theta_e);
 
         // Inhibitory population (without noise and time) differentials
-        differential_I[node] = instance.config.c_ie * instance.config.e_values[node];
-        differential_I[node] = - instance.config.i_values[node] +
-                                 (1 - instance.config.r_i * instance.config.i_values[node]) *
-                                 response_function(differential_I[node], instance.config.alpha_i, instance.config.theta_i);
+        differential_I[node] = wilson_data.config.c_ie * wilson_data.config.e_values[node];
+        differential_I[node] = - wilson_data.config.i_values[node] +
+                                 (1 - wilson_data.config.r_i * wilson_data.config.i_values[node]) *
+                                 response_function(differential_I[node], wilson_data.config.alpha_i, wilson_data.config.theta_i);
 
         // First estimate of the new activity values
-        activity_E[node] = instance.config.e_values[node] +
-                           (instance.config.integration_step_size * differential_E[node] +
-                            sqrt(instance.config.integration_step_size) * noises_array[node]) / instance.config.tau_e;
-        activity_I[node] = instance.config.i_values[node] +
-                           (instance.config.integration_step_size * differential_I[node] +
-                            sqrt(instance.config.integration_step_size) * noises_array[node]) / instance.config.tau_i;
+        activity_E[node] = wilson_data.config.e_values[node] +
+                           (wilson_data.config.integration_step_size * differential_E[node] +
+                            sqrt(wilson_data.config.integration_step_size) * noises_array[node]) / wilson_data.config.tau_e;
+        activity_I[node] = wilson_data.config.i_values[node] +
+                           (wilson_data.config.integration_step_size * differential_I[node] +
+                            sqrt(wilson_data.config.integration_step_size) * noises_array[node]) / wilson_data.config.tau_i;
 
         // printf("-- Heun's 1: Node %d - Update ::wilson_output_e value --\n", node);
-        instance.output_e[node][step] = activity_E[node];
+        wilson_data.config.output_e[node][step] = activity_E[node];
       }
 
       // printf("-- Heun's Method - Step 2 --\n");
       // ------------ Heun's Method - Step 2
-      for(int node = 0; node < instance.config.number_of_oscillators; node++)
+      for(int node = 0; node < wilson_data.config.number_of_oscillators; node++)
       {
         // printf("-- Heun's 2: Node %d --\n", node);
         // Initialize input to node as 0
@@ -543,30 +603,30 @@ double Wilson::wilson_objective(unsigned int input_dim,
 
         // ------------ Calculate input to node
         // Consider all other nodes, but only if the lower delay index is lower than the time point
-        for (int other_node = 0; other_node < instance.config.number_of_oscillators; other_node++)
+        for (int other_node = 0; other_node < wilson_data.config.number_of_oscillators; other_node++)
         {
           // printf("-- Heun's 2: Node %d - Other node %d --\n", node, other_node);
-          if (step > instance.config.lower_idxs_mat[node][other_node])
+          if (step > wilson_data.config.lower_idxs_mat[node][other_node])
           {
             // printf("Step > lowerIdx");
             // Retrieve the difference between the 'true' delay and the one corresponding to the upper index
-            delay_difference = instance.delay_mat[node][other_node];
-            delay_difference -= (double)instance.config.upper_idxs_mat[node][other_node] *
-                                        instance.config.integration_step_size;
+            delay_difference = wilson_data.delay_mat[node][other_node];
+            delay_difference -= (double)wilson_data.config.upper_idxs_mat[node][other_node] *
+                                        wilson_data.config.integration_step_size;
 
             // Retrieve the time point indices corresponding with the lower and upper delay indices
-            index_lower = step - instance.config.lower_idxs_mat[node][other_node];
-            index_upper = step - instance.config.upper_idxs_mat[node][other_node];
+            index_lower = step - wilson_data.config.lower_idxs_mat[node][other_node];
+            index_upper = step - wilson_data.config.upper_idxs_mat[node][other_node];
 
             // Retrieve the activities corresponding to the lower and upper delay indices
-            input_lower = instance.output_e[other_node][index_lower];
-            input_upper = instance.output_e[other_node][index_upper];
+            input_lower = wilson_data.config.output_e[other_node][index_lower];
+            input_upper = wilson_data.config.output_e[other_node][index_upper];
 
             // From the previously retrieved values, estimate the input to oscillator k from oscillator j
             input_final = input_upper;
-            input_final += (input_lower - input_upper) / instance.config.integration_step_size * delay_difference;
+            input_final += (input_lower - input_upper) / wilson_data.config.integration_step_size * delay_difference;
             // From this estimation, determine the quantile, final input
-            input_final *= instance.coupling_mat[node][other_node];
+            input_final *= wilson_data.coupling_mat[node][other_node];
             // Add this to the total input to oscillator k
             node_input += input_final;
           }
@@ -575,43 +635,48 @@ double Wilson::wilson_objective(unsigned int input_dim,
         // printf("-- Heun's 2: Node %d - Differential Equations --\n", node);
         // ------------ Calculate Equations
         // Excitatory population (without noise and time) differentials
-        differential_E2[node] = node_input - instance.config.c_ei * activity_I[node] + instance.config.external_e;
+        differential_E2[node] = node_input - wilson_data.config.c_ei * activity_I[node] + wilson_data.config.external_e;
         differential_E2[node] = - activity_E[node] +
-                                  (1 - instance.config.r_e * activity_E[node]) *
-                                  response_function(differential_E2[node], instance.config.alpha_e, instance.config.theta_e);
+                                  (1 - wilson_data.config.r_e * activity_E[node]) *
+                                  response_function(differential_E2[node], wilson_data.config.alpha_e, wilson_data.config.theta_e);
 
         // Inhibitory population (without noise and time) differentials
-        differential_I2[node] = instance.config.c_ie * activity_E[node];
+        differential_I2[node] = wilson_data.config.c_ie * activity_E[node];
         differential_I2[node] = - activity_I[node] +
-                                  (1 - instance.config.r_i * activity_I[node]) *
-                                  response_function(differential_I2[node], instance.config.alpha_i, instance.config.theta_i);
+                                  (1 - wilson_data.config.r_i * activity_I[node]) *
+                                  response_function(differential_I2[node], wilson_data.config.alpha_i, wilson_data.config.theta_i);
 
         // Second estimate of the new activity values
-        instance.config.e_values[node] += (instance.config.integration_step_size /
+        wilson_data.config.e_values[node] += (wilson_data.config.integration_step_size /
                                                     2 * (differential_E[node] + differential_E2[node]) +
-                                                  sqrt(instance.config.integration_step_size) * noises_array[node]) / instance.config.tau_e;
-        instance.config.i_values[node] += (instance.config.integration_step_size /
+                                                  sqrt(wilson_data.config.integration_step_size) * noises_array[node]) / wilson_data.config.tau_e;
+        wilson_data.config.i_values[node] += (wilson_data.config.integration_step_size /
                                                     2 * (differential_I[node] + differential_I2[node]) +
-                                                  sqrt(instance.config.integration_step_size) * noises_array[node]) / instance.config.tau_i;
+                                                  sqrt(wilson_data.config.integration_step_size) * noises_array[node]) / wilson_data.config.tau_i;
 
         // printf("-- Heun's 2: Node %d - Calculate ::output_e values --\n", node);
-        instance.output_e[node][step] = instance.config.e_values[node];
+        wilson_data.config.output_e[node][step] = wilson_data.config.e_values[node];
       }
     }
 
-    instance.electrical_activity = instance.output_e;
+    wilson_data.electrical_activity = wilson_data.config.output_e;
 
     // ------------- Got electrical activity
     printf("---- Shape of electrical activity: %d x %d----\n",
-           (int)instance.electrical_activity.size(),
-           (int)instance.electrical_activity[0].size());
+           (int)wilson_data.electrical_activity.size(),
+           (int)wilson_data.electrical_activity[0].size());
+    
+    printf("----------- Shape of output_e -----------\n",
+            (int)wilson_data.config.output_e.size(),
+            (int)wilson_data.config.output_e[0].size());
+
 
     // ------------- Convert the signal to BOLD
     printf("---- Converting electrical activity to BOLD ----\n");
-    auto bold_signal = instance.electrical_to_bold(instance.electrical_activity,
-                                                   instance.config.number_of_oscillators,
-                                                   instance.config.number_of_integration_steps,
-                                                   instance.config.integration_step_size);
+    auto bold_signal = wilson_data.electrical_to_bold(wilson_data.electrical_activity,
+                                                   wilson_data.config.number_of_oscillators,
+                                                   wilson_data.config.number_of_integration_steps,
+                                                   wilson_data.config.integration_step_size);
 
     // Saving it just for a sanity check
     printf("----------- Saving unpacked BOLD signal -----------\n");
@@ -622,10 +687,10 @@ double Wilson::wilson_objective(unsigned int input_dim,
     std::vector<std::vector<double>> bold_filtered = process_BOLD(bold_signal,
                                                                   bold_signal.size(),
                                                                   bold_signal[0].size(),
-                                                                  instance.config.order,
-                                                                  instance.config.cutoffLow,
-                                                                  instance.config.cutoffHigh,
-                                                                  instance.config.sampling_rate);
+                                                                  wilson_data.config.order,
+                                                                  wilson_data.config.cutoffLow,
+                                                                  wilson_data.config.cutoffHigh,
+                                                                  wilson_data.config.sampling_rate);
 
 
     // Saving it just for a sanity check
@@ -649,7 +714,7 @@ double Wilson::wilson_objective(unsigned int input_dim,
     printf("----------- Comparing sim_FC with emp_FC -----------\n");
     // First, flatten the arrays
     std::vector<double> flat_sim_FC = flatten(sim_FC);
-    std::vector<double> flat_emp_FC = flatten(instance.config.emp_FC);
+    std::vector<double> flat_emp_FC = flatten(wilson_data.config.emp_FC);
 
     // Then, calculate the correlation
     double objective_corr = gsl_stats_correlation(flat_sim_FC.data(), 1, flat_emp_FC.data(), 1, flat_sim_FC.size());

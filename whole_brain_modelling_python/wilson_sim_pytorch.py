@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import sys
 import os
+import torch
 
 ###### Define the Wilson-Cowan model as a class
 class wilson_model:
@@ -112,14 +113,14 @@ class wilson_model:
         # Checking that the parameters are valid
         check_type(integration_steps, int, "integration_steps")
         check_type(integration_step_size, float, "integration_step_size")
-        check_type(initial_conditions, np.ndarray, "initial_conditions")
+        # check_type(initial_conditions, np.ndarray, "initial_conditions")
         check_type(number_of_regions, int, "number_of_regions")
         check_type(SC, np.ndarray, "SC")
         # check_type(noise_type, int, "noise_type")
         # check_type(time_steps, np.ndarray, "time_steps")
 
         # Checking the shape of the parameters
-        check_shape(initial_conditions, (number_of_regions, 2), "initial_conditions")
+        # check_shape(initial_conditions, (number_of_regions, 2), "initial_conditions")
         check_shape(SC, (number_of_regions, number_of_regions), "SC")
         
         # Setting the initial conditions
@@ -127,7 +128,7 @@ class wilson_model:
         I = initial_conditions[:, 1]
 
         # Setting the output matrix
-        electrical_activity = np.zeros((number_of_regions, integration_steps))
+        electrical_activity = torch.tensor(np.zeros((number_of_regions, integration_steps)))
 
         # Setting the simulation loop - going from the max delay backwards
         for i in range(0, integration_steps):
@@ -139,13 +140,13 @@ class wilson_model:
             if i > self.delay:
                 # Initialize the delay input
                 self.delay = np.floor(self.delay).astype(int)
-                delay_matrix = electrical_activity[:, :i - self.delay]
+                delay_matrix = torch.tensor(electrical_activity[:, :i - self.delay])
                 # print('Delay matrix is', delay_matrix)
                 # print('Delay matrix shape is', delay_matrix.shape)
             
                 # Multiplying by the appropriate elements in the structural connectivity matrix
-                delay_matrix = SC @ delay_matrix
-                delay_matrix = np.sum(delay_matrix, axis=1)
+                delay_matrix = torch.tensor(SC) @ delay_matrix
+                delay_matrix = torch.sum(delay_matrix, axis=1)
                 # print('Summed delay matrix is', delay_matrix)
                 # print('Summed delay matrix shape is', delay_matrix.shape)
 
@@ -155,12 +156,12 @@ class wilson_model:
                 # print('Coupling matrix shape is', coupling_matrix.shape)
 
             # Calculating the external input
-            external_input = np.zeros((number_of_regions, 2))
+            external_input = torch.tensor(np.zeros((number_of_regions, 2)))
             external_input[:, 0] = self.external_e
             external_input[:, 1] = self.external_i
 
             # Calculating the input
-            inp = np.zeros((number_of_regions, 2))
+            inp = torch.tensor(np.zeros((number_of_regions, 2)))
             inp[:, 0] = self.c_ee * E - self.c_ei * I + external_input[:, 0]
             inp[:, 1] = self.c_ie * E - self.c_ii * I + external_input[:, 1]
 
