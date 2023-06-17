@@ -2,8 +2,6 @@ import simulations as sim
 from helper_funcs import *
 import numpy as np
 
-# New
-
 def wilson_electrical_sim(args):
     """"
     This function will simulate the Wilson-Cowan model with electrical coupling
@@ -84,51 +82,195 @@ def wilson_electrical_sim(args):
     
     # --------- Unpack the arguments
     print('-- Unpacking arguments --')
-    SC = args[0]
-    BOLD = args[1]
-    write_path = args[2]
+    coupling_strength = args[0]
+    delay = args[1]
+    number_oscillators = args[2]
+    c_ee = args[3]
+    c_ei = args[4]
+    c_ie = args[5]
+    c_ii = args[6]
+    tau_e = args[7]
+    tau_i = args[8]
+    r_e = args[9]
+    r_i = args[10]
+    alpha_e = args[11]
+    alpha_i = args[12]
+    theta_e = args[13]
+    theta_i = args[14]
+    external_e = args[15]
+    external_i = args[16]
+    number_integration_steps = args[17]
+    integration_step_size = args[18]
+    start_save_idx = args[19]
+    downsampling_rate = args[20]
+    initial_cond_e = args[21]
+    initial_cond_i = args[22]
+    SC = args[23]
+    FC = args[24]
+    BOLD = args[25]
+    noise_type = args[26]
+    noise_amplitude = args[27]
+    write_path = args[28]
+    order = args[29]
+    cutoffLow = args[30]
+    cutoffHigh = args[31]
+    sampling_rate = args[32]
+    n_iterations = args[33]
+    n_inner_iterations = args[34]
+    n_init_samples = args[35]
+    n_iter_relearn = args[36]
+    init_method = args[37]
+    verbose_level = args[38]
+    log_file = args[39]
+    surr_name = args[40]
+    sc_type = args[41]
+    l_type = args[42]
+    l_all = args[43]
+    epsilon = args[44]
+    force_jump = args[45]
+    crit_name = args[46]
 
 
     # --------- Check the type of the input arguments
     print('-- Checking types --')
+    check_type(coupling_strength, float, 'coupling_strength')
+    check_type(delay, float, 'delay')
+    check_type(number_oscillators, int, 'number_oscillators')
+    check_type(c_ee, float, 'c_ee')
+    check_type(c_ei, float, 'c_ei')
+    check_type(c_ie, float, 'c_ie')
+    check_type(c_ii, float, 'c_ii')
+    check_type(tau_e, float, 'tau_e')
+    check_type(tau_i, float, 'tau_i')
+    check_type(r_e, float, 'r_e')
+    check_type(r_i, float, 'r_i')
+    check_type(alpha_e, float, 'alpha_e')
+    check_type(alpha_i, float, 'alpha_i')
+    check_type(theta_e, float, 'theta_e')
+    check_type(theta_i, float, 'theta_i')
+    check_type(external_e, float, 'external_e')
+    check_type(external_i, float, 'external_i')
+    check_type(number_integration_steps, int, 'number_integration_steps')
+    check_type(integration_step_size, float, 'integration_step_size')
+    check_type(start_save_idx, int, 'start_save_idx')
+    check_type(downsampling_rate, int, 'downsampling_rate')
+    check_type(initial_cond_e, np.ndarray, 'initial_cond_e')
+    check_type(initial_cond_i, np.ndarray, 'initial_cond_i')
     check_type(SC, np.ndarray, 'SC')
+    check_type(FC, np.ndarray, 'FC')
     check_type(BOLD, np.ndarray, 'BOLD')
+    check_type(noise_type, int, 'noise_type')
+    check_type(noise_amplitude, float, 'noise_amplitude')
     check_type(write_path, str, 'write_path')
-    
-    check_shape(SC, (BOLD.shape[0], BOLD.shape[0]), 'SC')
-    
+    check_type(order, int, 'order')
+    check_type(cutoffLow, float, 'cutoffLow')
+    check_type(cutoffHigh, float, 'cutoffHigh')
+    check_type(sampling_rate, float, 'sampling_rate')
+    check_type(n_iterations, int, 'n_iterations')
+    check_type(n_inner_iterations, int, 'n_inner_iterations')
+    check_type(n_init_samples, int, 'n_init_samples')
+    check_type(n_iter_relearn, int, 'n_iter_relearn')
+    check_type(init_method, int, 'init_method')
+    check_type(verbose_level, int, 'verbose_level')
+    check_type(log_file, str, 'log_file')
+    check_type(surr_name, str, 'surr_name')
+    check_type(sc_type, int, 'sc_type')
+    check_type(l_type, int, 'l_type')
+    check_type(l_all, bool, 'l_all')
+    check_type(epsilon, float, 'epsilon')
+    check_type(force_jump, bool, 'force_jump')
+    check_type(crit_name, str, 'crit_name')
+
+    # --------- Check the type of data in the input arguments
+    check_type(initial_cond_e[0], np.float64, 'initial_cond_e[0]')
+    check_type(initial_cond_i[0], np.float64, 'initial_cond_i[0]')
+    check_type(SC[0, 0], np.float64, 'SC[0, 0]')
+    check_type(FC[0, 0], np.float64, 'FC[0, 0]')
+
+    # --------- Check the shape of the input arguments
+    check_shape(initial_cond_e, (number_oscillators,), 'initial_cond_e')
+    check_shape(initial_cond_i, (number_oscillators,), 'initial_cond_i')
+    check_shape(SC, (number_oscillators, number_oscillators), 'SC')
+    check_shape(FC, (number_oscillators, number_oscillators), 'FC')
+
 
     # --------- Define initial values to be used in equation, COUPLING AND DELAY
     # COUPLING is either c_ee, if local coupling, or SC, if global coupling
     # DELAY is either 0, if local coupling, or delay * path lengths, if global coupling
-    # print('-- Defining initial values --')
-    # coupling_matrix = coupling_strength * SC
-    # # np.fill_diagonal(coupling_matrix, c_ee)
-    # coupling_matrix += (
-    #     np.diag(np.ones((number_oscillators,)) * c_ee)
-    # )
-    # delay_matrix = delay * SC
+    print('-- Defining initial values --')
+    coupling_matrix = coupling_strength * SC
+    # np.fill_diagonal(coupling_matrix, c_ee)
+    coupling_matrix += (
+        np.diag(np.ones((number_oscillators,)) * c_ee)
+    )
+    delay_matrix = delay * SC
 
     num_BOLD_subjects = BOLD.shape[0]
     num_BOLD_regions = BOLD.shape[1]
     num_BOLD_timepoints = BOLD.shape[2]
 
     # --------- Define the index matrices for integration (WHAT IS THIS)
-    # print('-- Defining index matrices --')
-    # upper_idx = np.floor(delay_matrix / integration_step_size).astype(int)
-    # lower_idx = upper_idx + 1
+    print('-- Defining index matrices --')
+    upper_idx = np.floor(delay_matrix / integration_step_size).astype(int)
+    lower_idx = upper_idx + 1
     
     print('------------ Before simulation ------------')
 
     # --------- SIMULATION TIME BABEY
     simulation_results = sim.parsing_wilson_inputs(
+        coupling_strength,
+        delay,
         SC,
-        BOLD
+        number_oscillators,
+        c_ee,
+        c_ei,
+        c_ie,
+        c_ii,
+        tau_e,
+        tau_i,
+        r_e,
+        r_i,
+        alpha_e,
+        alpha_i,
+        theta_e,
+        theta_i,
+        external_e,
+        external_i,
+        number_integration_steps,
+        integration_step_size,
+        lower_idx,
+        upper_idx,
+        initial_cond_e,
+        initial_cond_i,
+        noise_type,
+        noise_amplitude,
+        order,
+        cutoffLow,
+        cutoffHigh,
+        sampling_rate,
+        BOLD,
+        num_BOLD_subjects,
+        num_BOLD_regions,
+        num_BOLD_timepoints,
+        n_iterations,
+        n_inner_iterations,
+        n_init_samples,
+        n_iter_relearn,
+        init_method,
+        verbose_level,
+        log_file,
+        surr_name,
+        sc_type,
+        l_type,
+        l_all,
+        epsilon,
+        force_jump,
+        crit_name
     )
 
     print('------------ After simulation ------------')
     # Check results shape
-    # check_shape(simulation_results, (number_oscillators, number_integration_steps + 1), 'wilson_simulation_results')
+    check_shape(simulation_results, (number_oscillators, number_integration_steps + 1), 'wilson_simulation_results')
 
     # --------- Convert electrical to BOLD
     # sim_bold = sim.electrical_to_bold()

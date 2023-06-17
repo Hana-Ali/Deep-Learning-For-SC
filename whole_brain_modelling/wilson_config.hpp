@@ -4,6 +4,8 @@
 #include <string>
 #include <random>
 
+// New
+
 // Define a Wilson configuration class for the whole brain model
 class WilsonConfig 
 {
@@ -45,6 +47,8 @@ class WilsonConfig
         double tau_i{};
         double r_e{};
         double r_i{};
+        double k_e{};
+        double k_i{};
         double alpha_e{};
         double alpha_i{};
         double theta_e{};
@@ -52,10 +56,12 @@ class WilsonConfig
         double external_e{};
         double external_i{};
         // Parameters used for the simulation
+        double time_simulated{}; // seconds
+        double integration_step_size{}; // seconds
         int number_of_integration_steps{};
-        double integration_step_size{};
-        std::vector<std::vector<double>> lower_idxs_mat{}; 
-        std::vector<std::vector<double>> upper_idxs_mat{};
+        std::vector<std::vector<double>> output_e{}; // TODO: Can be the same as electrical_activity
+        std::vector<std::vector<int>> lower_idxs_mat{}; 
+        std::vector<std::vector<int>> upper_idxs_mat{};
         std::vector<double> e_values{};
         std::vector<double> i_values{};
         Noise noise{};
@@ -135,7 +141,6 @@ class Wilson {
         std::normal_distribution<double> rand_std_normal{0, 1};
         std::uniform_real_distribution<double> rand_std_uniform{0, 1};
         std::vector<std::vector<double>> electrical_activity{};
-        std::vector<std::vector<double>> output_e{}; // TODO: Can be the same as electrical_activity
 
         std::vector<std::vector<double>> delay_mat;
         std::vector<std::vector<double>> coupling_mat;

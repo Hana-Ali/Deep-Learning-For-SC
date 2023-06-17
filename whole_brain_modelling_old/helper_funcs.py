@@ -6,8 +6,6 @@ import scipy.io as sio
 import numpy as np
 import os
 
-# Helpers
-
 # Check type of array and raise error if wrong
 def check_type(inp, input_type, input_name):
     if not isinstance(inp, input_type):

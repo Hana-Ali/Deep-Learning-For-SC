@@ -12,8 +12,7 @@ simulation_mod = Extension('simulations',
                               "C:\\src\\vcpkg\\installed\\x64-windows\\include",
                               "C:\\src\\vcpkg\\installed\\x86-windows\\include",
                               "C:\\Users\\shahi\\AppData\\Local\\Programs\\Python\\Python311\\include",
-                              "C:\\Users\\shahi\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages",
-                              "C:\\cpp_libs\\include\\eigen\\include"
+                              "C:\\Users\\shahi\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages"
                               ],
                               library_dirs=[
                                   "C:\\src\\vcpkg\\installed\\x64-windows\\lib",
