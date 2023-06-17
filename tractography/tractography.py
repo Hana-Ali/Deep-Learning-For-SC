@@ -105,7 +105,7 @@ else:
 
 # For each one of the DWI files, run the following commands
 for idx, dwi in enumerate(DWI_INPUT_FILES):
-    # Get the file name
+    # --------------- DSI STUDIO filenames --------------- #
     dwi_filename = dwi.split("\\")[-1]
     print('dwi is {}'.format(dwi))
     print('dwi_filename is {}'.format(dwi_filename))
@@ -124,7 +124,7 @@ for idx, dwi in enumerate(DWI_INPUT_FILES):
     qsdr_log = os.path.join(DWI_LOGS_FOLDER, "qsdr_log_{}.txt".format(dwi_filename))
     qsdr_export_log = os.path.join(DWI_LOGS_FOLDER, "exporting_qsdr_log_{}.txt".format(dwi_filename))
     tract_log = os.path.join(DWI_LOGS_FOLDER, "tract_log_{}.txt".format(dwi_filename))
-    # Define the commands
+    # --------------- DSI STUDIO reconstruction commands --------------- #
     pedro_src = "{} --action=src --source={} --bval={} --bvec={} --output={} > {}".format(DSI_COMMAND,
                                                     dwi, bval_path, bvec_path, src_filename, src_log)
     pedro_reconstruction_dti = "{} --action=rec --source={}.src.gz --method=1 --record_odf=1 \
@@ -134,6 +134,7 @@ for idx, dwi in enumerate(DWI_INPUT_FILES):
         --param0=1.25 --motion_correction=0 --other_image=fa:{}.fib.gz.fa.nii.gz --output={}.fib.gz \
             > {}".format(DSI_COMMAND, src_filename, dti_filename, qsdr_filename, qsdr_log)
     pedro_export_qsdr = "{} --action=exp --source={}.fib.gz --export=qa,rdi,fa,md > {}".format(DSI_COMMAND, qsdr_filename, qsdr_export_log)
+    # --------------- DSI STUDIO calling subprocesses command --------------- #
     # Calling the subprocesses  
     print("Started SRC generation - {}. {}".format(idx, dwi_filename))
     subprocess.run(pedro_src, shell=True)
@@ -146,63 +147,13 @@ for idx, dwi in enumerate(DWI_INPUT_FILES):
     print("Started exporting metrics QSDR - {}. {}".format(idx, dwi_filename))
     subprocess.run(pedro_export_qsdr, shell=True)
 
+    # --------------- DSI STUDIO Tractography command --------------- #
+    # Deterministic tractography
     pedro_tractography = "{} --action=trk --source={}.fib.gz --fiber_count=1000000 --output=no_file \
         --method=0 --interpolation=0 --max_length=400 --min_length=10 --otsu_threshold=0.6 --random_seed=0 --turning_angle=55 \
             --smoothing=0 --step_size=1 --connectivity={} --connectivity_type=end \
                 --connectivity_value=count --connectivity_threshold=0.001 > {}".format(DSI_COMMAND, qsdr_filename, ATLAS_STRING, tract_log)
     
-    
-# DWI_NAME = os.path.join(DWI_INPUT_FOLDER, "{}_dwi".format(SUBJECT))
-# B_VAL_NAME = os.path.join(DWI_INPUT_FOLDER, "{}_dwi".format(SUBJECT))
-# B_VEC_NAME = os.path.join(DWI_INPUT_FOLDER, "{}_dwi".format(SUBJECT))
-# SRC_NAME = os.path.join(DWI_OUTPUT_FOLDER, "{}_clean".format(SUBJECT))
-# RECON_DTI_NAME = os.path.join(DWI_OUTPUT_FOLDER, "{}_dti".format(SUBJECT))
-# RECON_QSDR_NAME = os.path.join(DWI_OUTPUT_FOLDER, "{}_qsdr".format(SUBJECT))
-
-# SRC_LOG = os.path.join(DWI_LOGS_FOLDER, "src_log_{}.txt".format(SUBJECT))
-# RECON_DTI_LOG = os.path.join(DWI_LOGS_FOLDER, "dti_log_{}.txt".format(SUBJECT))
-# DTI_EXPORT_LOG = os.path.join(DWI_LOGS_FOLDER, "exporting_dti_log_{}.txt".format(SUBJECT))
-# RECON_QSDR_LOG = os.path.join(DWI_LOGS_FOLDER, "qsdr_log_{}.txt".format(SUBJECT))
-# QSDR_EXPORT_LOG = os.path.join(DWI_LOGS_FOLDER, "exporting_qsdr_log_{}.txt".format(SUBJECT))
-# TRACT_LOG = os.path.join(DWI_LOGS_FOLDER, "tract_log_{}.txt".format(SUBJECT))
-
-# PEDRO_SRC = "{} --action=src --source={}.nii.gz --bval={}.bval --bvec={}.bvec --output={}.src.gz > {}".format(DSI_COMMAND, 
-#                                                                     DWI_NAME, B_VAL_NAME, B_VEC_NAME, SRC_NAME, SRC_LOG)
-# PEDRO_RECONSTRUCTION_DTI = "{} --action=rec --source={}.src.gz --method=1 --record_odf=1 \
-#       --param0=1.25 --motion_correction=0 --output={}.fib.gz > {}".format(DSI_COMMAND, SRC_NAME, RECON_DTI_NAME, RECON_DTI_LOG)
-# PEDRO_EXPORT = "{} --action=exp --source={}.fib.gz --export=fa > {}".format(DSI_COMMAND, RECON_DTI_NAME, DTI_EXPORT_LOG)
-# PEDRO_RECONSTRUCTION_QSDR = "{} --action=rec --source={}.src.gz --method=7 --record_odf=1 \
-#       --param0=1.25 --motion_correction=0 --other_image=fa:{}.fib.gz.fa.nii.gz --output={}.fib.gz \
-#         > {}".format(DSI_COMMAND, SRC_NAME, RECON_DTI_NAME, RECON_QSDR_NAME, RECON_QSDR_LOG)
-
-# # Calling the subprocesses
-# print("Started SRC generation")
-# subprocess.run(PEDRO_SRC, shell=True)
-# print("Started reconstruction DTI")
-# subprocess.run(PEDRO_RECONSTRUCTION_DTI, shell=True)
-# print("Started exporting metrics DTI")
-# subprocess.run(PEDRO_EXPORT, shell=True)
-# print("Started reconstruction QSDR")
-# subprocess.run(PEDRO_RECONSTRUCTION_QSDR, shell=True)
-
-# # --------------- Exporting DSI Metrics command --------------- #
-# # Export quantities of interest: metrics in NIFTI, connectivity matrix, and tract statistics 
-# EXPORTING = "{} --action=exp --source={}.fib.gz --export=qa,rdi,fa,md > {}".format(DSI_COMMAND, RECON_QSDR_NAME, QSDR_EXPORT_LOG)
-# # Calling the subprocess
-# print("Started exporting metrics QSDR")
-# subprocess.run(EXPORTING, shell=True)
-
-# # --------------- Tractography reconstruction command --------------- #
-# # DETERMINISTIC TRACTOGRAPHY
-# TRACTOGRAPHY = "{} --action=trk --source={}.fib.gz --fiber_count=1000000 --output=no_file \
-#     --method=0 --interpolation=0 --max_length=400 --min_length=10 --otsu_threshold=0.6 --random_seed=0 --turning_angle=55 \
-#         --smoothing=0 --step_size=1 --connectivity={} --connectivity_type=end \
-#             --connectivity_value=count --connectivity_threshold=0.001 > {}".format(DSI_COMMAND, RECON_QSDR_NAME, ATLAS_STRING, TRACT_LOG)
-
-# # Calling the subprocess
-# print("Started tractography")
-# subprocess.run(TRACTOGRAPHY, shell=True)
-
 #aal116_mni.nii.gz,schaefer100_mni.nii.gz
 
 # PROBABILISTIC TRACTOGRAPHY
