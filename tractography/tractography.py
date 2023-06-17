@@ -8,17 +8,14 @@ import glob
 import sys
 import os
 
-# --------------- Folder Paths and Data Checking --------------- #
+# -------------------------------------------------- Folder Paths and Data Checking -------------------------------------------------- #
 
-# Check that diffusion data exists - make into loop later
-# DWI_INPUT_FOLDER = "/home/hsa22/ConnectomePreprocessing/aamod_get_dicom_diffusion_00001/{}/Diffusion".format(SUBJECT)
-# DWI_OUTPUT_FOLDER = "/home/hsa22/ConnectomePreprocessing/aamod_get_dicom_diffusion_00001/{}/SRC".format(SUBJECT)
-
-# Depending on HPC or local machine, change the paths
+# --------------- Defining folders and paths based on HPC --------------- #
 hpc = False
 if hpc == True:
-    DWI_INPUT_FOLDER = "/rds/general/user/hsa22/home/dissertation/tractography"
-    DWI_OUTPUT_FOLDER = "/rds/general/user/hsa22/home/dissertation/tractography/SRC"
+    DWI_MAIN_FOLDER = "/rds/general/user/hsa22/home/dissertation/tractography"
+    DWI_OUTPUT_FOLDER = "/rds/general/user/hsa22/home/dissertation/tractography/dsi_outputs"
+    DWI_LOGS_FOLDER = "/rds/general/user/hsa22/home/dissertation/tractography/logs"
 
     DSI_COMMAND = "singularity exec dsistudio_latest.sif dsi_studio"
 
@@ -26,34 +23,251 @@ if hpc == True:
     TRACT_FOLDER = "/home/hsa22/ConnectomePreprocessing/tracts"
 
 else:
-    DWI_INPUT_FOLDER = "C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Dissertation\\Notebooks\\MyCodes\\tractography"
-    DWI_OUTPUT_FOLDER = "C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Dissertation\\Notebooks\\MyCodes\\tractography\\dsi_outputs"
+    DWI_MAIN_FOLDER = os.path.realpath(r"C:\\tractography\\subjects")
+    DWI_OUTPUT_FOLDER = os.path.realpath(r"C:\\tractography\\dsi_outputs")
+    DWI_LOGS_FOLDER = os.path.realpath(r"C:\\tractography\\logs")
 
     DSI_COMMAND = "dsi_studio"
 
-    ATLAS_FOLDER = "C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Dissertation\\Notebooks\\MyCodes\\tractography\\atlas"
-    TRACT_FOLDER = "C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Dissertation\\Notebooks\\MyCodes\\tractography\\tracts"
-    
-# Define what atlases to use
-atlas_names = ["aal116_mni.nii", "schaefer100_mni.nii.gz"]
+    ATLAS_FOLDER = os.path.realpath(r"C:\\tractography\\atlas")
+    TRACT_FOLDER = os.path.realpath(r"C:\\tractography\\tracts")
 
-# Check if the input folder exists - exit if not
-if not os.path.exists(DWI_INPUT_FOLDER):
-    print("Diffusion data not found. Please create folder: " + DWI_INPUT_FOLDER)
-    sys.exit('Exiting program')
+# Check if ATLAS folder exists - if not, exit program
 if not os.path.exists(ATLAS_FOLDER):
     print("Atlas folder not found. Please create folder: " + ATLAS_FOLDER)
     sys.exit('Exiting program')
-# For the output files - create if not
+else:
+    print("Atlas folder found. Continuing...")
+
+# If output folderes don't exist, create them
 if not os.path.exists(DWI_OUTPUT_FOLDER):
     print("Output folder not found. Created folder: " + DWI_OUTPUT_FOLDER)
     os.makedirs(DWI_OUTPUT_FOLDER)
+else:
+    print("Output folder found. Continuing...")
+if not os.path.exists(DWI_LOGS_FOLDER):
+    print("Logs folder not found. Created folder: " + DWI_LOGS_FOLDER)
+    os.makedirs(DWI_LOGS_FOLDER)
+else:
+    print("Logs folder found. Continuing...")
 if not os.path.exists(TRACT_FOLDER):
     print("Tract folder not found. Created folder: " + TRACT_FOLDER)
     os.makedirs(TRACT_FOLDER)
+else:
+    print("Tract folder found. Continuing...")
+    
+# --------------- Get DWI, BVAL, BVEC from subdirectories --------------- #
+DWI_INPUT_FILES = []
+B_VAL_FILES = []
+B_VEC_FILES = []
+for dwi in glob.glob(os.path.join(DWI_MAIN_FOLDER, os.path.join("**", "*.nii.gz")), recursive=True):
+    DWI_INPUT_FILES.append(dwi)
+for bval in glob.glob(os.path.join(DWI_MAIN_FOLDER, os.path.join("**", "*.bval")), recursive=True):
+    B_VAL_FILES.append(bval)
+for bvec in glob.glob(os.path.join(DWI_MAIN_FOLDER, os.path.join("**", "*.bvec")), recursive=True):
+    B_VEC_FILES.append(bvec)
+
+
+# If no files are found - exit the program
+if len(DWI_INPUT_FILES) == 0:
+    print("No DWI files found. Please add DWI files to the folder: " + DWI_MAIN_FOLDER)
+    sys.exit('Exiting program')
+else:
+    print("DWI files found. Continuing...")
+if len(B_VAL_FILES) == 0:
+    print("No BVAL files found. Please add BVAL files to the folder: " + DWI_MAIN_FOLDER)
+    sys.exit('Exiting program')
+else:
+    print("BVAL files found. Continuing...")
+if len(B_VEC_FILES) == 0:
+    print("No BVEC files found. Please add BVEC files to the folder: " + DWI_MAIN_FOLDER)
+    sys.exit('Exiting program')
+else:
+    print("BVEC files found. Continuing...")
+
+# --------------- Define what atlases to use --------------- #
+ATLAS_FILES = []
+for atlas in glob.glob(os.path.join(ATLAS_FOLDER, "*.nii.gz")):
+    ATLAS_FILES.append(atlas)
+ATLAS_STRING = ",".join(ATLAS_FILES)
+
+# Check if atlas string is empty
+if len(ATLAS_FILES) == 0:
+    print("No atlas files found. Please add atlas files to the folder: " + ATLAS_FOLDER)
+    sys.exit('Exiting program')
+else:
+    print("Atlas files found. Continuing...")
 
 
 # -------------------------------------------------- PEDRO COMMANDS -------------------------------------------------- #
+
+# --------------- DSI STUDIO Fitting and Tract Reconstruction command --------------- #
+
+# For each one of the DWI files, run the following commands
+for idx, dwi in enumerate(DWI_INPUT_FILES):
+    # Get the file name
+    dwi_filename = dwi.split("\\")[-1]
+    print('dwi is {}'.format(dwi))
+    print('dwi_filename is {}'.format(dwi_filename))
+    dwi_filename = dwi_filename.replace(".nii.gz", "")
+    # Get the corresponding bval and bvec files
+    bval_path = B_VAL_FILES[idx]
+    bvec_path = B_VEC_FILES[idx]
+    # Define the output file names
+    src_filename = os.path.join(DWI_OUTPUT_FOLDER, "{}_clean".format(dwi_filename))
+    dti_filename = os.path.join(DWI_OUTPUT_FOLDER, "{}_dti".format(dwi_filename))
+    qsdr_filename = os.path.join(DWI_OUTPUT_FOLDER, "{}_qsdr".format(dwi_filename))
+    # Define the log file names
+    src_log = os.path.join(DWI_LOGS_FOLDER, "src_log_{}.txt".format(dwi_filename))
+    dti_log = os.path.join(DWI_LOGS_FOLDER, "dti_log_{}.txt".format(dwi_filename))
+    dti_export_log = os.path.join(DWI_LOGS_FOLDER, "exporting_dti_log_{}.txt".format(dwi_filename))
+    qsdr_log = os.path.join(DWI_LOGS_FOLDER, "qsdr_log_{}.txt".format(dwi_filename))
+    qsdr_export_log = os.path.join(DWI_LOGS_FOLDER, "exporting_qsdr_log_{}.txt".format(dwi_filename))
+    tract_log = os.path.join(DWI_LOGS_FOLDER, "tract_log_{}.txt".format(dwi_filename))
+    # Define the commands
+    pedro_src = "{} --action=src --source={} --bval={} --bvec={} --output={} > {}".format(DSI_COMMAND,
+                                                    dwi, bval_path, bvec_path, src_filename, src_log)
+    pedro_reconstruction_dti = "{} --action=rec --source={}.src.gz --method=1 --record_odf=1 \
+        --param0=1.25 --motion_correction=0 --output={}.fib.gz > {}".format(DSI_COMMAND, src_filename, dti_filename, dti_log)
+    pedro_export_dti = "{} --action=exp --source={}.fib.gz --export=fa > {}".format(DSI_COMMAND, dti_filename, dti_export_log)
+    pedro_reconstruction_qsdr = "{} --action=rec --source={}.src.gz --method=7 --record_odf=1 \
+        --param0=1.25 --motion_correction=0 --other_image=fa:{}.fib.gz.fa.nii.gz --output={}.fib.gz \
+            > {}".format(DSI_COMMAND, src_filename, dti_filename, qsdr_filename, qsdr_log)
+    pedro_export_qsdr = "{} --action=exp --source={}.fib.gz --export=qa,rdi,fa,md > {}".format(DSI_COMMAND, qsdr_filename, qsdr_export_log)
+    # Calling the subprocesses  
+    print("Started SRC generation - {}. {}".format(idx, dwi_filename))
+    subprocess.run(pedro_src, shell=True)
+    print("Started reconstruction DTI - {}. {}".format(idx, dwi_filename))
+    subprocess.run(pedro_reconstruction_dti, shell=True)
+    print("Started exporting metrics DTI - {}. {}".format(idx, dwi_filename))
+    subprocess.run(pedro_export_dti, shell=True)
+    print("Started reconstruction QSDR - {}. {}".format(idx, dwi_filename))
+    subprocess.run(pedro_reconstruction_qsdr, shell=True)
+    print("Started exporting metrics QSDR - {}. {}".format(idx, dwi_filename))
+    subprocess.run(pedro_export_qsdr, shell=True)
+
+    pedro_tractography = "{} --action=trk --source={}.fib.gz --fiber_count=1000000 --output=no_file \
+        --method=0 --interpolation=0 --max_length=400 --min_length=10 --otsu_threshold=0.6 --random_seed=0 --turning_angle=55 \
+            --smoothing=0 --step_size=1 --connectivity={} --connectivity_type=end \
+                --connectivity_value=count --connectivity_threshold=0.001 > {}".format(DSI_COMMAND, qsdr_filename, ATLAS_STRING, tract_log)
+    
+    
+# DWI_NAME = os.path.join(DWI_INPUT_FOLDER, "{}_dwi".format(SUBJECT))
+# B_VAL_NAME = os.path.join(DWI_INPUT_FOLDER, "{}_dwi".format(SUBJECT))
+# B_VEC_NAME = os.path.join(DWI_INPUT_FOLDER, "{}_dwi".format(SUBJECT))
+# SRC_NAME = os.path.join(DWI_OUTPUT_FOLDER, "{}_clean".format(SUBJECT))
+# RECON_DTI_NAME = os.path.join(DWI_OUTPUT_FOLDER, "{}_dti".format(SUBJECT))
+# RECON_QSDR_NAME = os.path.join(DWI_OUTPUT_FOLDER, "{}_qsdr".format(SUBJECT))
+
+# SRC_LOG = os.path.join(DWI_LOGS_FOLDER, "src_log_{}.txt".format(SUBJECT))
+# RECON_DTI_LOG = os.path.join(DWI_LOGS_FOLDER, "dti_log_{}.txt".format(SUBJECT))
+# DTI_EXPORT_LOG = os.path.join(DWI_LOGS_FOLDER, "exporting_dti_log_{}.txt".format(SUBJECT))
+# RECON_QSDR_LOG = os.path.join(DWI_LOGS_FOLDER, "qsdr_log_{}.txt".format(SUBJECT))
+# QSDR_EXPORT_LOG = os.path.join(DWI_LOGS_FOLDER, "exporting_qsdr_log_{}.txt".format(SUBJECT))
+# TRACT_LOG = os.path.join(DWI_LOGS_FOLDER, "tract_log_{}.txt".format(SUBJECT))
+
+# PEDRO_SRC = "{} --action=src --source={}.nii.gz --bval={}.bval --bvec={}.bvec --output={}.src.gz > {}".format(DSI_COMMAND, 
+#                                                                     DWI_NAME, B_VAL_NAME, B_VEC_NAME, SRC_NAME, SRC_LOG)
+# PEDRO_RECONSTRUCTION_DTI = "{} --action=rec --source={}.src.gz --method=1 --record_odf=1 \
+#       --param0=1.25 --motion_correction=0 --output={}.fib.gz > {}".format(DSI_COMMAND, SRC_NAME, RECON_DTI_NAME, RECON_DTI_LOG)
+# PEDRO_EXPORT = "{} --action=exp --source={}.fib.gz --export=fa > {}".format(DSI_COMMAND, RECON_DTI_NAME, DTI_EXPORT_LOG)
+# PEDRO_RECONSTRUCTION_QSDR = "{} --action=rec --source={}.src.gz --method=7 --record_odf=1 \
+#       --param0=1.25 --motion_correction=0 --other_image=fa:{}.fib.gz.fa.nii.gz --output={}.fib.gz \
+#         > {}".format(DSI_COMMAND, SRC_NAME, RECON_DTI_NAME, RECON_QSDR_NAME, RECON_QSDR_LOG)
+
+# # Calling the subprocesses
+# print("Started SRC generation")
+# subprocess.run(PEDRO_SRC, shell=True)
+# print("Started reconstruction DTI")
+# subprocess.run(PEDRO_RECONSTRUCTION_DTI, shell=True)
+# print("Started exporting metrics DTI")
+# subprocess.run(PEDRO_EXPORT, shell=True)
+# print("Started reconstruction QSDR")
+# subprocess.run(PEDRO_RECONSTRUCTION_QSDR, shell=True)
+
+# # --------------- Exporting DSI Metrics command --------------- #
+# # Export quantities of interest: metrics in NIFTI, connectivity matrix, and tract statistics 
+# EXPORTING = "{} --action=exp --source={}.fib.gz --export=qa,rdi,fa,md > {}".format(DSI_COMMAND, RECON_QSDR_NAME, QSDR_EXPORT_LOG)
+# # Calling the subprocess
+# print("Started exporting metrics QSDR")
+# subprocess.run(EXPORTING, shell=True)
+
+# # --------------- Tractography reconstruction command --------------- #
+# # DETERMINISTIC TRACTOGRAPHY
+# TRACTOGRAPHY = "{} --action=trk --source={}.fib.gz --fiber_count=1000000 --output=no_file \
+#     --method=0 --interpolation=0 --max_length=400 --min_length=10 --otsu_threshold=0.6 --random_seed=0 --turning_angle=55 \
+#         --smoothing=0 --step_size=1 --connectivity={} --connectivity_type=end \
+#             --connectivity_value=count --connectivity_threshold=0.001 > {}".format(DSI_COMMAND, RECON_QSDR_NAME, ATLAS_STRING, TRACT_LOG)
+
+# # Calling the subprocess
+# print("Started tractography")
+# subprocess.run(TRACTOGRAPHY, shell=True)
+
+#aal116_mni.nii.gz,schaefer100_mni.nii.gz
+
+# PROBABILISTIC TRACTOGRAPHY
+
+
+# GLOBAL TRACTOGRAPHY
+
+# # --------------- Cleaning tractography reconstruction command --------------- #
+# for tract in glob.glob("{}/*trk.gz".format(TRACT_FOLDER)):
+#     print("Cleaning tract: {}".format(tract))
+#     tract_filename = tract.split("/")[-1]
+#     tract_filename = tract_filename.replace(".trk.gz", "")
+#     CLEANING = "{} --action=ana --source=dwi_clean_qsdr.fib.gz --tract={} --export=stat".format(DSI_COMMAND, tract_filename)
+#     # Calling the subprocess
+#     subprocess.call(CLEANING, shell=True)
+    
+##########################################################################################################################################
+
+# -------------------------------------------------- DSI STUDIO Tractography commands -------------------------------------------------- #
+# Commands from the website:
+# https://sites.google.com/a/labsolver.org/dsi-studio/Manual/command-line-for-dsi-studio#TOC-Generate-SRC-files-from-DICOM-NIFTI-2dseq-images
+
+
+# # --------------- Define SRC Generation from DICOM/NIFTI Images command --------------- #
+# """
+# -> action: use "src" for generating src file.
+# -> source: assign the directory that stores the DICOM files or the file name for 4D nifti file.
+#         It supports wildcard (e.g., --source=*.nii.gz). 
+#         If there are more than one 4D NIFTI file, you can combine them by --source=file1.nii.gz,file2.nii.gz
+# -> output: assign the output src file name.
+# -> b_table: assign the replacement b-table
+# -> bval: assign the b value text file
+# -> bvec: assign the b vector text file
+# -> recursive: search files in the subdirectories. e.g. "--recursive=1".
+# -> up_sampling: upsampling the DWI. 
+#         --up_sampling=0 : no upsampling
+#         --up_sampling=1 : upsampling by 2
+#         --up_sampling=2 : downsampling by 2
+#         --up_sampling=3 : upsampling by 4
+#         --up_sampling=4 : downsampling by 4
+# """
+
+
+# Search DICOM files under assigned directory and output results to 1.src
+# SEARCH_DICOM = "dsi_studio --action=src --source={} --output={}\.src.gz".format(DWI_INPUT_FOLDER, DWI_OUTPUT_FOLDER)
+# Parse assigned 4D NIFTI file and generate SRC files
+# PARSE_NIFTI = "dsi_studio --action=src --source=HCA9992517_V1_MR_dMRI_dir98_AP.nii.gz,HCA9992517_V1_MR_dMRI_dir99_AP.nii.gz"
+# Parse all 4D NIFTI files in a folder (each of them has a bval and bvec file that shares a similar file name) and generate corresponding SRC files to a new folder 
+# PARSE_NIFTI_FOLDER = "dsi_studio --action=src --source=*.nii.gz --output=/src"
+# Call the subprocesses
+# subprocess.call(SEARCH_DICOM, shell=True)
+# subprocess.call(PARSE_NIFTI, shell=True)
+# subprocess.call(PARSE_NIFTI_FOLDER, shell=True)
+
+# --------------- Define Quality Check for SRC Files command --------------- #
+# """
+# -> action: assign "qc" (e.g. --action=qa)
+# -> source: assign an SRC file or a directory that stores the SRC files 
+# """
+# QUALITY_CHECK_SRC = "dsi_studio --action=qc --source=folder_storing_sc"
+
+# --------------- Atlas related 
+
+
+
 # --------------- DWI Data Preprocessing (MRtrix3) command --------------- #
 # Putting together the DICOMs and denoising using PCA
 # MR_CONVERT = "mrconvert {} dwi.mif".format(DWI_INPUT_FOLDER)
@@ -74,94 +288,3 @@ if not os.path.exists(TRACT_FOLDER):
 # # Calling the subprocesses
 # subprocess.call(BIAS_CORRECT, shell=True)
 # subprocess.call(MR_CONVERT_DSI, shell=True)
-
-# --------------- DSI STUDIO Fitting and Tract Reconstruction command --------------- #
-
-# PEDRO_SRC = "dsi_studio --action=src --source=dwi_clean.nii --bval=bvals --bvec=bvecs --output=dwi_clean.src.gz"
-TEMP_SRC = "996782"
-PEDRO_RECONSTRUCTION_DTI = "{} --action=rec --source={}.src.gz --method=1 --record_odf=1 \
-      --param0=1.25 --motion_correction=0 --output=dwi_clean_dti.fib.gz > logs/recon_log.txt".format(DSI_COMMAND, TEMP_SRC)
-PEDRO_EXPORT = "{} --action=exp --source=dwi_clean_dti.fib.gz --export=fa > logs/exportingDTI_log.txt".format(DSI_COMMAND)
-PEDRO_RECONSTRUCTION_QSDR = "{} --action=rec --source={}.src.gz --method=7 --record_odf=1 \
-      --param0=1.25 --motion_correction=0 --other_image=fa:dwi_clean_dti.fib.gz.fa.nii.gz --output=dwi_clean_qsdr.fib.gz \
-        > logs/qsdr_log.txt".format(DSI_COMMAND, TEMP_SRC)
-# Calling the subprocesses
-# subprocess.call(PEDRO_SRC, shell=True)
-print("Started reconstruction DTI")
-subprocess.call(PEDRO_RECONSTRUCTION_DTI, shell=True)
-print("Started exporting DTI")
-subprocess.call(PEDRO_EXPORT, shell=True)
-print("Started reconstruction QSDR")
-subprocess.call(PEDRO_RECONSTRUCTION_QSDR, shell=True)
-
-# --------------- Exporting DSI Metrics command --------------- #
-# Export quantities of interest: metrics in NIFTI, connectivity matrix, and tract statistics 
-EXPORTING = "{} --action=exp --source=dwi_clean_qsdr.fib.gz --export=qa,rdi,fa,md > logs/exporting_log.txt".format(DSI_COMMAND)
-# Calling the subprocess
-print("Started exporting metrics")
-subprocess.call(EXPORTING, shell=True)
-
-# --------------- Tractography reconstruction command --------------- #
-TRACTOGRAPHY = "{} --action=trk --source=dwi_clean_qsdr.fib.gz --fiber_count=1000000 --output=no_file \
-    --method=0 --interpolation=0 --max_length=400 --min_length=10 --otsu_threshold=0.6 --random_seed=0 --turning_angle=55 \
-        --smoothing=0 --step_size=1 --connectivity=aal116_mni.nii.gz,schaefer100_mni.nii.gz --connectivity_type=end \
-            --connectivity_value=count --connectivity_threshold=0.001 > logs/tract.txt".format(DSI_COMMAND)
-# Calling the subprocess
-print("Started tractography")
-subprocess.call(TRACTOGRAPHY, shell=True)
-
-# --------------- Cleaning tractography reconstruction command --------------- #
-for tract in glob.glob("{}/*trk.gz".format(TRACT_FOLDER)):
-    print("Cleaning tract: {}".format(tract))
-    tract_filename = tract.split("/")[-1]
-    tract_filename = tract_filename.replace(".trk.gz", "")
-    CLEANING = "{} --action=ana --source=dwi_clean_qsdr.fib.gz --tract={} --export=stat".format(DSI_COMMAND, tract_filename)
-    # Calling the subprocess
-    subprocess.call(CLEANING, shell=True)
-    
-##########################################################################################################################################
-
-# -------------------------------------------------- DSI STUDIO Tractography commands -------------------------------------------------- #
-# Commands from the website:
-# https://sites.google.com/a/labsolver.org/dsi-studio/Manual/command-line-for-dsi-studio#TOC-Generate-SRC-files-from-DICOM-NIFTI-2dseq-images
-
-
-# --------------- Define SRC Generation from DICOM/NIFTI Images command --------------- #
-"""
--> action: use "src" for generating src file.
--> source: assign the directory that stores the DICOM files or the file name for 4D nifti file.
-        It supports wildcard (e.g., --source=*.nii.gz). 
-        If there are more than one 4D NIFTI file, you can combine them by --source=file1.nii.gz,file2.nii.gz
--> output: assign the output src file name.
--> b_table: assign the replacement b-table
--> bval: assign the b value text file
--> bvec: assign the b vector text file
--> recursive: search files in the subdirectories. e.g. "--recursive=1".
--> up_sampling: upsampling the DWI. 
-        --up_sampling=0 : no upsampling
-        --up_sampling=1 : upsampling by 2
-        --up_sampling=2 : downsampling by 2
-        --up_sampling=3 : upsampling by 4
-        --up_sampling=4 : downsampling by 4
-"""
-
-
-# Search DICOM files under assigned directory and output results to 1.src
-# SEARCH_DICOM = "dsi_studio --action=src --source={} --output={}\.src.gz".format(DWI_INPUT_FOLDER, DWI_OUTPUT_FOLDER)
-# Parse assigned 4D NIFTI file and generate SRC files
-# PARSE_NIFTI = "dsi_studio --action=src --source=HCA9992517_V1_MR_dMRI_dir98_AP.nii.gz,HCA9992517_V1_MR_dMRI_dir99_AP.nii.gz"
-# Parse all 4D NIFTI files in a folder (each of them has a bval and bvec file that shares a similar file name) and generate corresponding SRC files to a new folder 
-# PARSE_NIFTI_FOLDER = "dsi_studio --action=src --source=*.nii.gz --output=/src"
-# Call the subprocesses
-# subprocess.call(SEARCH_DICOM, shell=True)
-# subprocess.call(PARSE_NIFTI, shell=True)
-# subprocess.call(PARSE_NIFTI_FOLDER, shell=True)
-
-# --------------- Define Quality Check for SRC Files command --------------- #
-"""
--> action: assign "qc" (e.g. --action=qa)
--> source: assign an SRC file or a directory that stores the SRC files 
-"""
-# QUALITY_CHECK_SRC = "dsi_studio --action=qc --source=folder_storing_sc"
-
-# --------------- Atlas related 
