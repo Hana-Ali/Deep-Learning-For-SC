@@ -3,29 +3,21 @@ from distutils.core import setup, Extension
 import numpy
 
 simulation_mod = Extension('simulations',
-                              sources = ['simulation_wilson.cpp'],
+                              sources = ['simulation_wilson2.cpp'],
                               language="c++",
                               include_dirs=[numpy.get_include(),
-                              "C:\\Users\\shahi\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\numpy\\core\\include",
-                              "C:\\cpp_libs\\include",
-                              "C:\\cpp_libs\\include\\bayesopt\\include",
-                              "C:\\src\\vcpkg\\installed\\x64-windows\\include",
-                              "C:\\src\\vcpkg\\installed\\x86-windows\\include",
-                              "C:\\Users\\shahi\\AppData\\Local\\Programs\\Python\\Python311\\include",
-                              "C:\\Users\\shahi\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages",
-                              "C:\\cpp_libs\\include\\eigen\\include"
+                                "C:\\src\\vcpkg\\installed\\x64-windows\\include",
+                                "C:\\cpp_libs\\include\\bayesopt\\include"
                               ],
                               library_dirs=[
                                   "C:\\src\\vcpkg\\installed\\x64-windows\\lib",
-                                  "C:\\src\\vcpkg\\installed\\x86-windows\\lib",
-                                  "C:\\msys64\\mingw64\\bin",
-                                  "C:\\cpp_libs\\include\\bayesopt\\build_msvc\\lib\\Release"
+                                  "C:\\cpp_libs\\include\\bayesopt\\build\\lib\\Debug"
                               ],
                               libraries=[
                               "gsl",
                               "gslcblas",
                               "bayesopt",
-                              "nlopt"
+                              "matplotpp"
                               ]
                             )
 
