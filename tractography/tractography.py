@@ -3,163 +3,114 @@ This Python file contains the main pipeline used for tractography
 """
 
 # Import libraries
+import multiprocessing as mp
+from tract_helpers import *
 import subprocess
-import glob 
-import sys
 import os
+
+# -------------------------------------------------- Functions -------------------------------------------------- #
+
+# CHECK HOW TO DO THIS IN PARALLEL - STARMAP OR IMAP
+def parallel_process(DWI_INPUT_FILE, B_VAL_FILE, B_VEC_FILE, ATLAS_STRING, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, DWI_LOGS_FOLDER, DSI_COMMAND):
+
+    # Get the filename for this specific process
+    dwi_filename = get_dwi_filename(DWI_INPUT_FILE)
+
+    # Ping beginning or process
+    print("Started parallel process - {}".format(dwi_filename))
+    
+    # --------------- DSI STUDIO reconstruction commands --------------- #
+    # Define needed arguments array
+    ARGS_STUDIO = [
+        MAIN_STUDIO_PATH,
+        DWI_LOGS_FOLDER,
+        DSI_COMMAND,
+        DWI_INPUT_FILE,
+        B_VAL_FILE,
+        B_VEC_FILE,
+        ATLAS_STRING
+    ]
+    # Get the studio commands array
+    STUDIO_COMMANDS = define_studio_commands(ARGS_STUDIO)
+
+    # --------------- MRTRIX reconstruction commands --------------- #
+    # Define needed arguments array
+    ARGS_MRTRIX = [
+        DWI_INPUT_FILE,
+        B_VEC_FILE,
+        B_VAL_FILE,
+        MAIN_MRTRIX_PATH
+    ]
+    # Get the mrtrix commands array
+    MRTRIX_COMMANDS = define_mrtrix_commands(ARGS_MRTRIX)
+
+    # --------------- Calling subprocesses commands --------------- #
+    for (dsi_cmd, cmd_name) in STUDIO_COMMANDS:
+        print("Started {} - {}".format(cmd_name, dwi_filename))
+        subprocess.run(dsi_cmd, shell=True)
+
+    for (mrtrix_cmd, cmd_name) in MRTRIX_COMMANDS:
+        print("Started {} - {}".format(cmd_name, dwi_filename))
+        subprocess.run(mrtrix_cmd, shell=True)
+
 
 # -------------------------------------------------- Folder Paths and Data Checking -------------------------------------------------- #
 
-# --------------- Defining folders and paths based on HPC --------------- #
-hpc = False
-if hpc == True:
-    DWI_MAIN_FOLDER = "/rds/general/user/hsa22/home/dissertation/tractography"
-    DWI_OUTPUT_FOLDER = "/rds/general/user/hsa22/home/dissertation/tractography/dsi_outputs"
-    DWI_LOGS_FOLDER = "/rds/general/user/hsa22/home/dissertation/tractography/logs"
+def main():
+    # --------------- Defining main folders and paths --------------- #
+    # Get paths, depending on whether we're in HPC or not
+    hpc = False
+    (DWI_MAIN_FOLDER, DWI_OUTPUT_FOLDER, DWI_LOGS_FOLDER, DSI_COMMAND, ATLAS_FOLDER, TRACT_FOLDER, 
+        MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH) = get_main_paths(hpc)
 
-    DSI_COMMAND = "singularity exec dsistudio_latest.sif dsi_studio"
+    # Check if input folders - if not, exit program
+    check_input_folders(DWI_MAIN_FOLDER, "DWI")
+    check_input_folders(ATLAS_FOLDER, "Atlas")
 
-    ATLAS_FOLDER = "/home/hsa22/ConnectomePreprocessing/atlas"
-    TRACT_FOLDER = "/home/hsa22/ConnectomePreprocessing/tracts"
-
-else:
-    DWI_MAIN_FOLDER = os.path.realpath(r"C:\\tractography\\subjects")
-    DWI_OUTPUT_FOLDER = os.path.realpath(r"C:\\tractography\\dsi_outputs")
-    DWI_LOGS_FOLDER = os.path.realpath(r"C:\\tractography\\logs")
-
-    DSI_COMMAND = "dsi_studio"
-
-    ATLAS_FOLDER = os.path.realpath(r"C:\\tractography\\atlas")
-    TRACT_FOLDER = os.path.realpath(r"C:\\tractography\\tracts")
-
-# Check if ATLAS folder exists - if not, exit program
-if not os.path.exists(ATLAS_FOLDER):
-    print("Atlas folder not found. Please create folder: " + ATLAS_FOLDER)
-    sys.exit('Exiting program')
-else:
-    print("Atlas folder found. Continuing...")
-
-# If output folderes don't exist, create them
-if not os.path.exists(DWI_OUTPUT_FOLDER):
-    print("Output folder not found. Created folder: " + DWI_OUTPUT_FOLDER)
-    os.makedirs(DWI_OUTPUT_FOLDER)
-else:
-    print("Output folder found. Continuing...")
-if not os.path.exists(DWI_LOGS_FOLDER):
-    print("Logs folder not found. Created folder: " + DWI_LOGS_FOLDER)
-    os.makedirs(DWI_LOGS_FOLDER)
-else:
-    print("Logs folder found. Continuing...")
-if not os.path.exists(TRACT_FOLDER):
-    print("Tract folder not found. Created folder: " + TRACT_FOLDER)
-    os.makedirs(TRACT_FOLDER)
-else:
-    print("Tract folder found. Continuing...")
+    # If output folderes don't exist, create them
+    check_output_folders_with_subfolders(DWI_OUTPUT_FOLDER, "DWI output")
+    check_output_folders(DWI_LOGS_FOLDER, "Logs")
+    check_output_folders(TRACT_FOLDER, "Tracts")
+    check_output_folders(MAIN_STUDIO_PATH, "Studio")
+    check_output_folders(MAIN_MRTRIX_PATH, "MRtrix")
+        
+    # --------------- Get DWI, BVAL, BVEC from subdirectories --------------- #
+    DWI_INPUT_FILES = glob_files(DWI_MAIN_FOLDER, "nii.gz")
+    B_VAL_FILES = glob_files(DWI_MAIN_FOLDER, "bval")
+    B_VEC_FILES = glob_files(DWI_MAIN_FOLDER, "bvec")
     
-# --------------- Get DWI, BVAL, BVEC from subdirectories --------------- #
-DWI_INPUT_FILES = []
-B_VAL_FILES = []
-B_VEC_FILES = []
-for dwi in glob.glob(os.path.join(DWI_MAIN_FOLDER, os.path.join("**", "*.nii.gz")), recursive=True):
-    DWI_INPUT_FILES.append(dwi)
-for bval in glob.glob(os.path.join(DWI_MAIN_FOLDER, os.path.join("**", "*.bval")), recursive=True):
-    B_VAL_FILES.append(bval)
-for bvec in glob.glob(os.path.join(DWI_MAIN_FOLDER, os.path.join("**", "*.bvec")), recursive=True):
-    B_VEC_FILES.append(bvec)
+    # If no files are found - exit the program
+    check_globbed_files(DWI_INPUT_FILES, "DWI")
+    check_globbed_files(B_VAL_FILES, "BVAL")
+    check_globbed_files(B_VEC_FILES, "BVEC")
+
+    # --------------- Define what atlases to use --------------- #
+    ATLAS_FILES = glob_files(ATLAS_FOLDER, "nii.gz")
+    # Exit if no atlases are found
+    check_globbed_files(ATLAS_FILES, "Atlas")
+    # Create atlas string otherwise
+    ATLAS_STRING = ",".join(ATLAS_FILES)
 
 
-# If no files are found - exit the program
-if len(DWI_INPUT_FILES) == 0:
-    print("No DWI files found. Please add DWI files to the folder: " + DWI_MAIN_FOLDER)
-    sys.exit('Exiting program')
-else:
-    print("DWI files found. Continuing...")
-if len(B_VAL_FILES) == 0:
-    print("No BVAL files found. Please add BVAL files to the folder: " + DWI_MAIN_FOLDER)
-    sys.exit('Exiting program')
-else:
-    print("BVAL files found. Continuing...")
-if len(B_VEC_FILES) == 0:
-    print("No BVEC files found. Please add BVEC files to the folder: " + DWI_MAIN_FOLDER)
-    sys.exit('Exiting program')
-else:
-    print("BVEC files found. Continuing...")
+    # -------------------------------------------------- PEDRO COMMANDS -------------------------------------------------- #
 
-# --------------- Define what atlases to use --------------- #
-ATLAS_FILES = []
-for atlas in glob.glob(os.path.join(ATLAS_FOLDER, "*.nii.gz")):
-    ATLAS_FILES.append(atlas)
-ATLAS_STRING = ",".join(ATLAS_FILES)
+    # --------------- DSI STUDIO defining inputs for mapping parallel --------------- #
+    mapping_inputs = list(zip(DWI_INPUT_FILES, B_VAL_FILES, B_VEC_FILES, [ATLAS_STRING]*len(DWI_INPUT_FILES), [MAIN_STUDIO_PATH]*len(DWI_INPUT_FILES),
+                              [MAIN_MRTRIX_PATH]*len(DWI_INPUT_FILES), [DWI_LOGS_FOLDER]*len(DWI_INPUT_FILES), [DSI_COMMAND]*len(DWI_INPUT_FILES)))
 
-# Check if atlas string is empty
-if len(ATLAS_FILES) == 0:
-    print("No atlas files found. Please add atlas files to the folder: " + ATLAS_FOLDER)
-    sys.exit('Exiting program')
-else:
-    print("Atlas files found. Continuing...")
+    # Use the mapping inputs with starmap to run the parallel processes
+    with mp.Pool() as pool:
+        print("mapping")
+        pool.starmap(parallel_process, list(mapping_inputs))
 
+if __name__ == '__main__':
+    mp.freeze_support()
+    main()
 
 # -------------------------------------------------- PEDRO COMMANDS -------------------------------------------------- #
 
 # --------------- DSI STUDIO Fitting and Tract Reconstruction command --------------- #
 
-# For each one of the DWI files, run the following commands
-for idx, dwi in enumerate(DWI_INPUT_FILES):
-    # --------------- DSI STUDIO filenames --------------- #
-    dwi_filename = dwi.split("\\")[-1]
-    print('dwi is {}'.format(dwi))
-    print('dwi_filename is {}'.format(dwi_filename))
-    dwi_filename = dwi_filename.replace(".nii.gz", "")
-    # Get the corresponding bval and bvec files
-    bval_path = B_VAL_FILES[idx]
-    bvec_path = B_VEC_FILES[idx]
-    # Define the output file names
-    src_filename = os.path.join(DWI_OUTPUT_FOLDER, "{}_clean".format(dwi_filename))
-    dti_filename = os.path.join(DWI_OUTPUT_FOLDER, "{}_dti".format(dwi_filename))
-    qsdr_filename = os.path.join(DWI_OUTPUT_FOLDER, "{}_qsdr".format(dwi_filename))
-    # Define the log file names
-    src_log = os.path.join(DWI_LOGS_FOLDER, "src_log_{}.txt".format(dwi_filename))
-    dti_log = os.path.join(DWI_LOGS_FOLDER, "dti_log_{}.txt".format(dwi_filename))
-    dti_export_log = os.path.join(DWI_LOGS_FOLDER, "exporting_dti_log_{}.txt".format(dwi_filename))
-    qsdr_log = os.path.join(DWI_LOGS_FOLDER, "qsdr_log_{}.txt".format(dwi_filename))
-    qsdr_export_log = os.path.join(DWI_LOGS_FOLDER, "exporting_qsdr_log_{}.txt".format(dwi_filename))
-    tract_log = os.path.join(DWI_LOGS_FOLDER, "tract_log_{}.txt".format(dwi_filename))
-    # --------------- DSI STUDIO reconstruction commands --------------- #
-    pedro_src = "{} --action=src --source={} --bval={} --bvec={} --output={} > {}".format(DSI_COMMAND,
-                                                    dwi, bval_path, bvec_path, src_filename, src_log)
-    pedro_reconstruction_dti = "{} --action=rec --source={}.src.gz --method=1 --record_odf=1 \
-        --param0=1.25 --motion_correction=0 --output={}.fib.gz > {}".format(DSI_COMMAND, src_filename, dti_filename, dti_log)
-    pedro_export_dti = "{} --action=exp --source={}.fib.gz --export=fa > {}".format(DSI_COMMAND, dti_filename, dti_export_log)
-    pedro_reconstruction_qsdr = "{} --action=rec --source={}.src.gz --method=7 --record_odf=1 \
-        --param0=1.25 --motion_correction=0 --other_image=fa:{}.fib.gz.fa.nii.gz --output={}.fib.gz \
-            > {}".format(DSI_COMMAND, src_filename, dti_filename, qsdr_filename, qsdr_log)
-    pedro_export_qsdr = "{} --action=exp --source={}.fib.gz --export=qa,rdi,fa,md > {}".format(DSI_COMMAND, qsdr_filename, qsdr_export_log)
-    # --------------- DSI STUDIO calling subprocesses command --------------- #
-    # Calling the subprocesses  
-    print("Started SRC generation - {}. {}".format(idx, dwi_filename))
-    subprocess.run(pedro_src, shell=True)
-    print("Started reconstruction DTI - {}. {}".format(idx, dwi_filename))
-    subprocess.run(pedro_reconstruction_dti, shell=True)
-    print("Started exporting metrics DTI - {}. {}".format(idx, dwi_filename))
-    subprocess.run(pedro_export_dti, shell=True)
-    print("Started reconstruction QSDR - {}. {}".format(idx, dwi_filename))
-    subprocess.run(pedro_reconstruction_qsdr, shell=True)
-    print("Started exporting metrics QSDR - {}. {}".format(idx, dwi_filename))
-    subprocess.run(pedro_export_qsdr, shell=True)
-
-    # --------------- DSI STUDIO Tractography command --------------- #
-    # Deterministic tractography
-    pedro_tractography = "{} --action=trk --source={}.fib.gz --fiber_count=1000000 --output=no_file \
-        --method=0 --interpolation=0 --max_length=400 --min_length=10 --otsu_threshold=0.6 --random_seed=0 --turning_angle=55 \
-            --smoothing=0 --step_size=1 --connectivity={} --connectivity_type=end \
-                --connectivity_value=count --connectivity_threshold=0.001 > {}".format(DSI_COMMAND, qsdr_filename, ATLAS_STRING, tract_log)
-    
-#aal116_mni.nii.gz,schaefer100_mni.nii.gz
-
-# PROBABILISTIC TRACTOGRAPHY
-
-
-# GLOBAL TRACTOGRAPHY
 
 # # --------------- Cleaning tractography reconstruction command --------------- #
 # for tract in glob.glob("{}/*trk.gz".format(TRACT_FOLDER)):
