@@ -11,7 +11,7 @@ import os
 # -------------------------------------------------- Functions -------------------------------------------------- #
 
 # CHECK HOW TO DO THIS IN PARALLEL - STARMAP OR IMAP
-def parallel_process(DWI_INPUT_FILE, B_VAL_FILE, B_VEC_FILE, ATLAS_STRING, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, DWI_LOGS_FOLDER, DSI_COMMAND):
+def parallel_process(DWI_INPUT_FILE, B_VAL_FILE, B_VEC_FILE, ATLAS, ATLAS_STRING, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, DWI_LOGS_FOLDER, DSI_COMMAND):
 
     # Get the filename for this specific process
     dwi_filename = get_dwi_filename(DWI_INPUT_FILE)
@@ -39,15 +39,16 @@ def parallel_process(DWI_INPUT_FILE, B_VAL_FILE, B_VEC_FILE, ATLAS_STRING, MAIN_
         DWI_INPUT_FILE,
         B_VEC_FILE,
         B_VAL_FILE,
-        MAIN_MRTRIX_PATH
+        MAIN_MRTRIX_PATH,
+        ATLAS
     ]
     # Get the mrtrix commands array
     MRTRIX_COMMANDS = define_mrtrix_commands(ARGS_MRTRIX)
 
     # --------------- Calling subprocesses commands --------------- #
-    for (dsi_cmd, cmd_name) in STUDIO_COMMANDS:
-        print("Started {} - {}".format(cmd_name, dwi_filename))
-        subprocess.run(dsi_cmd, shell=True)
+    # for (dsi_cmd, cmd_name) in STUDIO_COMMANDS:
+    #     print("Started {} - {}".format(cmd_name, dwi_filename))
+    #     subprocess.run(dsi_cmd, shell=True)
 
     for (mrtrix_cmd, cmd_name) in MRTRIX_COMMANDS:
         print("Started {} - {}".format(cmd_name, dwi_filename))
@@ -68,11 +69,11 @@ def main():
     check_input_folders(ATLAS_FOLDER, "Atlas")
 
     # If output folderes don't exist, create them
-    check_output_folders_with_subfolders(DWI_OUTPUT_FOLDER, "DWI output")
+    # check_output_folders_with_subfolders(DWI_OUTPUT_FOLDER, "DWI output")
     check_output_folders(DWI_LOGS_FOLDER, "Logs")
     check_output_folders(TRACT_FOLDER, "Tracts")
     check_output_folders(MAIN_STUDIO_PATH, "Studio")
-    check_output_folders(MAIN_MRTRIX_PATH, "MRtrix")
+    # check_output_folders(MAIN_MRTRIX_PATH, "MRtrix")
         
     # --------------- Get DWI, BVAL, BVEC from subdirectories --------------- #
     DWI_INPUT_FILES = glob_files(DWI_MAIN_FOLDER, "nii.gz")
@@ -88,6 +89,7 @@ def main():
     ATLAS_FILES = glob_files(ATLAS_FOLDER, "nii.gz")
     # Exit if no atlases are found
     check_globbed_files(ATLAS_FILES, "Atlas")
+    print('ATLAS_FILES[0]', ATLAS_FILES[0])
     # Create atlas string otherwise
     ATLAS_STRING = ",".join(ATLAS_FILES)
 
@@ -95,8 +97,9 @@ def main():
     # -------------------------------------------------- PEDRO COMMANDS -------------------------------------------------- #
 
     # --------------- DSI STUDIO defining inputs for mapping parallel --------------- #
-    mapping_inputs = list(zip(DWI_INPUT_FILES, B_VAL_FILES, B_VEC_FILES, [ATLAS_STRING]*len(DWI_INPUT_FILES), [MAIN_STUDIO_PATH]*len(DWI_INPUT_FILES),
-                              [MAIN_MRTRIX_PATH]*len(DWI_INPUT_FILES), [DWI_LOGS_FOLDER]*len(DWI_INPUT_FILES), [DSI_COMMAND]*len(DWI_INPUT_FILES)))
+    mapping_inputs = list(zip(DWI_INPUT_FILES, B_VAL_FILES, B_VEC_FILES, [ATLAS_FILES[0]]*len(DWI_INPUT_FILES), [ATLAS_STRING]*len(DWI_INPUT_FILES), 
+                              [MAIN_STUDIO_PATH]*len(DWI_INPUT_FILES), [MAIN_MRTRIX_PATH]*len(DWI_INPUT_FILES), [DWI_LOGS_FOLDER]*len(DWI_INPUT_FILES), 
+                              [DSI_COMMAND]*len(DWI_INPUT_FILES)))
 
     # Use the mapping inputs with starmap to run the parallel processes
     with mp.Pool() as pool:
