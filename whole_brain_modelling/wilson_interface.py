@@ -180,7 +180,7 @@ def wilson_electrical_sim(args):
     check_type(l_type, int, 'l_type')
     check_type(l_all, bool, 'l_all')
     check_type(epsilon, float, 'epsilon')
-    check_type(force_jump, bool, 'force_jump')
+    check_type(force_jump, int, 'force_jump')
     check_type(crit_name, str, 'crit_name')
 
     # --------- Check the type of data in the input arguments

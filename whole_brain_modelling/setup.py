@@ -11,13 +11,13 @@ simulation_mod = Extension('simulations',
                               ],
                               library_dirs=[
                                   "C:\\src\\vcpkg\\installed\\x64-windows\\lib",
-                                  "C:\\cpp_libs\\include\\bayesopt\\build\\lib\\Debug"
+                                  "C:\\cpp_libs\\include\\bayesopt\\build\\lib\\Release"
                               ],
                               libraries=[
                               "gsl",
                               "gslcblas",
                               "bayesopt",
-                              "matplotpp"
+                              "nlopt"
                               ]
                             )
 

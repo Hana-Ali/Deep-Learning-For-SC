@@ -1,31 +1,33 @@
 // -------------------- Header file with some helper for the main simulation
-
-#define _USE_MATH_DEFINES
+#define PY_SSIZE_T_CLEAN
 
 // Helper functions for the simulation
-
 #include <cmath>
 #include <string>
 #include <vector>
 #include <fstream>
-#include <numeric>
 #include <complex>
 #include <stdexcept>
 #include <boost/any.hpp>
+#include <numpy/arrayobject.h>
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_statistics.h>
+#include "filtering.hpp"
+#include "wilson_config.hpp"
 
 #ifndef M_PI
     #define M_PI 3.14159265358979323846
 #endif
 
-std::vector<double> ComputeDenCoeffs(int FilterOrder, double Lcutoff, double Ucutoff);
-std::vector<double> TrinomialMultiply(int FilterOrder, std::vector<double> b, std::vector<double> c);
-std::vector<double> ComputeNumCoeffs(int FilterOrder, double Lcutoff, double Ucutoff, std::vector<double> DenC);
-std::vector<double> ComputeLP(int FilterOrder);
-std::vector<double> ComputeHP(int FilterOrder);
-std::vector<double> filter(std::vector<double> denom_coeff, std::vector<double> numer_coeff, int number_samples, 
-                            std::vector<double> original_signal, std::vector<double> filtered_signal);
+void check_type(boost::any input, const std::string& expected_type, const std::string& input_name);
+void save_data_2D(std::vector<std::vector<double>> data, std::string file_path);
+void save_data_3D(std::vector<std::vector<std::vector<double>>> data, std::string file_path);
+void set_config(WilsonConfig config, WilsonConfig::PythonObjects python_objects);
+void set_emp_BOLD(WilsonConfig config, PyObject *BOLD_signal);
+void filter_BOLD(WilsonConfig config);
+void set_emp_FC(WilsonConfig config);
+void set_avg_emp_FC(WilsonConfig config);
+
 std::vector<std::vector<double>> process_BOLD(std::vector<std::vector<double>> BOLD_signal, int num_rows, int num_columns, int order, 
 							double samplingFrequency, double cutoffFrequencyLow, double cutoffFrequencyHigh);
 std::vector<std::vector<double>> determine_FC(std::vector<std::vector<double>> BOLD_signal);
@@ -51,221 +53,230 @@ void check_type(boost::any input, const std::string& expected_type, const std::s
     }
 }
 
-// Function to check the shape of a variable
-// void check_shape(boost::any input, std::vector<int>& expected_shape, std::string& input_name) {
-
-//     // Get the shape of the variable
-//     std::vector<int> true_shape = input.shape();
-
-//     // Check if the shape is the expected one
-//     if (true_shape != expected_shape) {
-//         throw std::invalid_argument("The shape of " + input_name + " is " + std::to_string(true_shape[0]) + "x" + std::to_string(true_shape[1]) + " but it should be " + std::to_string(expected_shape[0]) + "x" + std::to_string(expected_shape[1]));
-//     }
-// }
-
-#define N 10 //The number of images which construct a time series for each pixel
-#define PI 3.1415926535897932384626433832795
-std::vector<double> ComputeDenCoeffs(int FilterOrder, double Lcutoff, double Ucutoff)
-{
-	int k;            // loop variables
-	double theta;     // PI * (Ucutoff - Lcutoff) / 2.0
-	double cp;        // cosine of phi
-	double st;        // sine of theta
-	double ct;        // cosine of theta
-	double s2t;       // sine of 2*theta
-	double c2t;       // cosine 0f 2*theta
-	std::vector<double> RCoeffs(2 * FilterOrder);     // z^-2 coefficients 
-	std::vector<double> TCoeffs(2 * FilterOrder);     // z^-1 coefficients
-	std::vector<double> DenomCoeffs;     // dk coefficients
-	double PoleAngle;      // pole angle
-	double SinPoleAngle;     // sine of pole angle
-	double CosPoleAngle;     // cosine of pole angle
-	double a;         // workspace variables
-
-	cp = cos(PI * (Ucutoff + Lcutoff) / 2.0);
-	theta = PI * (Ucutoff - Lcutoff) / 2.0;
-	st = sin(theta);
-	ct = cos(theta);
-	s2t = 2.0*st*ct;        // sine of 2*theta
-	c2t = 2.0*ct*ct - 1.0;  // cosine of 2*theta
-
-	for (k = 0; k < FilterOrder; ++k)
-	{
-		PoleAngle = PI * (double)(2 * k + 1) / (double)(2 * FilterOrder);
-		SinPoleAngle = sin(PoleAngle);
-		CosPoleAngle = cos(PoleAngle);
-		a = 1.0 + s2t*SinPoleAngle;
-		RCoeffs[2 * k] = c2t / a;
-		RCoeffs[2 * k + 1] = s2t*CosPoleAngle / a;
-		TCoeffs[2 * k] = -2.0*cp*(ct + st*SinPoleAngle) / a;
-		TCoeffs[2 * k + 1] = -2.0*cp*st*CosPoleAngle / a;
-	}
-
-	DenomCoeffs = TrinomialMultiply(FilterOrder, TCoeffs, RCoeffs);
-
-	DenomCoeffs[1] = DenomCoeffs[0];
-	DenomCoeffs[0] = 1.0;
-	for (k = 3; k <= 2 * FilterOrder; ++k)
-		DenomCoeffs[k] = DenomCoeffs[2 * k - 2];
-
-	for (int i = DenomCoeffs.size() - 1; i > FilterOrder * 2 + 1; i--)
-		DenomCoeffs.pop_back();
-
-	return DenomCoeffs;
+// Function to flatten 2D arrays
+template <typename T>
+std::vector<T> flatten(const std::vector<std::vector<T>> & vec) {   
+    std::vector<T> result;
+    for (const auto & v : vec)
+        result.insert(result.end(), v.begin(), v.end());                                                                                         
+    return result;
 }
 
-std::vector<double> TrinomialMultiply(int FilterOrder, std::vector<double> b, std::vector<double> c)
-{
-	int i, j;
-	std::vector<double> RetVal(4 * FilterOrder);
+// Saving 2D data in files
+void save_data_2D(std::vector<std::vector<double>> data, std::string file_path) {
+	// Open the file given in the path
+	std::ofstream file(file_path);
+	if (!file.is_open()) {
+		throw std::invalid_argument("The file " + file_path + " could not be opened");
+	}
+	else {
+		printf("The file %s was opened successfully\n", file_path.c_str());
+	}
 
-	RetVal[2] = c[0];
-	RetVal[3] = c[1];
-	RetVal[0] = b[0];
-	RetVal[1] = b[1];
-
-	for (i = 1; i < FilterOrder; ++i)
-	{
-		RetVal[2 * (2 * i + 1)] += c[2 * i] * RetVal[2 * (2 * i - 1)] - c[2 * i + 1] * RetVal[2 * (2 * i - 1) + 1];
-		RetVal[2 * (2 * i + 1) + 1] += c[2 * i] * RetVal[2 * (2 * i - 1) + 1] + c[2 * i + 1] * RetVal[2 * (2 * i - 1)];
-
-		for (j = 2 * i; j > 1; --j)
-		{
-			RetVal[2 * j] += b[2 * i] * RetVal[2 * (j - 1)] - b[2 * i + 1] * RetVal[2 * (j - 1) + 1] +
-				c[2 * i] * RetVal[2 * (j - 2)] - c[2 * i + 1] * RetVal[2 * (j - 2) + 1];
-			RetVal[2 * j + 1] += b[2 * i] * RetVal[2 * (j - 1) + 1] + b[2 * i + 1] * RetVal[2 * (j - 1)] +
-				c[2 * i] * RetVal[2 * (j - 2) + 1] + c[2 * i + 1] * RetVal[2 * (j - 2)];
+	// Write the data to the file
+	for (int i = 0; i < data.size(); i++) {
+		for (int j = 0; j < data[0].size(); j++) {
+			file << data[i][j] << " ";
 		}
-
-		RetVal[2] += b[2 * i] * RetVal[0] - b[2 * i + 1] * RetVal[1] + c[2 * i];
-		RetVal[3] += b[2 * i] * RetVal[1] + b[2 * i + 1] * RetVal[0] + c[2 * i + 1];
-		RetVal[0] += b[2 * i];
-		RetVal[1] += b[2 * i + 1];
+		file << "\n";
 	}
-
-	return RetVal;
 }
 
-std::vector<double> ComputeNumCoeffs(int FilterOrder, double Lcutoff, double Ucutoff, std::vector<double> DenC)
-{
-	std::vector<double> TCoeffs;
-	std::vector<double> NumCoeffs(2 * FilterOrder + 1);
-	std::vector<std::complex<double>> NormalizedKernel(2 * FilterOrder + 1);
-
-	std::vector<double> Numbers;
-	for (double n = 0; n < FilterOrder * 2 + 1; n++)
-		Numbers.push_back(n);
-	int i;
-
-	TCoeffs = ComputeHP(FilterOrder);
-
-	for (i = 0; i < FilterOrder; ++i)
-	{
-		NumCoeffs[2 * i] = TCoeffs[i];
-		NumCoeffs[2 * i + 1] = 0.0;
+// Saving 3D data in files
+void save_data_3D(std::vector<std::vector<std::vector<double>>> data, std::string file_path) {
+	// Open the file given in the path
+	std::ofstream file(file_path);
+	if (!file.is_open()) {
+		throw std::invalid_argument("The file " + file_path + " could not be opened");
 	}
-	NumCoeffs[2 * FilterOrder] = TCoeffs[FilterOrder];
-
-	double cp[2];
-	double Bw, Wn;
-	cp[0] = 2 * 2.0*tan(PI * Lcutoff / 2.0);
-	cp[1] = 2 * 2.0*tan(PI * Ucutoff / 2.0);
-
-	Bw = cp[1] - cp[0];
-	//center frequency
-	Wn = sqrt(cp[0] * cp[1]);
-	Wn = 2 * atan2(Wn, 4);
-	double kern;
-	const std::complex<double> result = std::complex<double>(-1, 0);
-
-	for (int k = 0; k< FilterOrder * 2 + 1; k++)
-	{
-		NormalizedKernel[k] = std::exp(-sqrt(result)*Wn*Numbers[k]);
-	}
-	double b = 0;
-	double den = 0;
-	for (int d = 0; d < FilterOrder * 2 + 1; d++)
-	{
-		b += real(NormalizedKernel[d] * NumCoeffs[d]);
-		den += real(NormalizedKernel[d] * DenC[d]);
-	}
-	for (int c = 0; c < FilterOrder * 2 + 1; c++)
-	{
-		NumCoeffs[c] = (NumCoeffs[c] * den) / b;
+	else {
+		printf("The file %s was opened successfully\n", file_path.c_str());
 	}
 
-	for (int i = NumCoeffs.size() - 1; i > FilterOrder * 2 + 1; i--)
-		NumCoeffs.pop_back();
-
-	return NumCoeffs;
-}
-
-std::vector<double> ComputeLP(int FilterOrder)
-{
-	std::vector<double> NumCoeffs(FilterOrder + 1);
-	int m;
-	int i;
-
-	NumCoeffs[0] = 1;
-	NumCoeffs[1] = FilterOrder;
-	m = FilterOrder / 2;
-	for (i = 2; i <= m; ++i)
-	{
-		NumCoeffs[i] = (double)(FilterOrder - i + 1)*NumCoeffs[i - 1] / i;
-		NumCoeffs[FilterOrder - i] = NumCoeffs[i];
-	}
-	NumCoeffs[FilterOrder - 1] = FilterOrder;
-	NumCoeffs[FilterOrder] = 1;
-
-	return NumCoeffs;
-}
-
-std::vector<double> ComputeHP(int FilterOrder)
-{
-	std::vector<double> NumCoeffs;
-	int i;
-
-	NumCoeffs = ComputeLP(FilterOrder);
-
-	for (i = 0; i <= FilterOrder; ++i)
-		if (i % 2) NumCoeffs[i] = -NumCoeffs[i];
-
-	return NumCoeffs;
-}
-
-std::vector<double> filter(std::vector<double> numer_coeff, std::vector<double> denom_coeff, int number_samples, 
-                            std::vector<double> original_signal, std::vector<double> filtered_signal)
-{
-    int len_x = original_signal.size();
-	int len_b = numer_coeff.size();
-	int len_a = denom_coeff.size();
-
-	std::vector<double> zi(len_b);
-
-	if (len_a == 1)
-	{
-		for (int m = 0; m < len_x; m++)
-		{
-			filtered_signal[m] = numer_coeff[0] * original_signal[m] + zi[0];
-			for (int i = 1; i < len_b; i++)
-			{
-				zi[i - 1] = numer_coeff[i] * original_signal[m] + zi[i];//-coeff_a[i]*filter_x[m];
+	// Write the data to the file
+	for (int i = 0; i < data.size(); i++) {
+		for (int j = 0; j < data[0].size(); j++) {
+			for (int k = 0; k < data[0][0].size(); k++) {
+				file << data[i][j][k] << " ";
 			}
+			file << "\n";
 		}
+		file << "\n";
 	}
-	else
-	{
-		for (int m = 0; m<len_x; m++)
-		{
-			filtered_signal[m] = numer_coeff[0] * original_signal[m] + zi[0];
-			for (int i = 1; i < len_b; i++)
-			{
-				zi[i - 1] = numer_coeff[i] * original_signal[m] + zi[i] - numer_coeff[i] * filtered_signal[m];
-			}
-		}
-	}
+}
 
-    return filtered_signal;
+// Function to convert Python NumPY arrays to C++ vectors
+void set_config(WilsonConfig config, WilsonConfig::PythonObjects python_objects) {
+	
+	PyObject *temp_variable;
+	long temp_long;
+
+	for (int i = 0; i < config.number_of_oscillators; i++)
+    {   
+        srand(time(0));
+		std::generate(config.e_values.begin(), config.e_values.end(), rand);
+		std::generate(config.i_values.begin(), config.i_values.end(), rand);
+
+        // ------------ Matrices
+        for (int j = 0; j < config.number_of_oscillators; j++)
+        {   
+            // Get the structural connectivity matrix
+            temp_variable = PyArray_GETITEM(python_objects.structural_connec, PyArray_GETPTR2(python_objects.structural_connec, i, j));
+            config.structural_connectivity_mat[i][j] = PyFloat_AsDouble(temp_variable);
+            // Decrease reference for next
+            Py_DECREF(temp_variable);
+
+            // Get the lower_idxs matrix
+            temp_variable = PyArray_GETITEM(python_objects.lower_idxs, PyArray_GETPTR2(python_objects.lower_idxs, i, j));
+            temp_long = PyLong_AsLong(temp_variable);
+            config.lower_idxs_mat[i][j] = temp_long;
+            // Decrease reference for next
+            Py_DECREF(temp_variable);
+
+            // Get the upper_idxs matrix
+            temp_variable = PyArray_GETITEM(python_objects.upper_idxs, PyArray_GETPTR2(python_objects.upper_idxs, i, j));
+            temp_long = PyLong_AsLong(temp_variable);
+            config.upper_idxs_mat[i][j] = temp_long;
+            // Decrease reference for next
+            Py_DECREF(temp_variable);
+        }
+
+        // ------------ Initialize output matrix
+        config.output_e[i][0] = config.e_values[i];
+        // Other values in matrix are NaN
+        for (int step = 1; step <= config.number_of_integration_steps; step++)
+        {
+            config.output_e[i][step] = nan("");
+        }
+    }
+
+}
+
+// Function to get the empirical BOLD signal
+void set_emp_BOLD(WilsonConfig config, PyObject *BOLD_signal) {
+
+	npy_intp emp_BOLD_dims[3] = { PyArray_DIM(BOLD_signal, 0),
+                                  PyArray_DIM(BOLD_signal, 1),
+                                  PyArray_DIM(BOLD_signal, 2)};
+    
+    PyObject* time_sample;
+
+    // For each subject
+    for (int subject = 0; subject < emp_BOLD_dims[0]; ++subject)
+    {   
+        printf("In processing subject %d\n", subject);
+        // Create another vector of vector of doubles, to store each subject's 100 region signals
+        std::vector<std::vector<double>> subject_regions;
+        
+        // For each BOLD signal in the BOLD signals, for each timestep
+        for (int region = 0; region < emp_BOLD_dims[1]; ++region)
+        {   
+            if (region % 10 == 0)
+                printf("In region %d\n", region);
+
+                // Create a last vector of doubles, to store the timesamples for each signal
+                std::vector<double> region_timesamples;
+
+            for (int timepoint = 0; timepoint < emp_BOLD_dims[2]; ++timepoint)
+            {
+                // This will store the value in the bold array
+                double value;
+
+                // Get the time_sample point
+                time_sample = PyArray_GETITEM(BOLD_signal, PyArray_GETPTR3(BOLD_signal, subject, region, timepoint));
+
+                // Check thet each time sample is a float
+                if(PyFloat_Check(time_sample))
+                    value = PyFloat_AsDouble(time_sample);
+                else {
+                    printf("Not floats!!!");
+                    PyErr_SetString(PyExc_TypeError, "Empirical BOLD is not in the correct format");
+					return;
+                }
+
+                region_timesamples.push_back(value);
+                // Decrement the pointer reference
+                Py_DECREF(time_sample);
+            }
+            subject_regions.push_back(region_timesamples);
+        }
+        config.emp_BOLD_signals.push_back(subject_regions);
+    }
+
+	// Saving it just for a sanity check
+    printf("----------- Saving unpacked empirical BOLD signal -----------\n");
+    save_data_3D(config.emp_BOLD_signals, "temp_arrays/unpacked_emp_BOLD.csv");
+
+}
+
+// Function to filter the BOLD signal
+void filter_BOLD(WilsonConfig config) {
+	// For each subject
+    for (int subject = 0; subject < config.emp_BOLD_signals.size(); ++subject)
+    {
+        printf("In filtering subject %d\n", subject);
+
+        // Add the subject to the vector of all subjects
+        config.filtered_BOLD_signals.emplace_back(process_BOLD(config.emp_BOLD_signals[subject],
+                                                    		   config.emp_BOLD_signals[0].size(),
+                                                    		   config.emp_BOLD_signals[1].size(),
+                                                    		   config.order,
+															   config.cutoffLow,
+															   config.cutoffHigh,
+															   config.sampling_rate));
+    }
+
+	// Saving it just for a sanity check
+	printf("----------- Saving filtered empirical BOLD signal -----------\n");
+	save_data_3D(config.filtered_BOLD_signals, "temp_arrays/filtered_emp_BOLD.csv");
+
+}
+
+// Function to find the empirical FC
+void set_emp_FC(WilsonConfig config) {
+	// For each subject
+    for (int subject = 0; subject < config.filtered_BOLD_signals.size(); subject++)
+    {
+        // Add the subject to the vector of all subjects
+        printf("subject: %d\n\r", subject);
+        config.all_emp_FC.emplace_back(determine_FC(config.filtered_BOLD_signals[subject]));
+    }
+
+	// Saving it just for a sanity check
+	printf("----------- Saving empirical FC -----------\n");
+	save_data_3D(config.all_emp_FC, "temp_arrays/emp_FC.csv");
+
+}
+
+// Function to find the averaged empirical FC
+void set_avg_emp_FC(WilsonConfig config) {
+	// For each region
+    for (int i = 0; i < config.all_emp_FC[1].size(); i++)
+    {
+        // Create a vector of doubles for each *other* region
+        std::vector<double> region_avg;
+
+        // For each other region
+        for (int j = 0; j < config.all_emp_FC[1].size(); j++)
+        {
+			// Create a vector of doubles for each subject
+			std::vector<double> subject_values;
+
+			// For each subject
+			for (int k = 0; k < config.all_emp_FC[0].size(); k++)
+			{
+				subject_values.push_back(config.all_emp_FC[i][j][k]);
+			}
+			// Get the mean of the subject values
+			double mean = gsl_stats_mean(subject_values.data(), 1, subject_values.size());
+			region_avg.push_back(mean);
+		}
+        config.emp_FC.push_back(region_avg);
+    }
+
+	// Saving it just for a sanity check
+	printf("----------- Saving averaged empirical FC -----------\n");
+	save_data_2D(config.emp_FC, "temp_arrays/avg_emp_FC.csv");
 }
 
 // Function to process the BOLD data - same as in Python helper_funcs.py file
@@ -457,59 +468,5 @@ std::vector<std::vector<double>> get_emp_FC(std::string &file_path)
 
 		// Add the line data to the data vector
 		data.push_back(line_data);
-	}
-}
-
-// Function to flatten 2D arrays
-template <typename T>
-std::vector<T> flatten(const std::vector<std::vector<T>> & vec) {   
-    std::vector<T> result;
-    for (const auto & v : vec)
-        result.insert(result.end(), v.begin(), v.end());                                                                                         
-    return result;
-}
-
-// New
-
-// Saving 2D data in files
-void save_data_2D(std::vector<std::vector<double>> data, std::string file_path) {
-	// Open the file given in the path
-	std::ofstream file(file_path);
-	if (!file.is_open()) {
-		throw std::invalid_argument("The file " + file_path + " could not be opened");
-	}
-	else {
-		printf("The file %s was opened successfully\n", file_path.c_str());
-	}
-
-	// Write the data to the file
-	for (int i = 0; i < data.size(); i++) {
-		for (int j = 0; j < data[0].size(); j++) {
-			file << data[i][j] << " ";
-		}
-		file << "\n";
-	}
-}
-
-// Saving 3D data in files
-void save_data_3D(std::vector<std::vector<std::vector<double>>> data, std::string file_path) {
-	// Open the file given in the path
-	std::ofstream file(file_path);
-	if (!file.is_open()) {
-		throw std::invalid_argument("The file " + file_path + " could not be opened");
-	}
-	else {
-		printf("The file %s was opened successfully\n", file_path.c_str());
-	}
-
-	// Write the data to the file
-	for (int i = 0; i < data.size(); i++) {
-		for (int j = 0; j < data[0].size(); j++) {
-			for (int k = 0; k < data[0][0].size(); k++) {
-				file << data[i][j][k] << " ";
-			}
-			file << "\n";
-		}
-		file << "\n";
 	}
 }
