@@ -35,6 +35,22 @@ class WilsonConfig
             NOISE_ERROR = -1
         };
 
+        // Inputs for the Wilson model from Python
+        struct PythonObjects {
+            PyObject *structural_connec;
+            PyObject *lower_idxs;
+            PyObject *upper_idxs;
+            PyObject *initial_cond_e;
+            PyObject *initial_cond_i;
+            PyObject *BOLD_signals;
+        };
+
+        // Create a struct to hold both the minimizer and the minimum value
+        struct BO_output {
+            double *minimizer;
+            double minimizer_value;
+        };
+
         // Parameters used by WC model
         double coupling_strength{};
         double delay{};
@@ -74,6 +90,8 @@ class WilsonConfig
         // Empirical stuff
         std::vector<std::vector<double>> structural_connectivity_mat{};
         std::vector<std::vector<std::vector<double>>> emp_BOLD_signals{};
+        std::vector<std::vector<std::vector<double>>> filtered_BOLD_signals{};
+        std::vector<std::vector<std::vector<double>>> all_emp_FC{};
         std::vector<std::vector<double>> emp_FC{};
         // Simulation BOLD stuff
         int num_BOLD_subjects{};
@@ -120,7 +138,7 @@ class Wilson {
         explicit Wilson(WilsonConfig config); // Explicitly default
 
         // Method that runs the simulation
-        double* run_simulation();
+        WilsonConfig::BO_output run_simulation();
 
         // Method that converts electrical to BOLD signals
         std::vector<std::vector<double>> electrical_to_bold(std::vector<std::vector<double>>& electrical_signals,
@@ -140,7 +158,6 @@ class Wilson {
         // Methods and params needed for the simulation
         std::normal_distribution<double> rand_std_normal{0, 1};
         std::uniform_real_distribution<double> rand_std_uniform{0, 1};
-        std::vector<std::vector<double>> electrical_activity{};
 
         std::vector<std::vector<double>> delay_mat;
         std::vector<std::vector<double>> coupling_mat;
