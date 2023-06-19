@@ -2,8 +2,8 @@
 
 #%% Import libraries
 from sklearn.preprocessing import MinMaxScaler
-from helper_funcs import *
-from wilson_interface import *
+from py_helpers.helper_funcs import *
+from py_helpers.wilson_interface import *
 import matplotlib.pyplot as plt
 import scipy.signal as signal
 import multiprocessing as mp
