@@ -1,4 +1,6 @@
 import simulations as sim
+import sys
+sys.path.insert(0, r"C:\Users\shahi\OneDrive - Imperial College London\Documents\imperial\Dissertation\Notebooks\MyCodes\whole_brain_modelling\py_helpers")
 from helper_funcs import *
 import numpy as np
 

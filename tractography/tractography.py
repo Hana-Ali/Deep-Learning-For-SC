@@ -69,11 +69,11 @@ def main():
     check_input_folders(ATLAS_FOLDER, "Atlas")
 
     # If output folderes don't exist, create them
-    # check_output_folders_with_subfolders(DWI_OUTPUT_FOLDER, "DWI output")
+    check_output_folders_with_subfolders(DWI_OUTPUT_FOLDER, "DWI output")
     check_output_folders(DWI_LOGS_FOLDER, "Logs")
     check_output_folders(TRACT_FOLDER, "Tracts")
     check_output_folders(MAIN_STUDIO_PATH, "Studio")
-    # check_output_folders(MAIN_MRTRIX_PATH, "MRtrix")
+    check_output_folders(MAIN_MRTRIX_PATH, "MRtrix")
         
     # --------------- Get DWI, BVAL, BVEC from subdirectories --------------- #
     DWI_INPUT_FILES = glob_files(DWI_MAIN_FOLDER, "nii.gz")
