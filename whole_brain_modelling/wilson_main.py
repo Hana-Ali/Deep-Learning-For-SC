@@ -1,6 +1,9 @@
 ####### WILSON-COWAN MODEL
 
 #%% Import libraries
+import os
+os.add_dll_directory(r"C:\src\vcpkg\installed\x64-windows\bin")
+os.add_dll_directory(r"C:\cpp_libs\include\bayesopt\build\bin\Release")
 from sklearn.preprocessing import MinMaxScaler
 from py_helpers.helper_funcs import *
 from py_helpers.wilson_interface import *

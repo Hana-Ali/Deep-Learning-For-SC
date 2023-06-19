@@ -238,9 +238,9 @@ def define_mrtrix_commands(ARGS):
         input=TRACT_TCK_PATH, output=CONNECTIVITY_PATH, atlas=ATLAS)
     
     # Create commands array
-    MRTRIX_COMMANDS = [#(MIF_CMD, "Conversion NifTI -> MIF"), (RESPONSE_EST_CMD, "Response function estimation"),
-                       #(MASK_CMD, "Mask creation"), (MULTISHELL_CSD_CMD, "Multi-shell CSD"),
-                       #(COMBINE_FODS_CMD, "Combining FODs"), (NORMALIZE_FODS_CMD, "Normalizing FODs"),
+    MRTRIX_COMMANDS = [(MIF_CMD, "Conversion NifTI -> MIF"), (RESPONSE_EST_CMD, "Response function estimation"),
+                       (MASK_CMD, "Mask creation"), (MULTISHELL_CSD_CMD, "Multi-shell CSD"),
+                       (COMBINE_FODS_CMD, "Combining FODs"), (NORMALIZE_FODS_CMD, "Normalizing FODs"),
                        (PROB_TRACT_CMD, "Probabilistic tractography"), (CONNECTIVITY_CMD, "Connectivity matrix")]
 
     # Return the commands array
