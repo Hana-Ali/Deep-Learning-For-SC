@@ -623,9 +623,6 @@ static PyObject* parsing_wilson_inputs(PyObject* self, PyObject* args)
 
     printf("---- Parsing input variables succeeded ----\n");
 
-    npy_intp dimensions[2] = {config.number_of_oscillators, config.number_of_integration_steps + 1};
-    PyObject *electrical_activity = PyArray_EMPTY(2, dimensions, NPY_FLOAT64, 0);
-
     // ------------- Convert input objects to C++ types
     printf("---- Convert input objects to C++ types ----\n");
     // Collect all python objects in their own container
@@ -658,11 +655,26 @@ static PyObject* parsing_wilson_inputs(PyObject* self, PyObject* args)
     // Call run simulation
     printf("---- Call run simulation ----\n");
     Wilson wilson(config);
-    WilsonConfig::BO_output minimizer = wilson.run_simulation();
+    WilsonConfig::BO_output bo_output = wilson.run_simulation();
 
     printf("Finished running simulation\n");
 
-    return PyLong_FromLong(42);
+    // Need to convert the BO_output to a PyObject to return it
+    PyObject* minimizer_value = PyFloat_FromDouble(bo_output.minimizer_value);
+    // Get number of items in minimizer array
+    int num_minimizer_items = sizeof(bo_output.minimizer) / sizeof(bo_output.minimizer[0]);
+    // Create a list of the minimizer array
+    PyObject* minimizer_array = PyList_New(num_minimizer_items);
+    for (int i = 0; i < num_minimizer_items; i++)
+    {
+        PyList_SetItem(minimizer_array, i, PyFloat_FromDouble(bo_output.minimizer[i]));
+    }
+    // Create a tuple of the minimizer value and minimizer array
+    PyObject* bo_output_tuple = PyTuple_New(2);
+    PyTuple_SetItem(bo_output_tuple, 0, minimizer_value);
+    PyTuple_SetItem(bo_output_tuple, 1, minimizer_array);
+
+    return bo_output_tuple;
 }
 
 static PyMethodDef IntegrationMethods[] = {
