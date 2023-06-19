@@ -85,7 +85,7 @@ def wilson_electrical_sim(args):
         raise Exception(exception_msg)
     
     # --------- Unpack the arguments
-    print('-- Unpacking arguments --')
+    print('Unpacking arguments...')
     coupling_strength = args[0]
     delay = args[1]
     number_oscillators = args[2]
@@ -136,72 +136,80 @@ def wilson_electrical_sim(args):
 
 
     # --------- Check the type of the input arguments
-    print('-- Checking types --')
-    check_type(coupling_strength, float, 'coupling_strength')
-    check_type(delay, float, 'delay')
-    check_type(number_oscillators, int, 'number_oscillators')
-    check_type(c_ee, float, 'c_ee')
-    check_type(c_ei, float, 'c_ei')
-    check_type(c_ie, float, 'c_ie')
-    check_type(c_ii, float, 'c_ii')
-    check_type(tau_e, float, 'tau_e')
-    check_type(tau_i, float, 'tau_i')
-    check_type(r_e, float, 'r_e')
-    check_type(r_i, float, 'r_i')
-    check_type(alpha_e, float, 'alpha_e')
-    check_type(alpha_i, float, 'alpha_i')
-    check_type(theta_e, float, 'theta_e')
-    check_type(theta_i, float, 'theta_i')
-    check_type(external_e, float, 'external_e')
-    check_type(external_i, float, 'external_i')
-    check_type(number_integration_steps, int, 'number_integration_steps')
-    check_type(integration_step_size, float, 'integration_step_size')
-    check_type(start_save_idx, int, 'start_save_idx')
-    check_type(downsampling_rate, int, 'downsampling_rate')
-    check_type(initial_cond_e, np.ndarray, 'initial_cond_e')
-    check_type(initial_cond_i, np.ndarray, 'initial_cond_i')
-    check_type(SC, np.ndarray, 'SC')
-    check_type(FC, np.ndarray, 'FC')
-    check_type(BOLD, np.ndarray, 'BOLD')
-    check_type(noise_type, int, 'noise_type')
-    check_type(noise_amplitude, float, 'noise_amplitude')
-    check_type(write_path, str, 'write_path')
-    check_type(order, int, 'order')
-    check_type(cutoffLow, float, 'cutoffLow')
-    check_type(cutoffHigh, float, 'cutoffHigh')
-    check_type(sampling_rate, float, 'sampling_rate')
-    check_type(n_iterations, int, 'n_iterations')
-    check_type(n_inner_iterations, int, 'n_inner_iterations')
-    check_type(n_init_samples, int, 'n_init_samples')
-    check_type(n_iter_relearn, int, 'n_iter_relearn')
-    check_type(init_method, int, 'init_method')
-    check_type(verbose_level, int, 'verbose_level')
-    check_type(log_file, str, 'log_file')
-    check_type(surr_name, str, 'surr_name')
-    check_type(sc_type, int, 'sc_type')
-    check_type(l_type, int, 'l_type')
-    check_type(l_all, bool, 'l_all')
-    check_type(epsilon, float, 'epsilon')
-    check_type(force_jump, int, 'force_jump')
-    check_type(crit_name, str, 'crit_name')
-
+    print('Checking types...')
+    inputs = [
+        (coupling_strength, float, 'coupling_strength'),
+        (delay, float, 'delay'),
+        (number_oscillators, int, 'number_oscillators'),
+        (c_ee, float, 'c_ee'),
+        (c_ei, float, 'c_ei'),
+        (c_ie, float, 'c_ie'),
+        (c_ii, float, 'c_ii'),
+        (tau_e, float, 'tau_e'),
+        (tau_i, float, 'tau_i'),
+        (r_e, float, 'r_e'),
+        (r_i, float, 'r_i'),
+        (alpha_e, float, 'alpha_e'),
+        (alpha_i, float, 'alpha_i'),
+        (theta_e, float, 'theta_e'),
+        (theta_i, float, 'theta_i'),
+        (external_e, float, 'external_e'),
+        (external_i, float, 'external_i'),
+        (number_integration_steps, int, 'number_integration_steps'),
+        (integration_step_size, float, 'integration_step_size'),
+        (start_save_idx, int, 'start_save_idx'),
+        (downsampling_rate, int, 'downsampling_rate'),
+        (initial_cond_e, np.ndarray, 'initial_cond_e'),
+        (initial_cond_i, np.ndarray, 'initial_cond_i'),
+        (SC, np.ndarray, 'SC'),
+        (FC, np.ndarray, 'FC'),
+        (BOLD, np.ndarray, 'BOLD'),
+        (noise_type, int, 'noise_type'),
+        (noise_amplitude, float, 'noise_amplitude'),
+        (write_path, str, 'write_path'),
+        (order, int, 'order'),
+        (cutoffLow, float, 'cutoffLow'),
+        (cutoffHigh, float, 'cutoffHigh'),
+        (sampling_rate, float, 'sampling_rate'),
+        (n_iterations, int, 'n_iterations'),
+        (n_inner_iterations, int, 'n_inner_iterations'),
+        (n_init_samples, int, 'n_init_samples'),
+        (n_iter_relearn, int, 'n_iter_relearn'),
+        (init_method, int, 'init_method'),
+        (verbose_level, int, 'verbose_level'),
+        (log_file, str, 'log_file'),
+        (surr_name, str, 'surr_name'),
+        (sc_type, int, 'sc_type'),
+        (l_type, int, 'l_type'),
+        (l_all, bool, 'l_all'),
+        (epsilon, float, 'epsilon'),
+        (force_jump, int, 'force_jump'),
+        (crit_name, str, 'crit_name')
+    ]
+    check_all_types(inputs)
+    
     # --------- Check the type of data in the input arguments
-    check_type(initial_cond_e[0], np.float64, 'initial_cond_e[0]')
-    check_type(initial_cond_i[0], np.float64, 'initial_cond_i[0]')
-    check_type(SC[0, 0], np.float64, 'SC[0, 0]')
-    check_type(FC[0, 0], np.float64, 'FC[0, 0]')
-
+    inputs = [
+        (initial_cond_e[0], np.float64, 'initial_cond_e[0]'),
+        (initial_cond_i[0], np.float64, 'initial_cond_i[0]'),
+        (SC[0, 0], np.float64, 'SC[0, 0]'),
+        (FC[0, 0], np.float64, 'FC[0, 0]')
+    ]
+    check_all_types(inputs)
+    
     # --------- Check the shape of the input arguments
-    check_shape(initial_cond_e, (number_oscillators,), 'initial_cond_e')
-    check_shape(initial_cond_i, (number_oscillators,), 'initial_cond_i')
-    check_shape(SC, (number_oscillators, number_oscillators), 'SC')
-    check_shape(FC, (number_oscillators, number_oscillators), 'FC')
-
+    inputs = [
+        (initial_cond_e, (number_oscillators,), 'initial_cond_e'),
+        (initial_cond_i, (number_oscillators,), 'initial_cond_i'),
+        (SC, (number_oscillators, number_oscillators), 'SC'),
+        (FC, (number_oscillators, number_oscillators), 'FC')
+    ]
+    check_all_shapes(inputs)
 
     # --------- Define initial values to be used in equation, COUPLING AND DELAY
     # COUPLING is either c_ee, if local coupling, or SC, if global coupling
     # DELAY is either 0, if local coupling, or delay * path lengths, if global coupling
-    print('-- Defining initial values --')
+    print('Defining initial values...')
     coupling_matrix = coupling_strength * SC
     # np.fill_diagonal(coupling_matrix, c_ee)
     coupling_matrix += (
@@ -214,11 +222,11 @@ def wilson_electrical_sim(args):
     num_BOLD_timepoints = BOLD.shape[2]
 
     # --------- Define the index matrices for integration (WHAT IS THIS)
-    print('-- Defining index matrices --')
+    print('Defining index matrices...')
     upper_idx = np.floor(delay_matrix / integration_step_size).astype(int)
     lower_idx = upper_idx + 1
     
-    print('------------ Before simulation ------------')
+    print('Entering simulation...')
 
     # --------- SIMULATION TIME BABEY
     simulation_results = sim.parsing_wilson_inputs(

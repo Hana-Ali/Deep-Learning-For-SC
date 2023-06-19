@@ -111,6 +111,14 @@ void set_config(WilsonConfig config, WilsonConfig::PythonObjects python_objects)
 	PyObject *temp_variable;
 	long temp_long;
 
+    // Allocate space in the matrices
+    config.e_values.resize(config.number_of_oscillators);
+    config.i_values.resize(config.number_of_oscillators);
+    config.structural_connectivity_mat.resize(config.number_of_oscillators, std::vector<double>(config.number_of_oscillators));
+    config.lower_idxs_mat.resize(config.number_of_oscillators, std::vector<int>(config.number_of_oscillators));
+    config.upper_idxs_mat.resize(config.number_of_oscillators, std::vector<int>(config.number_of_oscillators));
+    config.output_e.resize(config.number_of_oscillators, std::vector<double>(config.number_of_integration_steps + 1));
+
 	for (int i = 0; i < config.number_of_oscillators; i++)
     {   
         srand(time(0));
@@ -161,21 +169,20 @@ void set_emp_BOLD(WilsonConfig config, PyObject *BOLD_signal) {
     
     PyObject* time_sample;
 
+    // // Allocate space in the matrices
+    // config.emp_BOLD_signals.resize(emp_BOLD_dims[0], std::vector<std::vector<double>>(emp_BOLD_dims[1], std::vector<double>(emp_BOLD_dims[2])));
+
     // For each subject
     for (int subject = 0; subject < emp_BOLD_dims[0]; ++subject)
     {   
-        printf("In processing subject %d\n", subject);
         // Create another vector of vector of doubles, to store each subject's 100 region signals
         std::vector<std::vector<double>> subject_regions;
         
         // For each BOLD signal in the BOLD signals, for each timestep
         for (int region = 0; region < emp_BOLD_dims[1]; ++region)
         {   
-            if (region % 10 == 0)
-                printf("In region %d\n", region);
-
-                // Create a last vector of doubles, to store the timesamples for each signal
-                std::vector<double> region_timesamples;
+            // Create a last vector of doubles, to store the timesamples for each signal
+            std::vector<double> region_timesamples;
 
             for (int timepoint = 0; timepoint < emp_BOLD_dims[2]; ++timepoint)
             {
@@ -204,6 +211,8 @@ void set_emp_BOLD(WilsonConfig config, PyObject *BOLD_signal) {
     }
 
 	// Saving it just for a sanity check
+    printf("Size of BOLD signal is %d x %d x %d\n", config.emp_BOLD_signals.size(), 
+        config.emp_BOLD_signals[0].size(), config.emp_BOLD_signals[0][0].size());
     printf("----------- Saving unpacked empirical BOLD signal -----------\n");
     save_data_3D(config.emp_BOLD_signals, "temp_arrays/unpacked_emp_BOLD.csv");
 

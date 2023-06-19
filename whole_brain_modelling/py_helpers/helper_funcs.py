@@ -17,7 +17,15 @@ def check_type(inp, input_type, input_name):
 def check_shape(inp, input_shape, input_name):
     if not inp.shape == input_shape:
         raise ValueError('The input ' + input_name + ' must have shape ' + str(input_shape) + ', has shape ' + str(inp.shape))
-    
+
+def check_all_types(inputs):
+    for (inputs, input_type, input_name) in inputs:
+        check_type(inputs, input_type, input_name)
+
+def check_all_shapes(inputs):
+    for (inputs, input_shape, input_name) in inputs:
+        check_shape(inputs, input_shape, input_name)
+
 # Get the Structural Connectivity Matrices
 def get_empirical_SC(path):
     

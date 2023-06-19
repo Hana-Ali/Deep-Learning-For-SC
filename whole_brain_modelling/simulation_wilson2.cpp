@@ -595,36 +595,37 @@ static PyObject* parsing_wilson_inputs(PyObject* self, PyObject* args)
     if (
         !PyArg_ParseTuple(
             args, "ddOiddddddddddddddidOOOOididddOiiiiiiiiissiibdis",
-            config.coupling_strength, config.delay, &structural_connec,
-            config.number_of_oscillators, config.c_ee,
-            config.c_ei, config.c_ie, config.c_ii,
-            config.tau_e, config.tau_i, config.r_e,
-            config.r_i, config.alpha_e, config.alpha_i,
-            config.theta_e, config.theta_i, config.external_e,
-            config.external_i, config.number_of_integration_steps,
-            config.integration_step_size,
+            &config.coupling_strength, &config.delay, &structural_connec,
+            &config.number_of_oscillators, &config.c_ee,
+            &config.c_ei, &config.c_ie, &config.c_ii,
+            &config.tau_e, &config.tau_i, &config.r_e,
+            &config.r_i, &config.alpha_e, &config.alpha_i,
+            &config.theta_e, &config.theta_i, &config.external_e,
+            &config.external_i, &config.number_of_integration_steps,
+            &config.integration_step_size,
             &lower_idxs, &upper_idxs,
             &initial_cond_e, &initial_cond_i,
-            config.noise, config.noise_amplitude,
-            config.order, config.cutoffLow, config.cutoffHigh,
-            config.sampling_rate, &BOLD_signals,
-            num_BOLD_subjects, num_BOLD_regions, num_BOLD_timepoints,
-            config.BO_n_iter, config.BO_n_inner_iter, config.BO_iter_relearn,
-            config.BO_init_samples, config.BO_init_method, config.BO_verbose_level,
-            &config.BO_log_file, &config.BO_surrogate, config.BO_sc_type,
-            config.BO_l_type, config.BO_l_all, config.BO_epsilon,
-            config.BO_force_jump, &config.BO_crit_name
+            &config.noise, &config.noise_amplitude,
+            &config.order, &config.cutoffLow, &config.cutoffHigh,
+            &config.sampling_rate, &BOLD_signals,
+            &num_BOLD_subjects, &num_BOLD_regions, &num_BOLD_timepoints,
+            &config.BO_n_iter, &config.BO_n_inner_iter, &config.BO_iter_relearn,
+            &config.BO_init_samples, &config.BO_init_method, &config.BO_verbose_level,
+            &config.BO_log_file, &config.BO_surrogate, &config.BO_sc_type,
+            &config.BO_l_type, &config.BO_l_all, &config.BO_epsilon,
+            &config.BO_force_jump, &config.BO_crit_name
         )
         )
     {
-        printf("---- Parsing input variables failed ----\n");
-        return NULL;
+      PyErr_SetString(PyExc_TypeError, "Input should be a numpy array of numbers.");
+      printf("Parsing input variables failed\n");
+      return NULL;
     };
 
-    printf("---- Parsing input variables succeeded ----\n");
+    printf("Parsing input variables succeeded. Continuing...\n");
 
     // ------------- Convert input objects to C++ types
-    printf("---- Convert input objects to C++ types ----\n");
+    printf("Converting input objects to C++ types...\n");
     // Collect all python objects in their own container
     WilsonConfig::PythonObjects python_objects = {
       structural_connec,
@@ -634,30 +635,31 @@ static PyObject* parsing_wilson_inputs(PyObject* self, PyObject* args)
       initial_cond_i,
     };
     // Invoke the conversion function
+    printf("Setting config...\n");
     set_config(config, python_objects);
 
     // ------------ Get the BOLD signals for processing
-    printf("---- Get the empirical BOLD signals for processing ----\n");
+    printf("Getting the empirical BOLD signals for processing...\n");
     set_emp_BOLD(config, BOLD_signals);
 
     // ------------- Filtering the BOLD signal
-    printf("----------- Filtering the empirical BOLD signal -----------\n");
+    printf("Filtering the empirical BOLD signal...\n");
     filter_BOLD(config);
    
     // ------------- Getting the empirical FC
-    printf("----------- Getting the empirical FC -----------\n");
+    printf("Getting the empirical FC...\n");
     set_emp_FC(config);
 
     // ------------- Finding the average across subjects
-    printf("----------- Finding the average across subjects -----------\n");
+    printf("Finding the average across subjects...\n");
     set_avg_emp_FC(config);
 
     // Call run simulation
-    printf("---- Call run simulation ----\n");
+    printf("Calling run simulation...\n");
     Wilson wilson(config);
     WilsonConfig::BO_output bo_output = wilson.run_simulation();
 
-    printf("Finished running simulation\n");
+    printf("Finished running simulation...\n");
 
     // Need to convert the BO_output to a PyObject to return it
     PyObject* minimizer_value = PyFloat_FromDouble(bo_output.minimizer_value);
