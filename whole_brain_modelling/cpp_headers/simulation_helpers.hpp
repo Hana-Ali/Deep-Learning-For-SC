@@ -76,9 +76,9 @@ void save_data_2D(std::vector<std::vector<double>> data, std::string file_path) 
 	// Write the data to the file
 	for (int i = 0; i < data.size(); i++) {
 		for (int j = 0; j < data[0].size(); j++) {
-			file << data[i][j] << " ";
+			file << data[i][j] << ",";
 		}
-		file << "\n";
+		file << std::endl;
 	}
 }
 
@@ -97,11 +97,11 @@ void save_data_3D(std::vector<std::vector<std::vector<double>>> data, std::strin
 	for (int i = 0; i < data.size(); i++) {
 		for (int j = 0; j < data[0].size(); j++) {
 			for (int k = 0; k < data[0][0].size(); k++) {
-				file << data[i][j][k] << " ";
+				file << data[i][j][k] << ",";
 			}
-			file << "\n";
+			file << std::endl;
 		}
-		file << "\n";
+		file << std::endl;
 	}
 }
 
