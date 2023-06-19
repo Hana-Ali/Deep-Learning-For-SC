@@ -6,8 +6,8 @@
 #include <gsl/gsl_statistics.h>
 #include <bayesopt/bayesopt.hpp>
 #include <numpy/arrayobject.h>
-#include "wilson_config.hpp"
-#include "simulation_helpers.hpp"
+#include "cpp_headers/wilson_config.hpp"
+#include "cpp_headers/simulation_helpers.hpp"
 
 /**
  * @brief Helper function to find the response of the Wilson model

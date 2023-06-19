@@ -4,8 +4,8 @@
 #include <bayesopt/bayesopt.h>
 #include <gsl/gsl_statistics.h>
 #include <bayesopt/bayesopt.hpp>
-#include "simulation_helpers.hpp"
-#include "wilson_config.hpp"
+#include "cpp_headers/simulation_helpers.hpp"
+#include "cpp_headers/wilson_config.hpp"
 
 /**
  * @brief Helper function to find the response of the Wilson model
