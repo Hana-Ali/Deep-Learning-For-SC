@@ -661,6 +661,8 @@ static PyObject* parsing_wilson_inputs(PyObject* self, PyObject* args)
     WilsonConfig::BO_output minimizer = wilson.run_simulation();
 
     printf("Finished running simulation\n");
+
+    return PyLong_FromLong(42);
 }
 
 static PyMethodDef IntegrationMethods[] = {
