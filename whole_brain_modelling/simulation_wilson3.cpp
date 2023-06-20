@@ -1,13 +1,11 @@
-#define PY_SSIZE_T_CLEAN
 #include <random>
 #include <string>
 #include <fstream>
 #include <bayesopt/bayesopt.h>
 #include <gsl/gsl_statistics.h>
 #include <bayesopt/bayesopt.hpp>
-#include <numpy/arrayobject.h>
-#include "cpp_headers/wilson_config.hpp"
 #include "cpp_headers/simulation_helpers.hpp"
+#include "cpp_headers/wilson_config.hpp"
 
 /**
  * @brief Helper function to find the response of the Wilson model
@@ -190,6 +188,9 @@ std::vector<std::vector<double>> Wilson::electrical_to_bold(std::vector<std::vec
 */
 Wilson::Wilson(WilsonConfig config)
     : config(std::move(config))
+    , electrical_activity{
+        std::vector<std::vector<double>>(config.number_of_oscillators,
+                                         std::vector<double>(config.number_of_integration_steps + 1, nan("")))}
 {
 }
 
@@ -198,9 +199,158 @@ Wilson::Wilson(WilsonConfig config)
  * @return Minimizer value for the Wilson model
  * @note This function is called from Python
 */
-WilsonConfig::BO_output Wilson::run_simulation()
+double* Wilson::run_simulation()
 { 
+    // Define the config parameters
+    config.c_ee = 16.0;
+    config.c_ei = 12.0;
+    config.c_ie = 15.0;
+    config.c_ii = 3.0;
+    config.tau_e = 8.0;
+    config.tau_i = 8.0;
+    config.r_e = 1.0;
+    config.r_i = 1.0;
+    config.k_e = 1.0;
+    config.alpha_e = 1.0;
+    config.alpha_i = 1.0;
+    config.theta_e = 4.0;
+    config.theta_i = 3.7;
+    config.external_e = 0.1;
+    config.external_i = 0.1;
+    config.time_simulated = 510.0;
+    config.integration_step_size = 0.002;
+    config.number_of_integration_steps = int(config.time_simulated / config.integration_step_size);
+    config.noise = WilsonConfig::Noise::NOISE_UNIFORM;
+    config.noise_amplitude = 0.001;
+    config.number_of_oscillators = 100;
+    config.coupling_strength = 0.0;
+    config.delay = 0.0;
+    config.order = 2;
+    config.cutoffLow = 0.01;
+    config.cutoffHigh = 0.1;
+    config.sampling_rate = 1.0 / 0.7;
+    config.BO_n_iter = 30;
+    config.BO_n_inner_iter = 10;
+    config.BO_init_samples = 10;
+    config.BO_iter_relearn = 10;
+    config.BO_init_method = 1;
+    config.BO_verbose_level = 2;
+    config.BO_log_file = "temp_arrays/BO_log_file.txt";
+    config.BO_surrogate = "sGaussianProcessML";
+    config.BO_sc_type = WilsonConfig::ScoreType::SC_MTL;
+    config.BO_l_type = WilsonConfig::LearningType::L_MCMC;
+    config.BO_l_all = false;
+    config.BO_epsilon = 0.01;
+    config.BO_force_jump = false;
+    config.BO_crit_name = "cLCB";
+
+    srand(time(0));
+    std::generate(config.e_values.begin(), config.e_values.end(), rand);
+    std::generate(config.i_values.begin(), config.i_values.end(), rand);
+
+    // NEED TO PASS IN STRUCTURAL CONNECTIVITY MATRIX AND EMPIRICAL BOLD SIGNALS
+
+    // // Checking config is valid for everything we've saved
+    // if (!config.check_validity())
+    // {
+    //     throw std::runtime_error("Not valid config");
+    // }
+    printf("----------------- In CPP file for Wilson Function -----------------\n");
+    config.output_e = std::vector<std::vector<double>>(config.number_of_oscillators,
+                                                       std::vector<double>(config.number_of_integration_steps + 1, nan("")));
+    // ------------- Convert input variables to C++ types
+    printf("---- Converting input variables to C++ types ----\n");
+    for (int i = 0; i < config.number_of_oscillators; i++)
+    {
+        // ------------ Initialize output matrix
+        config.output_e[i][0] = config.e_values[i];
+        // Other values in matrix are NaN
+    }
+
+    // ------------ Get the BOLD signals for processing
+    printf("---- Get the empirical BOLD signals for processing ----\n");
+
+    size_t emp_BOLD_dims[3] = { config.emp_BOLD_signals.size(),
+                                config.emp_BOLD_signals[0].size(),
+                                config.emp_BOLD_signals[0][0].size() };
+    auto& unpack_emp_BOLD = config.emp_BOLD_signals;
+
+    // Saving it just for a sanity check
+    printf("----------- Saving unpacked empirical BOLD signal -----------\n");
+    save_data_3D(unpack_emp_BOLD, "temp_arrays/unpacked_emp_BOLD.csv");
+
+    printf("----------- Filtering the empirical BOLD signal -----------\n");
+    // Create a vector that stores for ALL SUBJECTS
+    std::vector<std::vector<std::vector<double>>> emp_bold_filtered;
+
+    // For each subject
+    for (int subject = 0; subject < emp_BOLD_dims[0]; ++subject)
+    {
+        printf("In filtering subject %d\n", subject);
+
+        // Add the subject to the vector of all subjects
+        emp_bold_filtered.emplace_back(process_BOLD(unpack_emp_BOLD[subject],
+                                                    emp_BOLD_dims[1],
+                                                    emp_BOLD_dims[2],
+                                                    config.order,
+                                                    config.cutoffLow,
+                                                    config.cutoffHigh,
+                                                    config.sampling_rate));
+    }
+
+    // Saving it just for a sanity check
+    printf("----------- Saving filtered empirical BOLD signal -----------\n");
+    save_data_3D(emp_bold_filtered, "temp_arrays/filtered_emp_BOLD.csv");
     
+    // ------------- Getting the empirical FC
+    printf("----------- Getting the empirical FC -----------\n");
+    // Create a vector of vectors of vectors for the FC for all subjects
+    std::vector<std::vector<std::vector<double>>> unpack_emp_FC;
+
+    // For each subject
+    for (int subject = 0; subject < emp_BOLD_dims[0]; subject++)
+    {
+        // Add the subject to the vector of all subjects
+        printf("subject: %d\n\r", subject);
+        unpack_emp_FC.emplace_back(determine_FC(emp_bold_filtered[subject]));
+    }
+
+    // Saving it just for a sanity check
+    printf("----------- Saving unpacked empirical FC -----------\n");
+    save_data_3D(unpack_emp_FC, "temp_arrays/emp_FC_all.csv");
+
+    // ------------- Finding the average across subjects
+    printf("----------- Finding the average across subjects -----------\n");
+    // Note that this average FC is what's gonna be stored in the empFC global variable
+
+    // For each region
+    for (int i = 0; i < emp_BOLD_dims[1]; i++)
+    {
+        // Create a vector of doubles for each *other* region
+        std::vector<double> region_avg;
+
+        // For each other region
+        for (int j = 0; j < emp_BOLD_dims[1]; j++)
+        {
+        // Create a vector of doubles for each subject
+        std::vector<double> subject_values;
+
+        // For each subject
+        for (int k = 0; k < emp_BOLD_dims[0]; k++)
+        {
+            subject_values.push_back(unpack_emp_FC[i][j][k]);
+        }
+        // Get the mean of the subject values
+        double mean = gsl_stats_mean(subject_values.data(), 1, subject_values.size());
+        region_avg.push_back(mean);
+        }
+        config.emp_FC.push_back(region_avg);
+    }
+
+    // Saving it just for a sanity check
+    printf("----------- Saving average empirical FC -----------\n");
+    save_data_2D(config.emp_FC, "temp_arrays/empFC.csv");
+
     // ------------ Run Bayesian Optimization
     printf("---- Define Bayesian Optimization Parameters ----\n");
 
@@ -221,37 +371,6 @@ WilsonConfig::BO_output Wilson::run_simulation()
     bo_parameters.epsilon = config.BO_epsilon;
     bo_parameters.force_jump = config.BO_force_jump;
     bo_parameters.crit_name = config.BO_crit_name;
-  
-    printf("config.BO_n_iter = %d\n", config.BO_n_iter);
-    printf("config.BO_n_inner_iter = %d\n", config.BO_n_inner_iter);
-    printf("config.BO_init_samples = %d\n", config.BO_init_samples);
-    printf("config.BO_n_inner_iter = %d\n", config.BO_n_inner_iter);
-    printf("config.BO_init_method = %d\n", config.BO_init_method);
-    printf("config.BO_verbose_level = %d\n", config.BO_verbose_level);
-    printf("config.BO_log_file = %s\n", config.BO_log_file.c_str());
-    printf("config.BO_surrogate = %d\n", config.BO_surrogate);
-    printf("config.BO_sc_type = %d\n", config.BO_sc_type);
-    printf("config.BO_l_type = %d\n", config.BO_l_type);
-    printf("config.BO_l_all = %d\n", config.BO_l_all);
-    printf("config.BO_epsilon = %f\n", config.BO_epsilon);
-    printf("config.BO_force_jump = %d\n", config.BO_force_jump);
-    printf("config.BO_crit_name = %d\n", config.BO_crit_name);
-
-    printf("bo_parameters.n_iterations = %d\n", bo_parameters.n_iterations);
-    printf("bo_parameters.n_inner_iterations = %d\n", bo_parameters.n_inner_iterations);
-    printf("bo_parameters.n_init_samples = %d\n", bo_parameters.n_init_samples);
-    printf("bo_parameters.n_iter_relearn = %d\n", bo_parameters.n_iter_relearn);
-    printf("bo_parameters.init_method = %d\n", bo_parameters.init_method);
-    printf("bo_parameters.verbose_level = %d\n", bo_parameters.verbose_level);
-    printf("bo_parameters.log_filename = %s\n", bo_parameters.log_filename);
-    printf("bo_parameters.surr_name = %d\n", bo_parameters.surr_name);
-    printf("bo_parameters.sc_type = %d\n", bo_parameters.sc_type);
-    printf("bo_parameters.l_type = %d\n", bo_parameters.l_type);
-    printf("bo_parameters.l_all = %d\n", bo_parameters.l_all);
-    printf("bo_parameters.epsilon = %f\n", bo_parameters.epsilon);
-    printf("bo_parameters.force_jump = %d\n", bo_parameters.force_jump);
-    printf("bo_parameters.crit_name = %d\n", bo_parameters.crit_name);
-
 
     // Call Bayesian Optimization
     // wilson_objective(2, NULL, NULL, NULL);
@@ -261,10 +380,8 @@ WilsonConfig::BO_output Wilson::run_simulation()
 
     double minimizer[num_dimensions] = { config.coupling_strength, config.delay };
     double minimizer_value[128];
-    printf("minimizer[0] = %f\n", minimizer[0]);
-    printf("minimizer[1] = %f\n", minimizer[1]);
 
-    printf("Run Bayesian Optimization...\n");
+    printf("---- Run Bayesian Optimization ----\n");
     int wilson_BO_output = bayes_optimization(num_dimensions,
                                                 &wilson_objective,
                                                 this, // can be used for pass class pointer if it will be a class
@@ -289,15 +406,8 @@ WilsonConfig::BO_output Wilson::run_simulation()
         printf("Minimizer value for dimension %d is %f\n", i, minimizer[i]);
     }
 
-    // Create an instance of the struct
-    WilsonConfig::BO_output bo_output;
-    bo_output.minimizer_value = minimizer_value[0];
-    for (int i = 0; i < num_dimensions; i++) {
-        bo_output.minimizer[i] = minimizer[i];
-    }
-
-    // Return both minimizer value and minimizer itself
-    return bo_output;
+    // Maybe return the minimizer value with the minimizer
+    return minimizer;
 }
 
 /**
@@ -314,11 +424,10 @@ double Wilson::wilson_objective(unsigned int input_dim,
                                 void *func_data)
 {
     // ------------- Getting function data
-    Wilson wilson_data = *(static_cast<Wilson*>(func_data));
-
+    auto& wilson_data = *(static_cast<Wilson*>(func_data));
 
     // ------------- Declare input variables - arrays
-    printf("------------ In Wilson Objective ------------\n");
+    printf("---- Declare helper variables ----\n");
     long temp_long; //
     double node_input;
     double delay_difference;
@@ -339,9 +448,9 @@ double Wilson::wilson_objective(unsigned int input_dim,
     wilson_data.config.delay = initial_query[1];
 
     // ------------- Defining the matrices that will keep changing
-    printf("Define matrices that will keep changing...\n");
-    wilson_data.coupling_mat.resize(wilson_data.config.number_of_oscillators,
-                                    std::vector<double>(wilson_data.config.number_of_oscillators));
+    printf("---- Define matrices that will keep changing ----\n");
+    wilson_data.coupling_mat = std::vector<std::vector<double>>(wilson_data.config.number_of_oscillators,
+                                                                std::vector<double>(wilson_data.config.number_of_oscillators));
     for (int i = 0; i < wilson_data.config.number_of_oscillators; i++)
     {
       for (int j = 0; j < wilson_data.config.number_of_oscillators; j++)
@@ -353,8 +462,8 @@ double Wilson::wilson_objective(unsigned int input_dim,
       }
     }
 
-    wilson_data.delay_mat.resize(wilson_data.config.number_of_oscillators,
-                                std::vector<double>(wilson_data.config.number_of_oscillators));
+    wilson_data.delay_mat = std::vector<std::vector<double>>(wilson_data.config.number_of_oscillators,
+                                                             std::vector<double>(wilson_data.config.number_of_oscillators));
     for (int i = 0; i < wilson_data.config.number_of_oscillators; i++)
     {
       for (int j = 0; j < wilson_data.config.number_of_oscillators; j++)
@@ -367,8 +476,8 @@ double Wilson::wilson_objective(unsigned int input_dim,
     }
 
     // Create the indices matrices
-    wilson_data.config.lower_idxs_mat.resize(wilson_data.config.number_of_oscillators,
-                                std::vector<int>(wilson_data.config.number_of_oscillators));
+    wilson_data.config.lower_idxs_mat = std::vector<std::vector<int>>(wilson_data.config.number_of_oscillators,
+                                                                       std::vector<int>(wilson_data.config.number_of_oscillators));
     
     for (int i = 0; i < wilson_data.config.number_of_oscillators; i++)
     {
@@ -378,8 +487,8 @@ double Wilson::wilson_objective(unsigned int input_dim,
         wilson_data.config.lower_idxs_mat[i][j] = (int)temp_long;
       }
     }
-    wilson_data.config.upper_idxs_mat.resize(wilson_data.config.number_of_oscillators,
-                                  std::vector<int>(wilson_data.config.number_of_oscillators));
+    wilson_data.config.upper_idxs_mat = std::vector<std::vector<int>>(wilson_data.config.number_of_oscillators,
+                                                                std::vector<int>(wilson_data.config.number_of_oscillators));
     for (int i = 0; i < wilson_data.config.number_of_oscillators; i++)
     {
       for (int j = 0; j < wilson_data.config.number_of_oscillators; j++)
@@ -396,7 +505,7 @@ double Wilson::wilson_objective(unsigned int input_dim,
     for (int step = 1; step <= wilson_data.config.number_of_integration_steps; step++)
     {
       if (step % 10000 == 0)
-        printf("Temporal integration step %d...\n", step);
+        printf("-- Temporal integration step %d --\n", step);
       // printf("-- Heun's Method - Step 1 --\n");
       // ------------ Heun's Method - Step 1
       for (int node = 0; node < wilson_data.config.number_of_oscillators; node++)
@@ -550,49 +659,55 @@ double Wilson::wilson_objective(unsigned int input_dim,
       }
     }
 
-    printf("Shape of output_e %d x % d\n", wilson_data.config.output_e.size(),
-            wilson_data.config.output_e[0].size());
+    wilson_data.electrical_activity = wilson_data.config.output_e;
+
+    // ------------- Got electrical activity
+    printf("---- Shape of electrical activity: %d x %d----\n",
+           (int)wilson_data.electrical_activity.size(),
+           (int)wilson_data.electrical_activity[0].size());
+    
+    printf("----------- Shape of output_e -----------\n",
+            (int)wilson_data.config.output_e.size(),
+            (int)wilson_data.config.output_e[0].size());
 
 
     // ------------- Convert the signal to BOLD
-    printf("Converting electrical activity to BOLD...\n");
-    std::vector<std::vector<double>> bold_signal = wilson_data.electrical_to_bold(wilson_data.config.output_e,
+    printf("---- Converting electrical activity to BOLD ----\n");
+    auto bold_signal = wilson_data.electrical_to_bold(wilson_data.electrical_activity,
                                                    wilson_data.config.number_of_oscillators,
                                                    wilson_data.config.number_of_integration_steps,
                                                    wilson_data.config.integration_step_size);
 
-    for(auto& row:bold_signal) row.erase(std::next(row.begin(), 0));
-
     // Saving it just for a sanity check
-    printf("Saving unpacked BOLD signal...\n");
-    save_data_2D(bold_signal, "temp_arrays/sim_bold.csv");
+    printf("----------- Saving unpacked BOLD signal -----------\n");
+    save_data_2D(bold_signal, "temp_arrays/unpacked_bold.csv");
 
     // TODO: It had better do that outside of this function by principe SOLID
-    printf("Filtering the BOLD signal...\n");
+    printf("----------- Filtering the BOLD signal -----------\n");
     std::vector<std::vector<double>> bold_filtered = process_BOLD(bold_signal,
-                                      bold_signal.size(),
-                                      bold_signal[0].size(),
-                                      wilson_data.config.order,
-                                      wilson_data.config.cutoffLow,
-                                      wilson_data.config.cutoffHigh,
-                                      wilson_data.config.sampling_rate);
+                                                                  bold_signal.size(),
+                                                                  bold_signal[0].size(),
+                                                                  wilson_data.config.order,
+                                                                  wilson_data.config.cutoffLow,
+                                                                  wilson_data.config.cutoffHigh,
+                                                                  wilson_data.config.sampling_rate);
 
 
     // Saving it just for a sanity check
-    printf("Saving filtered BOLD signal...\n");
-    save_data_2D(bold_filtered, "temp_arrays/filtered_sim_bold.csv");
+    printf("----------- Saving filtered BOLD signal -----------\n");
+    save_data_2D(bold_filtered, "temp_arrays/filtered_bold.csv");
 
     // Printing shape of bold signal
-    printf("Shape of BOLD filtered signal: %d x %d\n", bold_filtered.size(), bold_filtered[0].size());
+    printf("---- Shape of BOLD signal: %zd x %zd----\n", bold_signal.size(), bold_signal[0].size());
 
     // ------------- Determining the FC from the BOLD signal
-    printf("Determining FC from BOLD signal...\n");
-    std::vector<std::vector<double>> sim_FC = determine_FC(bold_filtered);
+    printf("----------- Determining FC from BOLD signal -----------\n");
+    std::vector<std::vector<double>> sim_FC = determine_FC(bold_signal);
 
     // Checking the size of the output
     printf("FC matrix of size %d x %d\n", sim_FC.size(), sim_FC[0].size());
 
-    printf("Saving FC from BOLD signal...\n");
+    printf("----------- Saving FC from BOLD signal -----------\n");
     std::string sim_FC_filename = "temp_arrays/sim_FC.csv";
     save_data_2D(sim_FC, sim_FC_filename);
 
@@ -604,147 +719,6 @@ double Wilson::wilson_objective(unsigned int input_dim,
     // Then, calculate the correlation
     double objective_corr = gsl_stats_correlation(flat_sim_FC.data(), 1, flat_emp_FC.data(), 1, flat_sim_FC.size());
     
-    printf("Objective value is %f\n", objective_corr);
-
     // This is finally the objective value
     return objective_corr;
-}
-
-#define PY_SSIZE_T_CLEAN
-#include <Python.h>
-
-// Wilson Model, gets the *electrical activity* equations
-static PyObject* parsing_wilson_inputs(PyObject* self, PyObject* args)
-{
-    printf("----------------- In CPP method of parsing inputs -----------------\n");
-
-    PyObject* lower_idxs;
-    PyObject* upper_idxs;
-    PyObject* initial_cond_e;
-    PyObject* initial_cond_i;
-    PyObject* BOLD_signals;
-    PyObject* structural_connec;
-    int* num_BOLD_subjects = NULL;
-    int* num_BOLD_regions = NULL;
-    int* num_BOLD_timepoints = NULL;
-
-    int BO_surrogate;
-    int BO_crit_name;
-
-    WilsonConfig config;
-    if (
-        !PyArg_ParseTuple(
-            args, "ddOiddddddddddddddidOOOOididddOiiiiiiiiisiiibdii",
-            &config.coupling_strength, &config.delay, &structural_connec,
-            &config.number_of_oscillators, &config.c_ee,
-            &config.c_ei, &config.c_ie, &config.c_ii,
-            &config.tau_e, &config.tau_i, &config.r_e,
-            &config.r_i, &config.alpha_e, &config.alpha_i,
-            &config.theta_e, &config.theta_i, &config.external_e,
-            &config.external_i, &config.number_of_integration_steps,
-            &config.integration_step_size,
-            &lower_idxs, &upper_idxs,
-            &initial_cond_e, &initial_cond_i,
-            &config.noise, &config.noise_amplitude,
-            &config.order, &config.cutoffLow, &config.cutoffHigh,
-            &config.sampling_rate, &BOLD_signals,
-            &num_BOLD_subjects, &num_BOLD_regions, &num_BOLD_timepoints,
-            &config.BO_n_iter, &config.BO_n_inner_iter, &config.BO_iter_relearn,
-            &config.BO_init_samples, &config.BO_init_method, &config.BO_verbose_level,
-            &config.BO_log_file, &BO_surrogate, &config.BO_sc_type,
-            &config.BO_l_type, &config.BO_l_all, &config.BO_epsilon,
-            &config.BO_force_jump, &BO_crit_name
-        )
-        )
-    {
-      PyErr_SetString(PyExc_TypeError, "Input should be a numpy array of numbers.");
-      printf("Parsing input variables failed\n");
-      return NULL;
-    };
-
-    printf("Parsing input variables succeeded. Continuing...\n");
-
-    config.BO_surrogate = config.SurrogateName[BO_surrogate];
-    config.BO_crit_name = config.CriteriaName[BO_crit_name];
-
-    // ------------- Convert input objects to C++ types
-    printf("Converting input objects to C++ types...\n");
-    // Collect all python objects in their own container
-    WilsonConfig::PythonObjects python_objects = {
-      structural_connec,
-      lower_idxs,
-      upper_idxs,
-      initial_cond_e,
-      initial_cond_i,
-    };
-    // Invoke the conversion function
-    printf("Setting config...\n");
-    set_config(&config, python_objects);
-
-    // ------------ Get the BOLD signals for processing
-    printf("Getting the empirical BOLD signals for processing...\n");
-    set_emp_BOLD(&config, BOLD_signals);
-
-    // ------------- Filtering the BOLD signal
-    printf("Filtering the empirical BOLD signal...\n");
-    filter_BOLD(&config);
-   
-    // ------------- Getting the empirical FC
-    printf("Getting the empirical FC...\n");
-    set_emp_FC(&config);
-
-    // ------------- Finding the average across subjects
-    printf("Finding the average across subjects...\n");
-    set_avg_emp_FC(&config);
-
-    // Call run simulation
-    printf("Calling run simulation...\n");
-    Wilson wilson(config);
-    WilsonConfig::BO_output bo_output = wilson.run_simulation();
-
-    printf("Finished running simulation...\n");
-
-    // Need to convert the BO_output to a PyObject to return it
-    PyObject* minimizer_value = PyFloat_FromDouble(bo_output.minimizer_value);
-    // Get number of items in minimizer array
-    int num_minimizer_items = sizeof(bo_output.minimizer) / sizeof(bo_output.minimizer[0]);
-    // Create a list of the minimizer array
-    PyObject* minimizer_array = PyList_New(num_minimizer_items);
-    for (int i = 0; i < num_minimizer_items; i++)
-    {
-        PyList_SetItem(minimizer_array, i, PyFloat_FromDouble(bo_output.minimizer[i]));
-    }
-    // Create a tuple of the minimizer value and minimizer array
-    PyObject* bo_output_tuple = PyTuple_New(2);
-    PyTuple_SetItem(bo_output_tuple, 0, minimizer_value);
-    PyTuple_SetItem(bo_output_tuple, 1, minimizer_array);
-
-    return bo_output_tuple;
-}
-
-static PyMethodDef IntegrationMethods[] = {
-    {
-        "parsing_wilson_inputs",
-        parsing_wilson_inputs,
-        METH_VARARGS,
-        "Solves the Wilson-Cowan model equations, and returns electrical activity"
-    },
-    { // Sentinel to properly exit function
-        NULL, NULL, 0, NULL
-    }
-};
-
-// Function that wraps the methods in a module
-static struct PyModuleDef SimulationsModule = {
-    PyModuleDef_HEAD_INIT,
-    "simulations",
-    "Module containing functions for simulation compiled in C",
-    -1,
-    IntegrationMethods
-};
-
-// Function that creates the modules
-PyMODINIT_FUNC PyInit_simulations(void)
-{
-    return PyModule_Create(&SimulationsModule);
 }

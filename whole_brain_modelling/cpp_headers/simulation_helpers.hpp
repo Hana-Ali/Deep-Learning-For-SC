@@ -78,7 +78,7 @@ void save_data_2D(std::vector<std::vector<double>> data, std::string file_path) 
 		for (int j = 0; j < data[0].size(); j++) {
 			file << data[i][j] << ",";
 		}
-		file << std::endl;
+		file << '\n';
 	}
 }
 
@@ -101,60 +101,60 @@ void save_data_3D(std::vector<std::vector<std::vector<double>>> data, std::strin
 			}
 			file << std::endl;
 		}
-		file << std::endl;
+		file << '\n';
 	}
 }
 
 // Function to convert Python NumPY arrays to C++ vectors
-void set_config(WilsonConfig config, WilsonConfig::PythonObjects python_objects) {
+void set_config(WilsonConfig* config, WilsonConfig::PythonObjects python_objects) {
 	
 	PyObject *temp_variable;
 	long temp_long;
 
     // Allocate space in the matrices
-    config.e_values.resize(config.number_of_oscillators);
-    config.i_values.resize(config.number_of_oscillators);
-    config.structural_connectivity_mat.resize(config.number_of_oscillators, std::vector<double>(config.number_of_oscillators));
-    config.lower_idxs_mat.resize(config.number_of_oscillators, std::vector<int>(config.number_of_oscillators));
-    config.upper_idxs_mat.resize(config.number_of_oscillators, std::vector<int>(config.number_of_oscillators));
-    config.output_e.resize(config.number_of_oscillators, std::vector<double>(config.number_of_integration_steps + 1));
+    (*config).e_values.resize((*config).number_of_oscillators);
+    (*config).i_values.resize((*config).number_of_oscillators);
+    (*config).structural_connectivity_mat.resize((*config).number_of_oscillators, std::vector<double>((*config).number_of_oscillators));
+    (*config).lower_idxs_mat.resize((*config).number_of_oscillators, std::vector<int>((*config).number_of_oscillators));
+    (*config).upper_idxs_mat.resize((*config).number_of_oscillators, std::vector<int>((*config).number_of_oscillators));
+    (*config).output_e.resize((*config).number_of_oscillators, std::vector<double>((*config).number_of_integration_steps + 1));
 
-	for (int i = 0; i < config.number_of_oscillators; i++)
+	for (int i = 0; i < (*config).number_of_oscillators; i++)
     {   
         srand(time(0));
-		std::generate(config.e_values.begin(), config.e_values.end(), rand);
-		std::generate(config.i_values.begin(), config.i_values.end(), rand);
+		std::generate((*config).e_values.begin(), (*config).e_values.end(), rand);
+		std::generate((*config).i_values.begin(), (*config).i_values.end(), rand);
 
         // ------------ Matrices
-        for (int j = 0; j < config.number_of_oscillators; j++)
+        for (int j = 0; j < (*config).number_of_oscillators; j++)
         {   
             // Get the structural connectivity matrix
             temp_variable = PyArray_GETITEM(python_objects.structural_connec, PyArray_GETPTR2(python_objects.structural_connec, i, j));
-            config.structural_connectivity_mat[i][j] = PyFloat_AsDouble(temp_variable);
+            (*config).structural_connectivity_mat[i][j] = PyFloat_AsDouble(temp_variable);
             // Decrease reference for next
             Py_DECREF(temp_variable);
 
             // Get the lower_idxs matrix
             temp_variable = PyArray_GETITEM(python_objects.lower_idxs, PyArray_GETPTR2(python_objects.lower_idxs, i, j));
             temp_long = PyLong_AsLong(temp_variable);
-            config.lower_idxs_mat[i][j] = temp_long;
+            (*config).lower_idxs_mat[i][j] = temp_long;
             // Decrease reference for next
             Py_DECREF(temp_variable);
 
             // Get the upper_idxs matrix
             temp_variable = PyArray_GETITEM(python_objects.upper_idxs, PyArray_GETPTR2(python_objects.upper_idxs, i, j));
             temp_long = PyLong_AsLong(temp_variable);
-            config.upper_idxs_mat[i][j] = temp_long;
+            (*config).upper_idxs_mat[i][j] = temp_long;
             // Decrease reference for next
             Py_DECREF(temp_variable);
         }
 
         // ------------ Initialize output matrix
-        config.output_e[i][0] = config.e_values[i];
+        (*config).output_e[i][0] = (*config).e_values[i];
         // Other values in matrix are NaN
-        for (int step = 1; step <= config.number_of_integration_steps; step++)
+        for (int step = 1; step <= (*config).number_of_integration_steps; step++)
         {
-            config.output_e[i][step] = nan("");
+            (*config).output_e[i][step] = nan("");
         }
     }
 
@@ -332,12 +332,12 @@ std::vector<std::vector<double>> process_BOLD(std::vector<std::vector<double>> B
     // Finding the coefficients of the filter
     printf("BOLD PROCESSING: Finding the coefficients of the filter...\n");
     DenC = ComputeDenCoeffs(order, FrequencyBands[0], FrequencyBands[1]);
-    // for(int k = 0; k < 2 * order + 1; k++)
-    //     printf("DenC is: %lf\n", DenC[k]);
+    for(int k = 0; k < 2 * order + 1; k++)
+        printf("DenC is: %lf\n", DenC[k]);
 
     NumC = ComputeNumCoeffs(order,FrequencyBands[0],FrequencyBands[1],DenC);
-    // for(int k = 0; k < 2 * order + 1; k++)
-    //     printf("NumC is: %lf\n", NumC[k]);
+    for(int k = 0; k < 2 * order + 1; k++)
+        printf("NumC is: %lf\n", NumC[k]);
 
 	// Printing sizes of both vectors
 	printf("BOLD_signal size is %d x %d\n", BOLD_signal.size(), BOLD_signal[0].size());
@@ -352,6 +352,8 @@ std::vector<std::vector<double>> process_BOLD(std::vector<std::vector<double>> B
     for (int row = num_rows - 1; row >= 0; row--)
         filteredSignal[row] = filter(NumC, DenC, filteredSignal[0].size(), 
                                         BOLD_signal[row], filteredSignal[row]);
+    
+    save_data_2D(filteredSignal, "temp_arrays/filtered_beforez.csv");
 
 	// Z-scoring the final filtered signal
 	printf("Z-scoring the final filtered signal\n");

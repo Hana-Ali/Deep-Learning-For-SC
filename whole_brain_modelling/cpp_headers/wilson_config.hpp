@@ -48,7 +48,7 @@ class WilsonConfig
             {6, "cHedge(cSum(cEI,cDistance),cLCB,cPOI,cOptimisticSampling)"},
             {-1, "Error"}
         };
-        std::map<int, std::string> SurrogateModel = {
+        std::map<int, std::string> SurrogateName = {
             {0, "sGaussianProcess"},
             {1, "sGaussianProcessML"},
             {2, "sGaussianProcessNormal"},
