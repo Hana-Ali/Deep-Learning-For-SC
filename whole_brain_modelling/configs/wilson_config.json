@@ -22,7 +22,7 @@
     "FC_path": "C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Dissertation\\Notebooks\\MyCodes\\whole_brain_modelling\\emp_data\\FC_matrix.npy",
     "noise_type": 1,
     "noise_amplitude": 0.001,
-    "write_path": "C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Dissertation\\Notebooks\\MyCodes\\results",
+    "write_path": "C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Dissertation\\Notebooks\\MyCodes\\whole_brain_modelling\\results",
     "order": 2,
     "cutoffLow": 0.01,
     "cutoffHigh": 0.1,

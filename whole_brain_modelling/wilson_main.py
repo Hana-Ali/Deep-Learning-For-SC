@@ -185,8 +185,6 @@ if __name__ == "__main__":
     delay = 0.1
     wilson_results = wilson_simulator(coupling_strength=coupling_strength, delay=delay)
 
-    print('Wilson results: ' + str(wilson_results))
-
     # Define end time after simulation
     end_time = time.time()
 
