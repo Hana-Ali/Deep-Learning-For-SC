@@ -96,54 +96,6 @@ if __name__ == "__main__":
     # Printing messages for start and beginning timer
     print('Running Wilson-Cowan model...')
     start_time = time.time()
-    
-    # Doing checks for all models
-    # inputs = [
-    #     (root_path, str, 'root_path'),
-    #     (coupling_strength, float, 'coupling_strength'),
-    #     (delay, float, 'delay'),
-    #     (c_ee, float, 'c_ee'),
-    #     (c_ei, float, 'c_ei'),
-    #     (c_ie, float, 'c_ie'),
-    #     (c_ii, float, 'c_ii'),
-    #     (tau_e, float, 'tau_e'),
-    #     (tau_i, float, 'tau_i'),
-    #     (r_e, float, 'r_e'),
-    #     (r_i, float, 'r_i'),
-    #     (k_e, float, 'k_e'),
-    #     (k_i, float, 'k_i'),
-    #     (alpha_e, float, 'alpha_e'),
-    #     (alpha_i, float, 'alpha_i'),
-    #     (theta_e, float, 'theta_e'),
-    #     (theta_i, float, 'theta_i'),
-    #     (external_e, float, 'external_e'),
-    #     (external_i, float, 'external_i'),
-    #     (time_simulated, float, 'time_simulated'),
-    #     (integration_step_size, float, 'integration_step_size'),
-    #     (number_threads_needed, int, 'number_threads_needed'),
-    #     (noise_type, int, 'noise_type'),
-    #     (noise_amplitude, float, 'noise_amplitude'),
-    #     (number_oscillators, int, 'number_oscillators'),
-    #     (order, int, 'order'),
-    #     (cutoffLow, float, 'cutoffLow'),
-    #     (cutoffHigh, float, 'cutoffHigh'),
-    #     (sampling_rate, float, 'sampling_rate'),
-    #     (n_iterations, int, 'n_iterations'),
-    #     (n_inner_iterations, int, 'n_inner_iterations'),
-    #     (n_init_samples, int, 'n_init_samples'),
-    #     (n_iter_relearn, int, 'n_iter_relearn'),
-    #     (init_method, int, 'init_method'),
-    #     (verbose_level, int, 'verbose_level'),
-    #     (log_file, str, 'log_file'),
-    #     (surr_name, str, 'surr_name'),
-    #     (sc_type, int, 'sc_type'),
-    #     (l_type, int, 'l_type'),
-    #     (l_all, bool, 'l_all'),
-    #     (epsilon, float, 'epsilon'),
-    #     (force_jump, int, 'force_jump'),
-    #     (crit_name, str, 'crit_name')
-    # ]
-    # check_all_types(inputs)
 
     #%% Load empirical data
     SC_matrix = get_empirical_SC(root_path)
@@ -238,4 +190,4 @@ if __name__ == "__main__":
     end_time = time.time()
 
     # Print the time taken for the simulation
-    print('Time taken for simulation: ' + str(end_time - start_time) + ' seconds')
+    print('Time taken for entire operation: ' + str(end_time - start_time) + ' seconds')

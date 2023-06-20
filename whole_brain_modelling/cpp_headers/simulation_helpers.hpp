@@ -22,11 +22,11 @@
 void check_type(boost::any input, const std::string& expected_type, const std::string& input_name);
 void save_data_2D(std::vector<std::vector<double>> data, std::string file_path);
 void save_data_3D(std::vector<std::vector<std::vector<double>>> data, std::string file_path);
-void set_config(WilsonConfig config, WilsonConfig::PythonObjects python_objects);
-void set_emp_BOLD(WilsonConfig config, PyObject *BOLD_signal);
-void filter_BOLD(WilsonConfig config);
-void set_emp_FC(WilsonConfig config);
-void set_avg_emp_FC(WilsonConfig config);
+void set_config(WilsonConfig* config, WilsonConfig::PythonObjects python_objects);
+void set_emp_BOLD(WilsonConfig* config, PyObject *BOLD_signal);
+void filter_BOLD(WilsonConfig* config);
+void set_emp_FC(WilsonConfig* config);
+void set_avg_emp_FC(WilsonConfig* config);
 
 std::vector<std::vector<double>> process_BOLD(std::vector<std::vector<double>> BOLD_signal, int num_rows, int num_columns, int order, 
 							double samplingFrequency, double cutoffFrequencyLow, double cutoffFrequencyHigh);
@@ -121,9 +121,17 @@ void set_config(WilsonConfig* config, WilsonConfig::PythonObjects python_objects
 
 	for (int i = 0; i < (*config).number_of_oscillators; i++)
     {   
-        srand(time(0));
-		std::generate((*config).e_values.begin(), (*config).e_values.end(), rand);
-		std::generate((*config).i_values.begin(), (*config).i_values.end(), rand);
+        std::uniform_real_distribution<float> distribution(0.0f, 2.0f); //Values between 0 and 2
+        std::mt19937 engine; // Mersenne twister MT19937
+        auto generator = std::bind(distribution, engine);
+        std::generate_n((*config).e_values.begin(), 
+                        (*config).e_values.size(), 
+                        generator); 
+        std::generate_n((*config).i_values.begin(), 
+                        (*config).i_values.size(),
+                        generator);
+		// std::generate((*config).e_values.begin(), (*config).e_values.end(), rand);
+		// std::generate((*config).i_values.begin(), (*config).i_values.end(), rand);
 
         // ------------ Matrices
         for (int j = 0; j < (*config).number_of_oscillators; j++)

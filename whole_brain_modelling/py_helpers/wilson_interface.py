@@ -1,5 +1,6 @@
 import simulations as sim
 import sys
+import time
 sys.path.insert(0, r"C:\Users\shahi\OneDrive - Imperial College London\Documents\imperial\Dissertation\Notebooks\MyCodes\whole_brain_modelling\py_helpers")
 from helper_funcs import *
 import numpy as np
@@ -76,7 +77,7 @@ def wilson_electrical_sim(args):
         S_i = 1 / (1 + exp(-alpha_i * (x - theta_i)))
     """
 
-    print('------------ In wilson_electrical_sim ------------')
+    print('----------------- In wilson_electrical_sim -----------------')
     # --------- Check length of the input arguments
     num_params_expected = 47
 
@@ -217,20 +218,18 @@ def wilson_electrical_sim(args):
     )
     delay_matrix = delay * SC
 
-    num_BOLD_subjects = BOLD.shape[0]
-    num_BOLD_regions = BOLD.shape[1]
-    num_BOLD_timepoints = BOLD.shape[2]
-
     # --------- Define the index matrices for integration (WHAT IS THIS)
     print('Defining index matrices...')
     upper_idx = np.floor(delay_matrix / integration_step_size).astype(int)
     lower_idx = upper_idx + 1
-    
-    print('Entering simulation...')
-    print("surrogate name is", surr_name)
 
+    # Start simulation time
+    start_sim_time = time.time()
+
+    print('Entering simulation...')
+    
     # --------- SIMULATION TIME BABEY
-    simulation_results = sim.parsing_wilson_inputs(
+    sim_bold = sim.parsing_wilson_inputs(
         coupling_strength,
         delay,
         SC,
@@ -260,54 +259,43 @@ def wilson_electrical_sim(args):
         order,
         cutoffLow,
         cutoffHigh,
-        sampling_rate,
-        BOLD,
-        num_BOLD_subjects,
-        num_BOLD_regions,
-        num_BOLD_timepoints,
-        n_iterations,
-        n_inner_iterations,
-        n_iter_relearn,
-        n_init_samples,
-        init_method,
-        verbose_level,
-        log_file,
-        surr_name,
-        sc_type,
-        l_type,
-        l_all,
-        epsilon,
-        force_jump,
-        crit_name
+        sampling_rate
     )
 
-    print('------------ After simulation ------------')
+    print('----------------- After simulation -----------------')
+
+    # End simulation time
+    end_sim_time = time.time()
+    print('Simulation time: ' + str(end_sim_time - start_sim_time), 'seconds')
+
     # Check results shape
-    # check_shape(simulation_results, (number_oscillators, number_integration_steps + 1), 'wilson_simulation_results')
+    check_shape(sim_bold, (number_oscillators, number_integration_steps), 'wilson_sim_bold')
+    
+    # Save results in csv
+    np.savetxt('temp_arrays/BOLD_output.csv', sim_bold, delimiter=",")
 
-    # --------- Convert electrical to BOLD
-    # sim_bold = sim.electrical_to_bold()
+    # --------- Ignore initialization (and downsample?)
+    sim_bold = sim_bold[:, start_save_idx - downsampling_rate + 1 :]
+    sim_bold = sim_bold[:, start_save_idx:]
 
-    # np.savetxt('BOLD_array.csv', sim_bold, delimiter=",")
-    # # Check results shape
-    # check_shape(sim_bold, (number_oscillators, number_integration_steps + 1), 'wilson_simulation_bold')
+    # --------- Calculate FC
+    sim_bold = process_BOLD(sim_bold)
+    sim_FC = np.corrcoef(sim_bold)
+    np.fill_diagonal(sim_FC, 0.0)
+    np.savetxt('temp_arrays/BOLD_filtered.csv', sim_bold, fmt="% .4f", delimiter=",")
+    np.savetxt('temp_arrays/sim_FC.csv', sim_FC, fmt="% .8f", delimiter=",")
 
-    # # --------- Ignore initialization (and downsample?)
-    # sim_bold = sim_bold[:, start_save_idx - downsampling_rate + 1 :]
-    # # sim_bold = sim_bold[:, start_save_idx:]
+    # --------- Check the shape of the simulated FC matrix
+    check_shape(sim_FC, (number_oscillators, number_oscillators), 'sim_FC')
 
-    # # --------- Determine order parameter
-    # R_mean, R_std = determine_order_R(simulation_results, number_oscillators, int(1 / integration_step_size))
-
-    # # --------- Calculate FC
-    # # sim_bold = process_BOLD(sim_bold)
-    # sim_FC = np.corrcoef(sim_bold)
-    # np.fill_diagonal(sim_FC, 0.0)
-    # np.savetxt('bold.csv', sim_bold, fmt="% .4f", delimiter=",")
-    # np.savetxt('sim_FC.csv', sim_FC, fmt="% .8f", delimiter=",")
-
-    # # Check the same of the simulated FC matrix
-    # check_shape(sim_FC, (number_oscillators, number_oscillators), 'sim_FC')
+    # --------- Plot the simFC
+    plt.figure()
+    plt.imshow(sim_FC)
+    plt.savefig('temp_arrays/sim_FC.png')
+    # --------- Plot the empFC
+    plt.figure()
+    plt.imshow(FC)
+    plt.savefig('temp_arrays/emp_FC.png')
     
     # # --------- Calculate simFC <-> empFC correlation
     # empFC_simFC_corr = determine_similarity(FC, sim_FC)

@@ -89,10 +89,9 @@ def process_BOLD(BOLD_signal):
         return y
     
     # Define the parameters for the filter
-    TR = 0.7
-    fs = 1 / (2*TR)
-    lowcut = 0.01 / fs
-    highcut = 0.1 / fs
+    fs = 1 / 0.7
+    lowcut = 0.01 / (fs / 2)
+    highcut = 0.1 / (fs / 2)
 
     BOLD_mean = np.mean(BOLD_signal, axis=0)
     BOLD_mean = np.expand_dims(BOLD_mean, axis=0)

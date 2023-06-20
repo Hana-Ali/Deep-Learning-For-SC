@@ -167,10 +167,7 @@ class WilsonConfig
 // Defining the Wilson class, which borrows from the config class
 class Wilson {
     public:
-        explicit Wilson(WilsonConfig config); // Explicitly default
-
-        // Method that runs the simulation
-        WilsonConfig::BO_output run_simulation();
+        explicit Wilson(WilsonConfig config);
 
         // Method that converts electrical to BOLD signals
         std::vector<std::vector<double>> electrical_to_bold(std::vector<std::vector<double>>& electrical_signals,
@@ -179,10 +176,7 @@ class Wilson {
                                                             float integration_step_size);
 
         // Objective function of the Bayesian Optimization
-        static double wilson_objective(unsigned int input_dim,
-                                       const double *initial_query = nullptr,
-                                       double* gradient = nullptr,
-                                       void *func_data = nullptr);
+        std::vector<std::vector<double>> run_simulation();
     
     private:
         WilsonConfig config;
