@@ -14,15 +14,24 @@ import multiprocessing as mp
 import scipy.stats as stats
 import scipy.io as sio
 import numpy as np
+
+try:
+    np.distutils.__config__.blas_opt_info = np.distutils.__config__.blas_ilp64_opt_info
+except Exception:
+    pass
+
+np.bool = np.bool_
+
 import pyGPGO
 import time
 import json
 
-# from pyGPGO.GPGO import GPGO
-# from pyGPGO.acquisition import Acquisition
-# from pyGPGO.surrogates.GaussianProcessMCMC import GaussianProcessMCMC
-# from pyGPGO.covfunc import matern52
-# import pymc3 as pm
+
+from pyGPGO.GPGO import GPGO
+from pyGPGO.acquisition import Acquisition
+from pyGPGO.surrogates.GaussianProcess import GaussianProcess
+from pyGPGO.covfunc import matern52
+import pymc3 as pm
 
 # Defining paths
 root_path = 'C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Spring Sem\\iso_dubai\\ISO\\HCP_DTI_BOLD'
@@ -188,35 +197,38 @@ if __name__ == "__main__":
     start_time = time.time()
     
     # Bayesian Optimisation
-    # print("Define Bayesian Optimization parameters...")
-    # bo_params = OrderedDict()
-    # bo_params['coupling_strength'] = ('cont', [0.0, 1.0])
-    # bo_params['delay'] = ('cont', [0.0, 100.0])
+    print("Define Bayesian Optimization parameters...")
+    bo_params = OrderedDict()
+    bo_params['coupling_strength'] = ('cont', [0.0, 1.0])
+    bo_params['delay'] = ('cont', [0.0, 100.0])
 
-    # print("Define acquisition function...")
-    # acq = Acquisition(mode='IntegratedExpectedImprovement')
+    print("Define acquisition function...")
+    acq = Acquisition(mode='IntegratedExpectedImprovement')
 
-    # print("Define covariance function...")
-    # cov = matern52()
+    print("Define covariance function...")
+    cov = matern52()
 
-    # print("Define surrogate model...")
+    print("Define surrogate model...")
     # gp = GaussianProcessMCMC(covfunc=cov, 
     #                         niter=300, 
     #                         burnin=100, 
     #                         step=pm.Slice)
+    gp = GaussianProcess(covfunc=cov,
+                         optimize=True,
+                         usegrads=True)
     
-    # np.random.seed(20)
+    np.random.seed(20)
 
-    # print("Define Bayesian Optimization object...")
-    # gpgo = GPGO(gp, acq, wilson_simulator, bo_params)
-    # gpgo.run(max_iter=n_iterations)
+    print("Define Bayesian Optimization object...")
+    gpgo = GPGO(gp, acq, wilson_simulator, bo_params)
+    gpgo.run(max_iter=n_iterations)
 
-    # gpgo.GP.posteriorPlot()
+    gpgo.GP.posteriorPlot()
 
-    # print("Get results...")
-    # print(gpgo.getResult())
+    print("Get results...")
+    print(gpgo.getResult())
 
-    wilson_results = wilson_simulator(coupling_strength=coupling_strength, delay=delay)
+    # wilson_results = wilson_simulator(coupling_strength=coupling_strength, delay=delay)
 
     # Define end time after simulation
     end_time = time.time()
