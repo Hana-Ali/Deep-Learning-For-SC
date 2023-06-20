@@ -143,7 +143,7 @@ class Kuramoto {
         explicit Kuramoto(KuramotoConfig config);
 
         // Objective function of the Bayesian Optimization
-        void run_simulation();
+        std::vector<std::vector<double>> run_simulation();
     
     private:
         KuramotoConfig config;

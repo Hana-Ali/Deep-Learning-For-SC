@@ -98,7 +98,7 @@ def kuramoto_simulator(coupling_strength, delay):
     print('Entering simulation...')
     
     # --------- SIMULATION TIME BABEY
-    raw_sim_bold = sim.parsing_kuramoto_inputs(
+    raw_phi = sim.parsing_kuramoto_inputs(
         coupling_strength,
         delay,
         SC,
@@ -123,24 +123,20 @@ def kuramoto_simulator(coupling_strength, delay):
     end_sim_time = time.time()
     print('Simulation time: ' + str(end_sim_time - start_sim_time), 'seconds')
 
-    print('----------------- BOLD and FC processing -----------------')
-    # Check results shape
-    print("Checking raw BOLD output shape...")
-    check_shape(raw_sim_bold, (number_oscillators, number_integration_steps), 'wilson_sim_bold')
+    print("Saving raw phi...")
+    if not os.path.exists(write_path):
+        os.makedirs(write_path)
+    raw_phi_path = os.path.join(write_path, "raw_phi.csv")
+    np.savetxt(raw_phi_path, raw_phi, fmt="% .4f", delimiter=",")
     
     # --------- Ignore initialization (and downsample?)
     print("Ignoring initialization and downsampling...")
-    bold_down1 = raw_sim_bold[:, start_save_idx - downsampling_rate + 1 :]
+    downsample_phi = raw_phi[:, start_save_idx - downsampling_rate + 1 :]
 
     # --------- Calculate FC
-    print("Calculating filtered BOLD and FC...")
-    bold_filter = process_BOLD(bold_down1)
-    sim_FC = np.corrcoef(bold_filter)
+    print("Calculating FC...")
+    sim_FC = np.corrcoef(downsample_phi)
     np.fill_diagonal(sim_FC, 0.0)
-
-    # --------- Saving the downsampled BOLD only
-    print("Downsampling BOLD again?...")
-    bold_down2 = bold_filter[:, downsampling_rate - 1 :: downsampling_rate]
 
     # --------- Check the shape of the simulated FC matrix
     print("Checking simulated FC shape...")
@@ -158,21 +154,19 @@ def kuramoto_simulator(coupling_strength, delay):
         os.makedirs(write_path)
 
     folder_name = "Coupling {:.4f}, Delay{:.4f}\\".format(coupling_strength, delay)
-    bold_path_main = os.path.join(write_path, folder_name)
+    phi_path_main = os.path.join(write_path, folder_name)
     FC_path_main = os.path.join(write_path, folder_name)
     empFC_simFC_corr_path_main = os.path.join(write_path, folder_name)
 
-    if not os.path.exists(bold_path_main):
-        os.makedirs(bold_path_main)
+    if not os.path.exists(phi_path_main):
+        os.makedirs(phi_path_main)
     if not os.path.exists(FC_path_main):
         os.makedirs(FC_path_main)
     if not os.path.exists(empFC_simFC_corr_path_main):
         os.makedirs(empFC_simFC_corr_path_main)
 
-    raw_bold_path = os.path.join(bold_path_main, "raw_bold.csv")
-    bold_down1_path = os.path.join(bold_path_main, "bold_down1.csv")
-    bold_filter_path = os.path.join(bold_path_main, "bold_filter.csv")
-    bold_down2_path = os.path.join(bold_path_main, "bold_down2.csv")
+    raw_phi_path = os.path.join(phi_path_main, "raw_phi.csv")
+    phi_downsample_path = os.path.join(phi_path_main, "downsample_phi.csv")
     FC_path = os.path.join(FC_path_main, "sim_FC.csv")
     emp_FC_img_path = os.path.join(FC_path_main, "emp_FC.png")
     sim_FC_img_path = os.path.join(FC_path_main, "sim_FC.png")
@@ -180,10 +174,8 @@ def kuramoto_simulator(coupling_strength, delay):
 
     # # Save the results
     print("Saving the results...")
-    np.savetxt(raw_bold_path, raw_sim_bold, fmt="% .4f", delimiter=",")
-    np.savetxt(bold_down1_path, bold_down1, fmt="% .4f", delimiter=",")
-    np.savetxt(bold_filter_path, bold_filter, fmt="% .4f", delimiter=",")
-    np.savetxt(bold_down2_path, bold_down2, fmt="% .4f", delimiter=",")
+    np.savetxt(raw_phi_path, raw_phi, fmt="% .4f", delimiter=",")
+    np.savetxt(phi_downsample_path, downsample_phi, fmt="% .4f", delimiter=",")
     np.savetxt(FC_path, sim_FC, fmt="% .8f", delimiter=",")
     np.savetxt(empFC_simFC_corr_path, np.array([empFC_simFC_corr]), fmt="% .8f")
 

@@ -551,7 +551,7 @@ Kuramoto::Kuramoto(KuramotoConfig config)
  *         as a 2D vector. The first dimension is the number of oscillators, and the second
  *        dimension is the number of integration steps
 */
-void Kuramoto::run_simulation()
+std::vector<std::vector<double>> Kuramoto::run_simulation()
 {
 
     // ------------- Declare input variables - arrays
@@ -751,6 +751,11 @@ void Kuramoto::run_simulation()
     // Save the output to a file
     printf("Saving output to file...\n");
     save_data_2D((*this).config.output_phi, "temp_arrays/output_phi.csv");
+    
+    // Return the output
+    std::vector<std::vector<double>> output_phi = (*this).config.output_phi;
+
+    return output_phi;
 }
 
 #define PY_SSIZE_T_CLEAN
@@ -806,7 +811,9 @@ static PyObject* parsing_kuramoto_inputs(PyObject* self, PyObject* args)
     // Call run simulation
     printf("Calling run simulation...\n");
     Kuramoto kuramoto(config);
-    kuramoto.run_simulation();
+    std::vector<std::vector<double>> output_phi = kuramoto.run_simulation();
+
+    printf("Size of output_phi %d x % d\n", output_phi.size(), output_phi[0].size());
 
     printf("Finished running simulation...\n");
 
@@ -814,8 +821,8 @@ static PyObject* parsing_kuramoto_inputs(PyObject* self, PyObject* args)
     printf("Converting to Python object...\n");
     // Create a numpy array of the BOLD signal
     npy_intp dims[2];
-    dims[0] = config.number_of_oscillators;
-    dims[1] = config.number_of_integration_steps;
+    dims[0] = output_phi.size();
+    dims[1] = output_phi[0].size();
     PyObject *temp_variable;
     PyObject *phi_history = PyArray_EMPTY(2, dims, NPY_FLOAT64, 0);
 
@@ -823,7 +830,7 @@ static PyObject* parsing_kuramoto_inputs(PyObject* self, PyObject* args)
     {   
         for (int step = 0; step < dims[1]; step++)
         {
-            temp_variable = PyFloat_FromDouble(config.output_phi[i][step]);
+            temp_variable = PyFloat_FromDouble(output_phi[i][step]);
             PyArray_SETITEM(phi_history, PyArray_GETPTR2(phi_history, i, step), temp_variable);
             // Decrease reference for next
             Py_DECREF(temp_variable);
