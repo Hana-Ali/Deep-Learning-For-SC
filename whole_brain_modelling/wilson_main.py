@@ -5,20 +5,28 @@ import os
 os.add_dll_directory(r"C:\src\vcpkg\installed\x64-windows\bin")
 os.add_dll_directory(r"C:\cpp_libs\include\bayesopt\build\bin\Release")
 from sklearn.preprocessing import MinMaxScaler
-from py_helpers.helper_funcs import *
 from py_helpers.wilson_interface import *
+from py_helpers.helper_funcs import *
+from collections import OrderedDict
 import matplotlib.pyplot as plt
 import scipy.signal as signal
 import multiprocessing as mp
 import scipy.stats as stats
 import scipy.io as sio
 import numpy as np
+import pyGPGO
 import time
 import json
 
+# from pyGPGO.GPGO import GPGO
+# from pyGPGO.acquisition import Acquisition
+# from pyGPGO.surrogates.GaussianProcessMCMC import GaussianProcessMCMC
+# from pyGPGO.covfunc import matern52
+# import pymc3 as pm
+
 # Defining paths
 root_path = 'C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Spring Sem\\iso_dubai\\ISO\\HCP_DTI_BOLD'
-write_path = "C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Dissertation\\Notebooks\\MyCodes\\results"
+write_path = "C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Dissertation\\Notebooks\\MyCodes\\whole_brain_modelling\\results"
 
 # Defining optimization parameters
 coupling_strength = 0.1
@@ -176,13 +184,38 @@ if __name__ == "__main__":
     #%% Run the simulation and get results
     
     # Define start time before simulation
-        # Printing messages for start and beginning timer
     print('Running Wilson-Cowan model...')
     start_time = time.time()
     
-    # Run the simulation
-    coupling_strength = 0.1
-    delay = 0.1
+    # Bayesian Optimisation
+    # print("Define Bayesian Optimization parameters...")
+    # bo_params = OrderedDict()
+    # bo_params['coupling_strength'] = ('cont', [0.0, 1.0])
+    # bo_params['delay'] = ('cont', [0.0, 100.0])
+
+    # print("Define acquisition function...")
+    # acq = Acquisition(mode='IntegratedExpectedImprovement')
+
+    # print("Define covariance function...")
+    # cov = matern52()
+
+    # print("Define surrogate model...")
+    # gp = GaussianProcessMCMC(covfunc=cov, 
+    #                         niter=300, 
+    #                         burnin=100, 
+    #                         step=pm.Slice)
+    
+    # np.random.seed(20)
+
+    # print("Define Bayesian Optimization object...")
+    # gpgo = GPGO(gp, acq, wilson_simulator, bo_params)
+    # gpgo.run(max_iter=n_iterations)
+
+    # gpgo.GP.posteriorPlot()
+
+    # print("Get results...")
+    # print(gpgo.getResult())
+
     wilson_results = wilson_simulator(coupling_strength=coupling_strength, delay=delay)
 
     # Define end time after simulation
