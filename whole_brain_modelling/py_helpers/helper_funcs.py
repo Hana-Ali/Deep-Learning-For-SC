@@ -4,6 +4,7 @@ import scipy.signal as signal
 import scipy.stats as stats
 import scipy.io as sio
 import numpy as np
+import json
 import os
 
 # Helpers
@@ -247,3 +248,152 @@ def determine_similarity(empFC, simFC, technique="Pearson"):
         raise ValueError('The input technique must be "Pearson", "Spearman", or "Euclidean", is ' + technique)
 
     return float(similarity)
+
+# Function to create the JSON config file
+def write_json_config(params, config_path):
+
+    # Get the parameters
+    number_oscillators = params[0]
+    c_ee = params[1]
+    c_ei = params[2]
+    c_ie = params[3]
+    c_ii = params[4]
+    tau_e = params[5]
+    tau_i = params[6]
+    r_e = params[7]
+    r_i = params[8]
+    alpha_e = params[9]
+    alpha_i = params[10]
+    theta_e = params[11]
+    theta_i = params[12]
+    external_e = params[13]
+    external_i = params[14]
+    number_integration_steps = params[15]
+    integration_step_size = params[16]
+    start_save_idx = params[17]
+    downsampling_rate = params[18]
+    SC_path = params[19]
+    FC_path = params[20]
+    noise_type = params[21]
+    noise_amplitude = params[22]
+    write_path = params[23]
+    order = params[24]
+    cutoffLow = params[25]
+    cutoffHigh = params[26]
+    sampling_rate = params[27]
+
+    # Check that the input arguments are of the correct type
+    check_all_types([
+        (number_oscillators, int, 'number_oscillators'),
+        (c_ee, float, 'c_ee'),
+        (c_ei, float, 'c_ei'),
+        (c_ie, float, 'c_ie'),
+        (c_ii, float, 'c_ii'),
+        (tau_e, float, 'tau_e'),
+        (tau_i, float, 'tau_i'),
+        (r_e, float, 'r_e'),
+        (r_i, float, 'r_i'),
+        (alpha_e, float, 'alpha_e'),
+        (alpha_i, float, 'alpha_i'),
+        (theta_e, float, 'theta_e'),
+        (theta_i, float, 'theta_i'),
+        (external_e, float, 'external_e'),
+        (external_i, float, 'external_i'),
+        (number_integration_steps, int, 'number_integration_steps'),
+        (integration_step_size, float, 'integration_step_size'),
+        (start_save_idx, int, 'start_save_idx'),
+        (downsampling_rate, int, 'downsampling_rate'),
+        (SC_path, str, 'SC_path'),
+        (FC_path, str, 'FC_path'),
+        (noise_type, int, 'noise_type'),
+        (noise_amplitude, float, 'noise_amplitude'),
+        (write_path, str, 'write_path'),
+        (order, int, 'order'),
+        (cutoffLow, float, 'cutoffLow'),
+        (cutoffHigh, float, 'cutoffHigh'),
+        (sampling_rate, float, 'sampling_rate')
+    ])
+
+    # Create the dictionary
+    config = {
+        "number_oscillators": number_oscillators,
+        "c_ee": c_ee,
+        "c_ei": c_ei,
+        "c_ie": c_ie,
+        "c_ii": c_ii,
+        "tau_e": tau_e,
+        "tau_i": tau_i,
+        "r_e": r_e,
+        "r_i": r_i,
+        "alpha_e": alpha_e,
+        "alpha_i": alpha_i,
+        "theta_e": theta_e,
+        "theta_i": theta_i,
+        "external_e": external_e,
+        "external_i": external_i,
+        "number_integration_steps": number_integration_steps,
+        "integration_step_size": integration_step_size,
+        "start_save_idx": start_save_idx,
+        "downsampling_rate": downsampling_rate,
+        "SC_path": SC_path,
+        "FC_path": FC_path,
+        "noise_type": noise_type,
+        "noise_amplitude": noise_amplitude,
+        "write_path": write_path,
+        "order": order,
+        "cutoffLow": cutoffLow,
+        "cutoffHigh": cutoffHigh,
+        "sampling_rate": sampling_rate
+    }
+
+    # Dump as a string
+    config_string = json.dumps(config, indent=4)
+
+    # Write the dictionary to a JSON file
+    with open(config_path, 'w') as outfile:
+        outfile.write(config_string)
+    
+# Function to read the JSON config file
+def read_json_config(config_path):
+    
+    # Check that config path exists
+    if not os.path.exists(config_path):
+        raise ValueError('The input config_path does not exist')
+    
+    # Read the JSON file
+    with open(config_path) as json_file:
+        config = json.load(json_file)
+    
+    # Check that the input arguments are of the correct type
+    check_all_types([
+        (config["number_oscillators"], int, 'number_oscillators'),
+        (config["c_ee"], float, 'c_ee'),
+        (config["c_ei"], float, 'c_ei'),
+        (config["c_ie"], float, 'c_ie'),
+        (config["c_ii"], float, 'c_ii'),
+        (config["tau_e"], float, 'tau_e'),
+        (config["tau_i"], float, 'tau_i'),
+        (config["r_e"], float, 'r_e'),
+        (config["r_i"], float, 'r_i'),
+        (config["alpha_e"], float, 'alpha_e'),
+        (config["alpha_i"], float, 'alpha_i'),
+        (config["theta_e"], float, 'theta_e'),
+        (config["theta_i"], float, 'theta_i'),
+        (config["external_e"], float, 'external_e'),
+        (config["external_i"], float, 'external_i'),
+        (config["number_integration_steps"], int, 'number_integration_steps'),
+        (config["integration_step_size"], float, 'integration_step_size'),
+        (config["start_save_idx"], int, 'start_save_idx'),
+        (config["downsampling_rate"], int, 'downsampling_rate'),
+        (config["SC_path"], str, 'SC_path'),
+        (config["FC_path"], str, 'FC_path'),
+        (config["noise_type"], int, 'noise_type'),
+        (config["noise_amplitude"], float, 'noise_amplitude'),
+        (config["write_path"], str, 'write_path'),
+        (config["order"], int, 'order'),
+        (config["cutoffLow"], float, 'cutoffLow'),
+        (config["cutoffHigh"], float, 'cutoffHigh'),
+        (config["sampling_rate"], float, 'sampling_rate')
+    ])
+
+    return config

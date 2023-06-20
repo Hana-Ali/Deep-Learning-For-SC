@@ -14,7 +14,7 @@ import scipy.stats as stats
 import scipy.io as sio
 import numpy as np
 import time
-import os
+import json
 
 # Defining paths
 root_path = 'C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Spring Sem\\iso_dubai\\ISO\\HCP_DTI_BOLD'
@@ -88,19 +88,70 @@ epsilon = 0.01
 force_jump = 0
 crit_name = 0 # cExpectedImprovement
 
+# Defining config path
+config_path = os.path.join(os.getcwd(), "configs\\wilson_config.json")
+
 #%% Start main program
 if __name__ == "__main__":
 
-    # %% Initial operations - checking, printing, etc.
+    # %% Initial operations - making config file, starting timer, etc.
 
-    # Printing messages for start and beginning timer
-    print('Running Wilson-Cowan model...')
-    start_time = time.time()
+    # Derive some parameters for simulation
+    number_integration_steps = int(time_simulated / integration_step_size)
+    start_save_idx = int(save_data_start / integration_step_size) + downsampling_rate
 
-    #%% Load empirical data
+    # Get empirical matrices
+    print('Getting SC, FC and BOLD matrices...')
     SC_matrix = get_empirical_SC(root_path)
     FC_matrix = get_empirical_FC(root_path)
     BOLD_signals = get_empirical_BOLD(root_path)
+
+    # Store matrices in .npy files
+    print('Storing matrices in .npy files...')
+    np.save('emp_data\\SC_matrix.npy', SC_matrix)
+    np.save('emp_data\\FC_matrix.npy', FC_matrix)
+    np.save('emp_data\\BOLD_signals.npy', BOLD_signals)
+
+    # Defining the paths with this data
+    SC_path = os.path.join(os.getcwd(), "emp_data\\SC_matrix.npy")
+    FC_path = os.path.join(os.getcwd(), "emp_data\\FC_matrix.npy")
+
+    # Parameters for JSON file
+    wilson_params = [
+        number_oscillators,
+        c_ee,
+        c_ei,
+        c_ie,
+        c_ii,
+        tau_e,
+        tau_i,
+        r_e,
+        r_i,
+        alpha_e,
+        alpha_i,
+        theta_e,
+        theta_i,
+        external_e,
+        external_i,
+        number_integration_steps,
+        integration_step_size,
+        start_save_idx,
+        downsampling_rate,
+        SC_path,
+        FC_path,
+        noise_type,
+        noise_amplitude,
+        write_path,
+        order,
+        cutoffLow,
+        cutoffHigh,
+        sampling_rate
+    ]
+
+    print('Create config of parameters...')
+    # Create a JSON file with the parameters
+    write_json_config(wilson_params, config_path)
+
 
     #%% Check number of available threads - multiprocessing tingz
 
@@ -121,70 +172,20 @@ if __name__ == "__main__":
         print('Number of threads needed: ' + str(number_threads_needed))
         print('Number of threads available: ' + str(number_threads_available))
 
-    #%% Defining the parameters, and beginning the simulation
-    number_integration_steps = int(time_simulated / integration_step_size)
-    start_save_idx = int(save_data_start / integration_step_size) + downsampling_rate
-
-    initial_conditions_e = np.random.rand(number_oscillators)
-    initial_conditions_i = np.random.rand(number_oscillators)
-
-    wilson_params = [
-        coupling_strength,
-        delay,
-        number_oscillators,
-        c_ee,
-        c_ei,
-        c_ie,
-        c_ii,
-        tau_e,
-        tau_i,
-        r_e,
-        r_i,
-        alpha_e,
-        alpha_i,
-        theta_e,
-        theta_i,
-        external_e,
-        external_i,
-        number_integration_steps,
-        integration_step_size,
-        start_save_idx,
-        downsampling_rate,
-        initial_conditions_e,
-        initial_conditions_i,
-        SC_matrix,
-        FC_matrix,
-        BOLD_signals,
-        noise_type,
-        noise_amplitude,
-        write_path,
-        order,
-        cutoffLow,
-        cutoffHigh,
-        sampling_rate,
-        n_iterations,
-        n_inner_iterations,
-        n_init_samples,
-        n_iter_relearn,
-        init_method,
-        verbose_level,
-        log_file,
-        surr_name,
-        sc_type,
-        l_type,
-        l_all,
-        epsilon,
-        force_jump,
-        crit_name
-    ]
 
     #%% Run the simulation and get results
     
     # Define start time before simulation
+        # Printing messages for start and beginning timer
+    print('Running Wilson-Cowan model...')
     start_time = time.time()
     
     # Run the simulation
-    wilson_results = wilson_electrical_sim(wilson_params)
+    coupling_strength = 0.1
+    delay = 0.1
+    wilson_results = wilson_simulator(coupling_strength=coupling_strength, delay=delay)
+
+    print('Wilson results: ' + str(wilson_results))
 
     # Define end time after simulation
     end_time = time.time()

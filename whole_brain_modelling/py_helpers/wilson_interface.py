@@ -5,9 +5,7 @@ sys.path.insert(0, r"C:\Users\shahi\OneDrive - Imperial College London\Documents
 from helper_funcs import *
 import numpy as np
 
-# New
-
-def wilson_electrical_sim(args):
+def wilson_simulator(coupling_strength, delay):
     """"
     This function will simulate the Wilson-Cowan model with electrical coupling
     for a given set of parameters. It will return the simulated electrical activity
@@ -15,58 +13,12 @@ def wilson_electrical_sim(args):
     Parameters
     ----------
     args : tuple, input model arguments
-        args[0] : float, coupling strength
-        args[1] : float, delay
-        args[2] : int, number of oscillators
-        args[3] : float, c_ee
-        args[4] : float, c_ei
-        args[5] : float, c_ie
-        args[6] : float, c_ii
-        args[7] : float, tau_e
-        args[8] : float, tau_i
-        args[9] : float, r_e
-        args[10] : float, r_i
-        args[11] : float, alpha_e
-        args[12] : float, alpha_i
-        args[13] : float, theta_e
-        args[14] : float, theta_i
-        args[15] : float, external_e
-        args[16] : float, external_i
-        args[17] : int, number of integration steps
-        args[18] : float, integration step size
-        args[19] : int, start_save_idx
-        args[20] : int, downsampling_rate
-        args[21] : array, initial conditions_e
-        args[22] : array, initial conditions_i
-        args[23] : array, SC matrix
-        args[24] : array, FC matrix
-        args[25] : array, BOLD matrix
-        args[26] : int, noise type
-        args[27] : float, noise amplitude
-        args[28] : string, write path,
-        args[29] : double, order of filter
-        args[30] : double, low cutoff frequency of filter
-        args[31] : double, high cutoff frequency of filter
-        args[32] : double, sampling frequency of filter
-        args[33] : int, number of iterations (BO)
-        args[34] : int, number of inner iterations (BO)
-        args[35] : int, number of initial samples (BO)
-        args[36] : number of iterations to relearn (BO)
-        args[37] : int, initial method (BO)
-        args[38] : int, verbose level (BO)
-        args[39] : string, log file (BO)
-        args[40] : string, surrogate name (BO)
-        args[41] : int, SC type (BO)
-        args[42] : int, L type (BO)
-        args[43] : bool, L all (BO)
-        args[44] : double, epsilon (BO)
-        args[45] : bool, force jump (BO)
-        args[46] : string, criterion name (BO)
+        args[0] : str, path to the config file
 
     Returns
     -------
-    elec: array, simulated electrical activity
-
+    results : dict, dictionary of results of BO
+    
     Equation
     --------
     tau_e * dE/dt = -E + (1 - r_e*E)*S_e(c_ee*E + c_ei*I + external_e)
@@ -78,145 +30,83 @@ def wilson_electrical_sim(args):
     """
 
     print('----------------- In wilson_electrical_sim -----------------')
-    # --------- Check length of the input arguments
-    num_params_expected = 47
 
-    if len(args) != num_params_expected:
-        exception_msg = 'Exception in WC model. Expected {} arguments, got {}'.format(num_params_expected, str(len(args)))
-        raise Exception(exception_msg)
-    
-    # --------- Unpack the arguments
-    print('Unpacking arguments...')
-    coupling_strength = args[0]
-    delay = args[1]
-    number_oscillators = args[2]
-    c_ee = args[3]
-    c_ei = args[4]
-    c_ie = args[5]
-    c_ii = args[6]
-    tau_e = args[7]
-    tau_i = args[8]
-    r_e = args[9]
-    r_i = args[10]
-    alpha_e = args[11]
-    alpha_i = args[12]
-    theta_e = args[13]
-    theta_i = args[14]
-    external_e = args[15]
-    external_i = args[16]
-    number_integration_steps = args[17]
-    integration_step_size = args[18]
-    start_save_idx = args[19]
-    downsampling_rate = args[20]
-    initial_cond_e = args[21]
-    initial_cond_i = args[22]
-    SC = args[23]
-    FC = args[24]
-    BOLD = args[25]
-    noise_type = args[26]
-    noise_amplitude = args[27]
-    write_path = args[28]
-    order = args[29]
-    cutoffLow = args[30]
-    cutoffHigh = args[31]
-    sampling_rate = args[32]
-    n_iterations = args[33]
-    n_inner_iterations = args[34]
-    n_init_samples = args[35]
-    n_iter_relearn = args[36]
-    init_method = args[37]
-    verbose_level = args[38]
-    log_file = args[39]
-    surr_name = args[40]
-    sc_type = args[41]
-    l_type = args[42]
-    l_all = args[43]
-    epsilon = args[44]
-    force_jump = args[45]
-    crit_name = args[46]
+    # --------- Read the config file
+    print('Reading config file...')
+    config_path = os.path.join(os.getcwd(), "configs\\wilson_config.json")
+    config = read_json_config(config_path)
 
+    # --------- Extract the parameters
+    print('Extracting parameters...')
+    # Extract the parameters
+    number_oscillators = config['number_oscillators']
+    c_ee = config['c_ee']
+    c_ei = config['c_ei']
+    c_ie = config['c_ie']
+    c_ii = config['c_ii']
+    tau_e = config['tau_e']
+    tau_i = config['tau_i']
+    r_e = config['r_e']
+    r_i = config['r_i']
+    alpha_e = config['alpha_e']
+    alpha_i = config['alpha_i']
+    theta_e = config['theta_e']
+    theta_i = config['theta_i']
+    external_e = config['external_e']
+    external_i = config['external_i']
+    number_integration_steps = config['number_integration_steps']
+    integration_step_size = config['integration_step_size']
+    start_save_idx = config['start_save_idx']
+    downsampling_rate = config['downsampling_rate']
+    SC_path = config['SC_path']
+    FC_path = config['FC_path']
+    noise_type = config['noise_type']
+    noise_amplitude = config['noise_amplitude']
+    write_path = config['write_path']
+    order = config['order']
+    cutoffLow = config['cutoffLow']
+    cutoffHigh = config['cutoffHigh']
+    sampling_rate = config['sampling_rate']
 
-    # --------- Check the type of the input arguments
-    print('Checking types...')
+    # --------- Get the SC and FC matrices
+    print('Getting SC and FC matrices...')
+    SC = np.load(SC_path)
+    emp_FC = np.load(FC_path)
+
+    # --------- Check the shape of the SC and FC matrices
     inputs = [
-        (coupling_strength, float, 'coupling_strength'),
-        (delay, float, 'delay'),
-        (number_oscillators, int, 'number_oscillators'),
-        (c_ee, float, 'c_ee'),
-        (c_ei, float, 'c_ei'),
-        (c_ie, float, 'c_ie'),
-        (c_ii, float, 'c_ii'),
-        (tau_e, float, 'tau_e'),
-        (tau_i, float, 'tau_i'),
-        (r_e, float, 'r_e'),
-        (r_i, float, 'r_i'),
-        (alpha_e, float, 'alpha_e'),
-        (alpha_i, float, 'alpha_i'),
-        (theta_e, float, 'theta_e'),
-        (theta_i, float, 'theta_i'),
-        (external_e, float, 'external_e'),
-        (external_i, float, 'external_i'),
-        (number_integration_steps, int, 'number_integration_steps'),
-        (integration_step_size, float, 'integration_step_size'),
-        (start_save_idx, int, 'start_save_idx'),
-        (downsampling_rate, int, 'downsampling_rate'),
-        (initial_cond_e, np.ndarray, 'initial_cond_e'),
-        (initial_cond_i, np.ndarray, 'initial_cond_i'),
-        (SC, np.ndarray, 'SC'),
-        (FC, np.ndarray, 'FC'),
-        (BOLD, np.ndarray, 'BOLD'),
-        (noise_type, int, 'noise_type'),
-        (noise_amplitude, float, 'noise_amplitude'),
-        (write_path, str, 'write_path'),
-        (order, int, 'order'),
-        (cutoffLow, float, 'cutoffLow'),
-        (cutoffHigh, float, 'cutoffHigh'),
-        (sampling_rate, float, 'sampling_rate'),
-        (n_iterations, int, 'n_iterations'),
-        (n_inner_iterations, int, 'n_inner_iterations'),
-        (n_init_samples, int, 'n_init_samples'),
-        (n_iter_relearn, int, 'n_iter_relearn'),
-        (init_method, int, 'init_method'),
-        (verbose_level, int, 'verbose_level'),
-        (log_file, str, 'log_file'),
-        (surr_name, int, 'surr_name'),
-        (sc_type, int, 'sc_type'),
-        (l_type, int, 'l_type'),
-        (l_all, bool, 'l_all'),
-        (epsilon, float, 'epsilon'),
-        (force_jump, int, 'force_jump'),
-        (crit_name, int, 'crit_name')
-    ]
-    check_all_types(inputs)
-    
-    # --------- Check the type of data in the input arguments
-    inputs = [
-        (initial_cond_e[0], np.float64, 'initial_cond_e[0]'),
-        (initial_cond_i[0], np.float64, 'initial_cond_i[0]'),
-        (SC[0, 0], np.float64, 'SC[0, 0]'),
-        (FC[0, 0], np.float64, 'FC[0, 0]')
-    ]
-    check_all_types(inputs)
-    
-    # --------- Check the shape of the input arguments
-    inputs = [
-        (initial_cond_e, (number_oscillators,), 'initial_cond_e'),
-        (initial_cond_i, (number_oscillators,), 'initial_cond_i'),
         (SC, (number_oscillators, number_oscillators), 'SC'),
-        (FC, (number_oscillators, number_oscillators), 'FC')
+        (emp_FC, (number_oscillators, number_oscillators), 'FC')
     ]
     check_all_shapes(inputs)
 
-    # --------- Define initial values to be used in equation, COUPLING AND DELAY
+    # --------- Check the type of data in the SC and FC matrices
+    inputs = [
+        (SC[0, 0], np.float64, 'SC[0, 0]'),
+        (emp_FC[0, 0], np.float64, 'FC[0, 0]')
+    ]
+    check_all_types(inputs)
+
+    # --------- Get the initial conditions and other parameters
+    print('Getting initial conditions...')
+    initial_conditions_e = np.random.rand(number_oscillators)
+    initial_conditions_i = np.random.rand(number_oscillators)
+    
+    # --------- Check the type of data in the initial conditions and other parameters
+    inputs = [
+        (initial_conditions_e[0], np.float64, 'initial_cond_e[0]'),
+        (initial_conditions_i[0], np.float64, 'initial_cond_i[0]'),
+    ]
+    check_all_types(inputs)
+    
+    # --------- Defining the coupling and delay matrices
+    print('Defining coupling and delay matrices...')
     # COUPLING is either c_ee, if local coupling, or SC, if global coupling
+    coupling_matrix = coupling_strength * SC    
+    coupling_matrix += (np.diag(np.ones((number_oscillators,)) * c_ee))
     # DELAY is either 0, if local coupling, or delay * path lengths, if global coupling
-    print('Defining initial values...')
-    coupling_matrix = coupling_strength * SC
-    # np.fill_diagonal(coupling_matrix, c_ee)
-    coupling_matrix += (
-        np.diag(np.ones((number_oscillators,)) * c_ee)
-    )
     delay_matrix = delay * SC
+    delay_matrix += (np.diag(np.zeros((number_oscillators,))))
 
     # --------- Define the index matrices for integration (WHAT IS THIS)
     print('Defining index matrices...')
@@ -229,7 +119,7 @@ def wilson_electrical_sim(args):
     print('Entering simulation...')
     
     # --------- SIMULATION TIME BABEY
-    sim_bold = sim.parsing_wilson_inputs(
+    raw_sim_bold = sim.parsing_wilson_inputs(
         coupling_strength,
         delay,
         SC,
@@ -252,8 +142,8 @@ def wilson_electrical_sim(args):
         integration_step_size,
         lower_idx,
         upper_idx,
-        initial_cond_e,
-        initial_cond_i,
+        initial_conditions_e,
+        initial_conditions_i,
         noise_type,
         noise_amplitude,
         order,
@@ -268,97 +158,77 @@ def wilson_electrical_sim(args):
     end_sim_time = time.time()
     print('Simulation time: ' + str(end_sim_time - start_sim_time), 'seconds')
 
+    print('----------------- BOLD and FC processing -----------------')
     # Check results shape
-    check_shape(sim_bold, (number_oscillators, number_integration_steps), 'wilson_sim_bold')
+    print("Checking raw BOLD output shape...")
+    check_shape(raw_sim_bold, (number_oscillators, number_integration_steps), 'wilson_sim_bold')
     
-    # Save results in csv
-    np.savetxt('temp_arrays/BOLD_output.csv', sim_bold, delimiter=",")
-
     # --------- Ignore initialization (and downsample?)
-    sim_bold = sim_bold[:, start_save_idx - downsampling_rate + 1 :]
-    sim_bold = sim_bold[:, start_save_idx:]
+    print("Ignoring initialization and downsampling...")
+    bold_down1 = raw_sim_bold[:, start_save_idx - downsampling_rate + 1 :]
 
     # --------- Calculate FC
-    sim_bold = process_BOLD(sim_bold)
-    sim_FC = np.corrcoef(sim_bold)
+    print("Calculating filtered BOLD and FC...")
+    bold_filter = process_BOLD(bold_down1)
+    sim_FC = np.corrcoef(bold_filter)
     np.fill_diagonal(sim_FC, 0.0)
-    np.savetxt('temp_arrays/BOLD_filtered.csv', sim_bold, fmt="% .4f", delimiter=",")
-    np.savetxt('temp_arrays/sim_FC.csv', sim_FC, fmt="% .8f", delimiter=",")
+
+    # --------- Saving the downsampled BOLD only
+    print("Downsampling BOLD again?...")
+    bold_down2 = bold_filter[:, downsampling_rate - 1 :: downsampling_rate]
 
     # --------- Check the shape of the simulated FC matrix
+    print("Checking simulated FC shape...")
     check_shape(sim_FC, (number_oscillators, number_oscillators), 'sim_FC')
 
-    # --------- Plot the simFC
+    # --------- Calculate simFC <-> empFC correlation
+    print("Calculating simFC <-> empFC correlation...")
+    empFC_simFC_corr = determine_similarity(emp_FC, sim_FC)
+
+    print('----------------- Saving results -----------------')
+
+    # --------- Define folder path for all simulations
+    print("Creating folders...")
+    if not os.path.exists(write_path):
+        os.makedirs(write_path)
+
+    folder_name = "Coupling {:.4f}, Delay{:.4f}\\".format(coupling_strength, delay)
+    bold_path_main = os.path.join(write_path, folder_name)
+    FC_path_main = os.path.join(write_path, folder_name)
+    empFC_simFC_corr_path_main = os.path.join(write_path, folder_name)
+
+    if not os.path.exists(bold_path_main):
+        os.makedirs(bold_path_main)
+    if not os.path.exists(FC_path_main):
+        os.makedirs(FC_path_main)
+    if not os.path.exists(empFC_simFC_corr_path_main):
+        os.makedirs(empFC_simFC_corr_path_main)
+
+    raw_bold_path = os.path.join(bold_path_main, "raw_bold.csv")
+    bold_down1_path = os.path.join(bold_path_main, "bold_down1.csv")
+    bold_filter_path = os.path.join(bold_path_main, "bold_filter.csv")
+    bold_down2_path = os.path.join(bold_path_main, "bold_down2.csv")
+    FC_path = os.path.join(FC_path_main, "sim_FC.csv")
+    emp_FC_img_path = os.path.join(FC_path_main, "emp_FC.png")
+    sim_FC_img_path = os.path.join(FC_path_main, "sim_FC.png")
+    empFC_simFC_corr_path = os.path.join(empFC_simFC_corr_path_main, "empFC_simFC_corr.txt")
+
+    # # Save the results
+    print("Saving the results...")
+    np.savetxt(raw_bold_path, raw_sim_bold, fmt="% .4f", delimiter=",")
+    np.savetxt(bold_down1_path, bold_down1, fmt="% .4f", delimiter=",")
+    np.savetxt(bold_filter_path, bold_filter, fmt="% .4f", delimiter=",")
+    np.savetxt(bold_down2_path, bold_down2, fmt="% .4f", delimiter=",")
+    np.savetxt(FC_path, sim_FC, fmt="% .8f", delimiter=",")
+    np.savetxt(empFC_simFC_corr_path, np.array([empFC_simFC_corr]), fmt="% .8f")
+
+    plt.figure()
+    plt.imshow(emp_FC)
+    plt.savefig(emp_FC_img_path)
     plt.figure()
     plt.imshow(sim_FC)
-    plt.savefig('temp_arrays/sim_FC.png')
-    # --------- Plot the empFC
-    plt.figure()
-    plt.imshow(FC)
-    plt.savefig('temp_arrays/emp_FC.png')
-    
-    # # --------- Calculate simFC <-> empFC correlation
-    # empFC_simFC_corr = determine_similarity(FC, sim_FC)
+    plt.savefig(sim_FC_img_path)
 
-    # # --------- Save the results
-    # # Define folder path for all simulations
-    # folder_name = "wilson_Coupling{:.4f}Delay{:.4f}\\".format(coupling_strength, delay)
-    # # Define main paths for each thing
-    # electric_path_main = os.path.join(write_path, folder_name)
-    # bold_path_main = os.path.join(write_path, folder_name)
-    # FC_path_main = os.path.join(write_path, folder_name)
-    # R_path_main = os.path.join(write_path, folder_name)
-    # empFC_simFC_corr_path_main = os.path.join(write_path, folder_name)
-    # # Make paths if they don't exist
-    # if not os.path.exists(electric_path_main):
-    #     os.makedirs(electric_path_main)
-    # if not os.path.exists(bold_path_main):
-    #     os.makedirs(bold_path_main)
-    # if not os.path.exists(FC_path_main):
-    #     os.makedirs(FC_path_main)
-    # if not os.path.exists(R_path_main):
-    #     os.makedirs(R_path_main)
-    # if not os.path.exists(empFC_simFC_corr_path_main):
-    #     os.makedirs(empFC_simFC_corr_path_main)
-    # # Define paths for this simulation
-    # electric_path = os.path.join(electric_path_main, "electric.csv")
-    # bold_path = os.path.join(bold_path_main, "bold.csv")
-    # FC_path = os.path.join(FC_path_main, "FC.csv")
-    # R_path = os.path.join(R_path_main, "R.csv")
-    # empFC_simFC_corr_path = os.path.join(empFC_simFC_corr_path_main, "empFC_simFC_corr.csv")
 
-    # print('paths are', electric_path, bold_path, FC_path, R_path, empFC_simFC_corr_path)
-
-    # # Downsample BOLD
-    # sim_bold = sim_bold[:, downsampling_rate - 1 :: downsampling_rate]
-    # # Save the results
-    # np.savetxt(electric_path, simulation_results, delimiter=",")
-    # np.savetxt(bold_path, sim_bold, fmt="% .4f", delimiter=",")
-    # np.savetxt(FC_path, sim_FC, fmt="% .8f", delimiter=",")
-    # np.savetxt(R_path, np.array([R_mean, R_std]), delimiter=",")
-    # np.savetxt(empFC_simFC_corr_path, np.array([empFC_simFC_corr]), delimiter=",")
-
-    # # Save the plots
-    # plt.figure()
-    # print('sim_bold shape is', sim_bold.shape)
-    # # print('After expand dims, the first is dim', np.expand_dims(sim_bold[0, :], axis=0).shape)
-    # plt.imshow(np.expand_dims(sim_bold[0, :], axis=0))
-    # # cmap
-    # plt.set_cmap('jet')
-    # plt.savefig(os.path.join(bold_path_main, "bold.png"))
-
-    # plt.figure()
-    # plt.imshow(sim_FC)
-    # plt.savefig(os.path.join(FC_path_main, "FC.png"))
-    
-    # # --------- Return the results
-    # # Create dictionary of results
-    # results = {
-    #     'coupling_strength': coupling_strength,
-    #     'delay': delay,
-    #     'R_mean': R_mean,
-    #     'R_std': R_std,
-    #     'empFC_simFC_corr': empFC_simFC_corr
-    # }
-
-    return 0
+    # Return the correlation
+    return empFC_simFC_corr
