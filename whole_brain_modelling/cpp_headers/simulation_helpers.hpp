@@ -161,7 +161,7 @@ void set_config(WilsonConfig config, WilsonConfig::PythonObjects python_objects)
 }
 
 // Function to get the empirical BOLD signal
-void set_emp_BOLD(WilsonConfig config, PyObject *BOLD_signal) {
+void set_emp_BOLD(WilsonConfig* config, PyObject *BOLD_signal) {
 
 	npy_intp emp_BOLD_dims[3] = { PyArray_DIM(BOLD_signal, 0),
                                   PyArray_DIM(BOLD_signal, 1),
@@ -207,85 +207,88 @@ void set_emp_BOLD(WilsonConfig config, PyObject *BOLD_signal) {
             }
             subject_regions.push_back(region_timesamples);
         }
-        config.emp_BOLD_signals.push_back(subject_regions);
+        (*config).emp_BOLD_signals.push_back(subject_regions);
     }
 
 	// Saving it just for a sanity check
-    printf("Size of BOLD signal is %d x %d x %d\n", config.emp_BOLD_signals.size(), 
-        config.emp_BOLD_signals[0].size(), config.emp_BOLD_signals[0][0].size());
-    printf("----------- Saving unpacked empirical BOLD signal -----------\n");
-    save_data_3D(config.emp_BOLD_signals, "temp_arrays/unpacked_emp_BOLD.csv");
+    printf("Size of BOLD signal is %d x %d x %d\n", (*config).emp_BOLD_signals.size(), 
+        (*config).emp_BOLD_signals[0].size(), (*config).emp_BOLD_signals[0][0].size());
+    printf("Saving unpacked empirical BOLD signal...\n");
+    save_data_3D((*config).emp_BOLD_signals, "temp_arrays/unpacked_emp_BOLD.csv");
 
 }
 
 // Function to filter the BOLD signal
-void filter_BOLD(WilsonConfig config) {
-	// For each subject
-    for (int subject = 0; subject < config.emp_BOLD_signals.size(); ++subject)
-    {
-        printf("In filtering subject %d\n", subject);
+void filter_BOLD(WilsonConfig* config) {
 
+    printf("Size of BOLD signal is %d x %d x %d\n", (*config).emp_BOLD_signals.size(), 
+        (*config).emp_BOLD_signals[0].size(), (*config).emp_BOLD_signals[0][0].size()
+    );
+
+	// For each subject
+    for (int subject = 0; subject < (*config).emp_BOLD_signals.size(); subject++)
+    {
         // Add the subject to the vector of all subjects
-        config.filtered_BOLD_signals.emplace_back(process_BOLD(config.emp_BOLD_signals[subject],
-                                                    		   config.emp_BOLD_signals[0].size(),
-                                                    		   config.emp_BOLD_signals[1].size(),
-                                                    		   config.order,
-															   config.cutoffLow,
-															   config.cutoffHigh,
-															   config.sampling_rate));
+        (*config).filtered_BOLD_signals.emplace_back(process_BOLD((*config).emp_BOLD_signals[subject],
+                                                    		   (*config).emp_BOLD_signals[subject].size(),
+                                                    		   (*config).emp_BOLD_signals[subject][0].size(),
+                                                    		   (*config).order,
+															   (*config).cutoffLow,
+															   (*config).cutoffHigh,
+															   (*config).sampling_rate));
     }
 
 	// Saving it just for a sanity check
-	printf("----------- Saving filtered empirical BOLD signal -----------\n");
-	save_data_3D(config.filtered_BOLD_signals, "temp_arrays/filtered_emp_BOLD.csv");
+	printf("Saving filtered empirical BOLD signal...\n");
+	save_data_3D((*config).filtered_BOLD_signals, "temp_arrays/filtered_emp_BOLD.csv");
 
 }
 
 // Function to find the empirical FC
-void set_emp_FC(WilsonConfig config) {
+void set_emp_FC(WilsonConfig* config) {
 	// For each subject
-    for (int subject = 0; subject < config.filtered_BOLD_signals.size(); subject++)
+    for (int subject = 0; subject < (*config).filtered_BOLD_signals.size(); subject++)
     {
         // Add the subject to the vector of all subjects
         printf("subject: %d\n\r", subject);
-        config.all_emp_FC.emplace_back(determine_FC(config.filtered_BOLD_signals[subject]));
+        (*config).all_emp_FC.emplace_back(determine_FC((*config).filtered_BOLD_signals[subject]));
     }
 
 	// Saving it just for a sanity check
-	printf("----------- Saving empirical FC -----------\n");
-	save_data_3D(config.all_emp_FC, "temp_arrays/emp_FC.csv");
+	printf("Saving empirical FC...\n");
+	save_data_3D((*config).all_emp_FC, "temp_arrays/emp_FC.csv");
 
 }
 
 // Function to find the averaged empirical FC
-void set_avg_emp_FC(WilsonConfig config) {
+void set_avg_emp_FC(WilsonConfig* config) {
 	// For each region
-    for (int i = 0; i < config.all_emp_FC[1].size(); i++)
+    for (int i = 0; i < (*config).all_emp_FC[1].size(); i++)
     {
         // Create a vector of doubles for each *other* region
         std::vector<double> region_avg;
 
         // For each other region
-        for (int j = 0; j < config.all_emp_FC[1].size(); j++)
+        for (int j = 0; j < (*config).all_emp_FC[1].size(); j++)
         {
 			// Create a vector of doubles for each subject
 			std::vector<double> subject_values;
 
 			// For each subject
-			for (int k = 0; k < config.all_emp_FC[0].size(); k++)
+			for (int k = 0; k < (*config).all_emp_FC[0].size(); k++)
 			{
-				subject_values.push_back(config.all_emp_FC[i][j][k]);
+				subject_values.push_back((*config).all_emp_FC[i][j][k]);
 			}
 			// Get the mean of the subject values
 			double mean = gsl_stats_mean(subject_values.data(), 1, subject_values.size());
 			region_avg.push_back(mean);
 		}
-        config.emp_FC.push_back(region_avg);
+        (*config).emp_FC.push_back(region_avg);
     }
 
 	// Saving it just for a sanity check
-	printf("----------- Saving averaged empirical FC -----------\n");
-	save_data_2D(config.emp_FC, "temp_arrays/avg_emp_FC.csv");
+	printf("Saving averaged empirical FC...\n");
+	save_data_2D((*config).emp_FC, "temp_arrays/avg_emp_FC.csv");
 }
 
 // Function to process the BOLD data - same as in Python helper_funcs.py file
@@ -298,15 +301,15 @@ std::vector<std::vector<double>> process_BOLD(std::vector<std::vector<double>> B
     // Create filter objects
     // These values are as a ratio of f/fs, where fs is sampling rate, and f is cutoff frequency
     double FrequencyBands[2] = {
-        cutoffFrequencyLow/(samplingFrequency*2.0),
-        cutoffFrequencyHigh/(samplingFrequency*2.0)
+        cutoffFrequencyLow/(samplingFrequency/2.0),
+        cutoffFrequencyHigh/(samplingFrequency/2.0)
     };
     //Create the variables for the numerator and denominator coefficients
     std::vector<double> DenC;
     std::vector<double> NumC;
 
     // Find the mean across the columns
-    printf("Finding the mean across the columns\n");
+    printf("BOLD PROCESSING: Finding the mean across the columns...\n");
     std::vector<double> mean(num_columns);
     // Calculate the mean across the columns
     for (int row = 0; row < num_rows; row++) {
@@ -315,12 +318,11 @@ std::vector<std::vector<double>> process_BOLD(std::vector<std::vector<double>> B
             colSum += BOLD_signal[row][col];
             // printf("column %d, colSum is: %lf\n", col, colSum);
         }
-        printf("Row %i, column sum is %f\n", row, colSum);
         mean[row] = colSum / num_rows;
     }
 
     // Remove the mean from each column
-    printf("Removing the mean from each column\n");
+    printf("BOLD PROCESSING: Removing the mean from each column...\n");
     for (int row = 0; row < num_rows; row++) {
         for (int col = 0; col < num_columns; col++) {
             BOLD_signal[row][col] -= mean[col];
@@ -328,14 +330,14 @@ std::vector<std::vector<double>> process_BOLD(std::vector<std::vector<double>> B
     }
 
     // Finding the coefficients of the filter
-    printf("Finding the coefficients of the filter\n");
+    printf("BOLD PROCESSING: Finding the coefficients of the filter...\n");
     DenC = ComputeDenCoeffs(order, FrequencyBands[0], FrequencyBands[1]);
-    for(int k = 0; k<2*order+1; k++)
-        printf("DenC is: %lf\n", DenC[k]);
+    // for(int k = 0; k < 2 * order + 1; k++)
+    //     printf("DenC is: %lf\n", DenC[k]);
 
     NumC = ComputeNumCoeffs(order,FrequencyBands[0],FrequencyBands[1],DenC);
-    for(int k = 0; k<2*order+1; k++)
-        printf("NumC is: %lf\n", NumC[k]);
+    // for(int k = 0; k < 2 * order + 1; k++)
+    //     printf("NumC is: %lf\n", NumC[k]);
 
 	// Printing sizes of both vectors
 	printf("BOLD_signal size is %d x %d\n", BOLD_signal.size(), BOLD_signal[0].size());
@@ -344,10 +346,12 @@ std::vector<std::vector<double>> process_BOLD(std::vector<std::vector<double>> B
     // Applying the filter forwards and backwards
     printf("Applying the filter forwards and backwards\n");
     for (int row = 0; row < num_rows; row++)
-        filteredSignal[row] = filter(NumC, DenC, num_columns, BOLD_signal[row], filteredSignal[row]);
+        filteredSignal[row] = filter(NumC, DenC, filteredSignal[0].size(), 
+                                        BOLD_signal[row], filteredSignal[row]);
     
     for (int row = num_rows - 1; row >= 0; row--)
-        filteredSignal[row] = filter(NumC, DenC, num_columns, BOLD_signal[row], filteredSignal[row]);
+        filteredSignal[row] = filter(NumC, DenC, filteredSignal[0].size(), 
+                                        BOLD_signal[row], filteredSignal[row]);
 
 	// Z-scoring the final filtered signal
 	printf("Z-scoring the final filtered signal\n");
@@ -388,7 +392,6 @@ std::vector<std::vector<double>> determine_FC(std::vector<std::vector<double>> B
 			// gsl_vector_const_view gsl_BOLD_j = gsl_vector_const_view_array(BOLD_signal[j].data(), BOLD_signal[j].size());
 			double correlation = gsl_stats_correlation(BOLD_signal[i].data(), 1, BOLD_signal[j].data(), 1, BOLD_signal[i].size());
 			correlation_matrix[i][j] = correlation;
-			printf("Correlation between %d and %d is %lf\n", i, j, correlation);
 		}
 	}
 

@@ -222,6 +222,37 @@ WilsonConfig::BO_output Wilson::run_simulation()
     bo_parameters.force_jump = config.BO_force_jump;
     bo_parameters.crit_name = config.BO_crit_name;
 
+    printf("config.BO_n_iter = %d\n", config.BO_n_iter);
+    printf("config.BO_n_inner_iter = %d\n", config.BO_n_inner_iter);
+    printf("config.BO_init_samples = %d\n", config.BO_init_samples);
+    printf("config.BO_n_inner_iter = %d\n", config.BO_n_inner_iter);
+    printf("config.BO_init_method = %d\n", config.BO_init_method);
+    printf("config.BO_verbose_level = %d\n", config.BO_verbose_level);
+    printf("config.BO_log_file = %s\n", config.BO_log_file.c_str());
+    printf("config.BO_surrogate = %d\n", config.BO_surrogate);
+    printf("config.BO_sc_type = %d\n", config.BO_sc_type);
+    printf("config.BO_l_type = %d\n", config.BO_l_type);
+    printf("config.BO_l_all = %d\n", config.BO_l_all);
+    printf("config.BO_epsilon = %f\n", config.BO_epsilon);
+    printf("config.BO_force_jump = %d\n", config.BO_force_jump);
+    printf("config.BO_crit_name = %d\n", config.BO_crit_name);
+
+    printf("bo_parameters.n_iterations = %d\n", bo_parameters.n_iterations);
+    printf("bo_parameters.n_inner_iterations = %d\n", bo_parameters.n_inner_iterations);
+    printf("bo_parameters.n_init_samples = %d\n", bo_parameters.n_init_samples);
+    printf("bo_parameters.n_iter_relearn = %d\n", bo_parameters.n_iter_relearn);
+    printf("bo_parameters.init_method = %d\n", bo_parameters.init_method);
+    printf("bo_parameters.verbose_level = %d\n", bo_parameters.verbose_level);
+    printf("bo_parameters.log_filename = %s\n", bo_parameters.log_filename);
+    printf("bo_parameters.surr_name = %d\n", bo_parameters.surr_name);
+    printf("bo_parameters.sc_type = %d\n", bo_parameters.sc_type);
+    printf("bo_parameters.l_type = %d\n", bo_parameters.l_type);
+    printf("bo_parameters.l_all = %d\n", bo_parameters.l_all);
+    printf("bo_parameters.epsilon = %f\n", bo_parameters.epsilon);
+    printf("bo_parameters.force_jump = %d\n", bo_parameters.force_jump);
+    printf("bo_parameters.crit_name = %d\n", bo_parameters.crit_name);
+
+
     // Call Bayesian Optimization
     // wilson_objective(2, NULL, NULL, NULL);
     const int num_dimensions = 2;
@@ -231,7 +262,7 @@ WilsonConfig::BO_output Wilson::run_simulation()
     double minimizer[num_dimensions] = { config.coupling_strength, config.delay };
     double minimizer_value[128];
 
-    printf("---- Run Bayesian Optimization ----\n");
+    printf("Run Bayesian Optimization...\n");
     int wilson_BO_output = bayes_optimization(num_dimensions,
                                                 &wilson_objective,
                                                 this, // can be used for pass class pointer if it will be a class
@@ -591,10 +622,13 @@ static PyObject* parsing_wilson_inputs(PyObject* self, PyObject* args)
     int* num_BOLD_regions = NULL;
     int* num_BOLD_timepoints = NULL;
 
+    int BO_surrogate;
+    int BO_crit_name;
+
     WilsonConfig config;
     if (
         !PyArg_ParseTuple(
-            args, "ddOiddddddddddddddidOOOOididddOiiiiiiiiissiibdis",
+            args, "ddOiddddddddddddddidOOOOididddOiiiiiiiiisiiibdii",
             &config.coupling_strength, &config.delay, &structural_connec,
             &config.number_of_oscillators, &config.c_ee,
             &config.c_ei, &config.c_ie, &config.c_ii,
@@ -611,9 +645,9 @@ static PyObject* parsing_wilson_inputs(PyObject* self, PyObject* args)
             &num_BOLD_subjects, &num_BOLD_regions, &num_BOLD_timepoints,
             &config.BO_n_iter, &config.BO_n_inner_iter, &config.BO_iter_relearn,
             &config.BO_init_samples, &config.BO_init_method, &config.BO_verbose_level,
-            &config.BO_log_file, &config.BO_surrogate, &config.BO_sc_type,
+            &config.BO_log_file, &BO_surrogate, &config.BO_sc_type,
             &config.BO_l_type, &config.BO_l_all, &config.BO_epsilon,
-            &config.BO_force_jump, &config.BO_crit_name
+            &config.BO_force_jump, &BO_crit_name
         )
         )
     {
@@ -623,6 +657,16 @@ static PyObject* parsing_wilson_inputs(PyObject* self, PyObject* args)
     };
 
     printf("Parsing input variables succeeded. Continuing...\n");
+    printf("BO_surrogate is %i\n", BO_surrogate);
+    printf("BO_crit_name is %i\n", BO_crit_name);
+    printf("SurrogateModel of BO_surrogate is %s\n", config.SurrogateModel[BO_surrogate]); 
+    printf("CriteriaName of BO_crit_name is %s\n", config.CriteriaName[BO_crit_name]);  
+
+    config.BO_surrogate = config.SurrogateModel[BO_surrogate];
+    config.BO_crit_name = config.CriteriaName[BO_crit_name];
+
+    printf("config.BO_surrogate = %s\n", config.BO_surrogate);
+    printf("config.BO_crit_name =  %s\n", config.BO_crit_name);
 
     // ------------- Convert input objects to C++ types
     printf("Converting input objects to C++ types...\n");
@@ -640,19 +684,19 @@ static PyObject* parsing_wilson_inputs(PyObject* self, PyObject* args)
 
     // ------------ Get the BOLD signals for processing
     printf("Getting the empirical BOLD signals for processing...\n");
-    set_emp_BOLD(config, BOLD_signals);
+    set_emp_BOLD(&config, BOLD_signals);
 
     // ------------- Filtering the BOLD signal
     printf("Filtering the empirical BOLD signal...\n");
-    filter_BOLD(config);
+    filter_BOLD(&config);
    
     // ------------- Getting the empirical FC
     printf("Getting the empirical FC...\n");
-    set_emp_FC(config);
+    set_emp_FC(&config);
 
     // ------------- Finding the average across subjects
     printf("Finding the average across subjects...\n");
-    set_avg_emp_FC(config);
+    set_avg_emp_FC(&config);
 
     // Call run simulation
     printf("Calling run simulation...\n");

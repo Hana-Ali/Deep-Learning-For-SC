@@ -178,13 +178,13 @@ def wilson_electrical_sim(args):
         (init_method, int, 'init_method'),
         (verbose_level, int, 'verbose_level'),
         (log_file, str, 'log_file'),
-        (surr_name, str, 'surr_name'),
+        (surr_name, int, 'surr_name'),
         (sc_type, int, 'sc_type'),
         (l_type, int, 'l_type'),
         (l_all, bool, 'l_all'),
         (epsilon, float, 'epsilon'),
         (force_jump, int, 'force_jump'),
-        (crit_name, str, 'crit_name')
+        (crit_name, int, 'crit_name')
     ]
     check_all_types(inputs)
     
@@ -227,6 +227,7 @@ def wilson_electrical_sim(args):
     lower_idx = upper_idx + 1
     
     print('Entering simulation...')
+    print("surrogate name is", surr_name)
 
     # --------- SIMULATION TIME BABEY
     simulation_results = sim.parsing_wilson_inputs(

@@ -210,7 +210,7 @@ std::vector<double> filter(std::vector<double> numer_coeff, std::vector<double> 
 	}
 	else
 	{
-		for (int m = 0; m<len_x; m++)
+		for (int m = 0; m < len_x; m++)
 		{
 			filtered_signal[m] = numer_coeff[0] * original_signal[m] + zi[0];
 			for (int i = 1; i < len_b; i++)

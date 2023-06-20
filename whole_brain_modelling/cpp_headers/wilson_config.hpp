@@ -3,6 +3,9 @@
 #include <vector>
 #include <string>
 #include <random>
+#include <map>
+
+typedef std::map<int, std::string> MapIntToType;
 
 // New
 
@@ -27,6 +30,7 @@ class WilsonConfig
             L_MCMC = 3,
             L_ERROR = -1
         };
+        // Maps for Bayesian Optimization
         // Enum for noise
         enum class Noise {
             NOISE_NONE = 0,
@@ -34,7 +38,35 @@ class WilsonConfig
             NOISE_UNIFORM = 2,
             NOISE_ERROR = -1
         };
-
+        std::map<int, std::string> CriteriaName = {
+            {0, "cEI"},
+            {1, "cLCB"},
+            {2, "cMI"},
+            {3, "cPOI"},
+            {4, "cExpReturn"},
+            {5, "cAopt"},
+            {6, "cHedge(cSum(cEI,cDistance),cLCB,cPOI,cOptimisticSampling)"},
+            {-1, "Error"}
+        };
+        std::map<int, std::string> SurrogateModel = {
+            {0, "sGaussianProcess"},
+            {1, "sGaussianProcessML"},
+            {2, "sGaussianProcessNormal"},
+            {3, "sStudentTProcessJef"},
+            {4, "sStudentTProcessNIG"},
+            {-1, "Error"}
+        };
+        std::map<int, std::string> Kernel = {
+            {0, "kConst"},
+            {1, "kLinear"},
+            {2, "kMaternISO1"},
+            {3, "kMaternISO3"},
+            {4, "kPoly4"},
+            {5, "kSEARD"},
+            {6, "kRQISO"},
+            {-1, "Error"}
+        };
+        
         // Inputs for the Wilson model from Python
         struct PythonObjects {
             PyObject *structural_connec;
