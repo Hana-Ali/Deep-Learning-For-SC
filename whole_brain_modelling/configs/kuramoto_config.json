@@ -1,0 +1,16 @@
+{
+    "number_oscillators": 100,
+    "number_integration_steps": 255000,
+    "integration_step_size": 0.002,
+    "start_save_idx": 75400,
+    "downsampling_rate": 400,
+    "SC_path": "C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Dissertation\\Notebooks\\MyCodes\\whole_brain_modelling\\emp_data\\SC_matrix.npy",
+    "FC_path": "C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Dissertation\\Notebooks\\MyCodes\\whole_brain_modelling\\emp_data\\FC_matrix.npy",
+    "noise_type": 1,
+    "noise_amplitude": 0.001,
+    "write_path": "C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Dissertation\\Notebooks\\MyCodes\\whole_brain_modelling\\results\\kuramoto",
+    "order": 2,
+    "cutoffLow": 0.01,
+    "cutoffHigh": 0.1,
+    "sampling_rate": 1.4285714285714286
+}

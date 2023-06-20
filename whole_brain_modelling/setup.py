@@ -3,7 +3,7 @@ from distutils.core import setup, Extension
 import numpy
 
 simulation_mod = Extension('simulations',
-                              sources = ['simulation_wilson.cpp'],
+                              sources = ['simulation_models.cpp'],
                               language="c++",
                               include_dirs=[numpy.get_include(),
                                 "C:\\src\\vcpkg\\installed\\x64-windows\\include",

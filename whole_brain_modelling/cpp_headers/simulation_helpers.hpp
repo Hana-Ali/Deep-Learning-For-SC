@@ -14,12 +14,14 @@
 #include <gsl/gsl_statistics.h>
 #include "filtering.hpp"
 #include "wilson_config.hpp"
+#include "kuramoto_config.hpp"
 
 #ifndef M_PI
     #define M_PI 3.14159265358979323846
 #endif
 
 void check_type(boost::any input, const std::string& expected_type, const std::string& input_name);
+void set_kura_config(KuramotoConfig* config, KuramotoConfig::PythonObjects python_objects);
 void save_data_2D(std::vector<std::vector<double>> data, std::string file_path);
 void save_data_3D(std::vector<std::vector<std::vector<double>>> data, std::string file_path);
 void set_config(WilsonConfig* config, WilsonConfig::PythonObjects python_objects);
@@ -167,6 +169,70 @@ void set_config(WilsonConfig* config, WilsonConfig::PythonObjects python_objects
     }
 
 }
+
+// Function to convert Python NumPY arrays to C++ vectors - Kuramoto
+void set_kura_config(KuramotoConfig* config, KuramotoConfig::PythonObjects python_objects) {
+	
+	PyObject *temp_variable;
+	long temp_long;
+
+    // Allocate space in the matrices
+    (*config).phases_phi.resize((*config).number_of_oscillators);
+    (*config).freq_omega.resize((*config).number_of_oscillators);
+    (*config).structural_connectivity_mat.resize((*config).number_of_oscillators, std::vector<double>((*config).number_of_oscillators));
+    (*config).lower_idxs_mat.resize((*config).number_of_oscillators, std::vector<int>((*config).number_of_oscillators));
+    (*config).upper_idxs_mat.resize((*config).number_of_oscillators, std::vector<int>((*config).number_of_oscillators));
+    (*config).output_phi.resize((*config).number_of_oscillators, std::vector<double>((*config).number_of_integration_steps + 1));
+
+	for (int i = 0; i < (*config).number_of_oscillators; i++)
+    {   
+        std::uniform_real_distribution<float> distribution(0.0f, 2.0f); //Values between 0 and 2
+        std::mt19937 engine; // Mersenne twister MT19937
+        auto generator = std::bind(distribution, engine);
+        std::generate_n((*config).phases_phi.begin(), 
+                        (*config).phases_phi.size(), 
+                        generator); 
+        std::generate_n((*config).freq_omega.begin(), 
+                        (*config).freq_omega.size(),
+                        generator);
+		// std::generate((*config).phases_phi.begin(), (*config).phases_phi.end(), rand);
+		// std::generate((*config).freq_omega.begin(), (*config).freq_omega.end(), rand);
+
+        // ------------ Matrices
+        for (int j = 0; j < (*config).number_of_oscillators; j++)
+        {   
+            // Get the structural connectivity matrix
+            temp_variable = PyArray_GETITEM(python_objects.structural_connec, PyArray_GETPTR2(python_objects.structural_connec, i, j));
+            (*config).structural_connectivity_mat[i][j] = PyFloat_AsDouble(temp_variable);
+            // Decrease reference for next
+            Py_DECREF(temp_variable);
+
+            // Get the lower_idxs matrix
+            temp_variable = PyArray_GETITEM(python_objects.lower_idxs, PyArray_GETPTR2(python_objects.lower_idxs, i, j));
+            temp_long = PyLong_AsLong(temp_variable);
+            (*config).lower_idxs_mat[i][j] = temp_long;
+            // Decrease reference for next
+            Py_DECREF(temp_variable);
+
+            // Get the upper_idxs matrix
+            temp_variable = PyArray_GETITEM(python_objects.upper_idxs, PyArray_GETPTR2(python_objects.upper_idxs, i, j));
+            temp_long = PyLong_AsLong(temp_variable);
+            (*config).upper_idxs_mat[i][j] = temp_long;
+            // Decrease reference for next
+            Py_DECREF(temp_variable);
+        }
+
+        // ------------ Initialize output matrix
+        (*config).output_phi[i][0] = (*config).phases_phi[i];
+        // Other values in matrix are NaN
+        for (int step = 1; step <= (*config).number_of_integration_steps; step++)
+        {
+            (*config).output_phi[i][step] = nan("");
+        }
+    }
+
+}
+
 
 // Function to get the empirical BOLD signal
 void set_emp_BOLD(WilsonConfig* config, PyObject *BOLD_signal) {

@@ -1,11 +1,11 @@
-####### WILSON-COWAN MODEL
+####### KURAMOTO MODEL
 
 #%% Import libraries
 import os
 os.add_dll_directory(r"C:\src\vcpkg\installed\x64-windows\bin")
 os.add_dll_directory(r"C:\cpp_libs\include\bayesopt\build\bin\Release")
 from sklearn.preprocessing import MinMaxScaler
-from py_helpers.wilson_interface import *
+from py_helpers.kuramoto_interface import *
 from py_helpers.helper_funcs import *
 from collections import OrderedDict
 import matplotlib.pyplot as plt
@@ -35,33 +35,11 @@ import pymc3 as pm
 
 # Defining paths
 root_path = 'C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Spring Sem\\iso_dubai\\ISO\\HCP_DTI_BOLD'
-write_path = "C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Dissertation\\Notebooks\\MyCodes\\whole_brain_modelling\\results\\wilson"
+write_path = "C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Dissertation\\Notebooks\\MyCodes\\whole_brain_modelling\\results\\kuramoto"
 
 # Defining optimization parameters
 coupling_strength = 0.1
 delay = 0.1
-
-# Defining fixed parameters
-c_ee = 16.0
-c_ei = 12.0
-c_ie = 15.0
-c_ii = 3.0
-
-tau_e = 8.0
-tau_i = 8.0
-
-r_e = 1.0
-r_i = 1.0
-k_e = 1.0
-k_i = 1.0
-
-alpha_e = 1.0
-alpha_i = 1.0
-theta_e = 4.0
-theta_i = 3.7
-
-external_e = 0.1
-external_i = 0.1
 
 # Defining integration parameters
 time_simulated = 510.000 # seconds
@@ -106,7 +84,7 @@ force_jump = 0
 crit_name = 0 # cExpectedImprovement
 
 # Defining config path
-config_path = os.path.join(os.getcwd(), "configs\\wilson_config.json")
+config_path = os.path.join(os.getcwd(), "configs\\kuramoto_config.json")
 
 #%% Start main program
 if __name__ == "__main__":
@@ -134,22 +112,8 @@ if __name__ == "__main__":
     FC_path = os.path.join(os.getcwd(), "emp_data\\FC_matrix.npy")
 
     # Parameters for JSON file
-    wilson_params = [
+    kuramoto_params = [
         number_oscillators,
-        c_ee,
-        c_ei,
-        c_ie,
-        c_ii,
-        tau_e,
-        tau_i,
-        r_e,
-        r_i,
-        alpha_e,
-        alpha_i,
-        theta_e,
-        theta_i,
-        external_e,
-        external_i,
         number_integration_steps,
         integration_step_size,
         start_save_idx,
@@ -167,7 +131,7 @@ if __name__ == "__main__":
 
     print('Create config of parameters...')
     # Create a JSON file with the parameters
-    write_json_config(wilson_params, config_path)
+    write_json_config_kura(kuramoto_params, config_path)
 
 
     #%% Check number of available threads - multiprocessing tingz
@@ -193,7 +157,7 @@ if __name__ == "__main__":
     #%% Run the simulation and get results
     
     # Define start time before simulation
-    print('Running Wilson-Cowan model...')
+    print('Running Kuramoto model...')
     start_time = time.time()
     
     # Bayesian Optimisation
@@ -220,7 +184,7 @@ if __name__ == "__main__":
     np.random.seed(20)
 
     print("Define Bayesian Optimization object...")
-    gpgo = GPGO(gp, acq, wilson_simulator, bo_params)
+    gpgo = GPGO(gp, acq, kuramoto_simulator, bo_params)
     gpgo.run(max_iter=n_iterations)
 
     gpgo.GP.posteriorPlot()

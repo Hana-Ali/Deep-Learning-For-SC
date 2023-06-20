@@ -352,7 +352,68 @@ def write_json_config(params, config_path):
     # Write the dictionary to a JSON file
     with open(config_path, 'w') as outfile:
         outfile.write(config_string)
-    
+
+# Function to create the JSON config file - Kuramoto
+def write_json_config_kura(params, config_path):
+        # Get the parameters
+    number_oscillators = params[0]
+    number_integration_steps = params[1]
+    integration_step_size = params[2]
+    start_save_idx = params[3]
+    downsampling_rate = params[4]
+    SC_path = params[5]
+    FC_path = params[6]
+    noise_type = params[7]
+    noise_amplitude = params[8]
+    write_path = params[9]
+    order = params[10]
+    cutoffLow = params[11]
+    cutoffHigh = params[12]
+    sampling_rate = params[13]
+
+    # Check that the input arguments are of the correct type
+    check_all_types([
+        (number_oscillators, int, 'number_oscillators'),
+        (number_integration_steps, int, 'number_integration_steps'),
+        (integration_step_size, float, 'integration_step_size'),
+        (start_save_idx, int, 'start_save_idx'),
+        (downsampling_rate, int, 'downsampling_rate'),
+        (SC_path, str, 'SC_path'),
+        (FC_path, str, 'FC_path'),
+        (noise_type, int, 'noise_type'),
+        (noise_amplitude, float, 'noise_amplitude'),
+        (write_path, str, 'write_path'),
+        (order, int, 'order'),
+        (cutoffLow, float, 'cutoffLow'),
+        (cutoffHigh, float, 'cutoffHigh'),
+        (sampling_rate, float, 'sampling_rate')
+    ])
+
+    # Create the dictionary
+    config = {
+        "number_oscillators": number_oscillators,
+        "number_integration_steps": number_integration_steps,
+        "integration_step_size": integration_step_size,
+        "start_save_idx": start_save_idx,
+        "downsampling_rate": downsampling_rate,
+        "SC_path": SC_path,
+        "FC_path": FC_path,
+        "noise_type": noise_type,
+        "noise_amplitude": noise_amplitude,
+        "write_path": write_path,
+        "order": order,
+        "cutoffLow": cutoffLow,
+        "cutoffHigh": cutoffHigh,
+        "sampling_rate": sampling_rate
+    }
+
+    # Dump as a string
+    config_string = json.dumps(config, indent=4)
+
+    # Write the dictionary to a JSON file
+    with open(config_path, 'w') as outfile:
+        outfile.write(config_string)
+
 # Function to read the JSON config file
 def read_json_config(config_path):
     
@@ -381,6 +442,37 @@ def read_json_config(config_path):
         (config["theta_i"], float, 'theta_i'),
         (config["external_e"], float, 'external_e'),
         (config["external_i"], float, 'external_i'),
+        (config["number_integration_steps"], int, 'number_integration_steps'),
+        (config["integration_step_size"], float, 'integration_step_size'),
+        (config["start_save_idx"], int, 'start_save_idx'),
+        (config["downsampling_rate"], int, 'downsampling_rate'),
+        (config["SC_path"], str, 'SC_path'),
+        (config["FC_path"], str, 'FC_path'),
+        (config["noise_type"], int, 'noise_type'),
+        (config["noise_amplitude"], float, 'noise_amplitude'),
+        (config["write_path"], str, 'write_path'),
+        (config["order"], int, 'order'),
+        (config["cutoffLow"], float, 'cutoffLow'),
+        (config["cutoffHigh"], float, 'cutoffHigh'),
+        (config["sampling_rate"], float, 'sampling_rate')
+    ])
+
+    return config
+
+# Function to read the JSON config file - Kuramoto
+def read_json_config_kura(config_path):
+
+    # Check that config path exists
+    if not os.path.exists(config_path):
+        raise ValueError('The input config_path does not exist')
+    
+    # Read the JSON file
+    with open(config_path) as json_file:
+        config = json.load(json_file)
+
+    # Check that the input arguments are of the correct type
+    check_all_types([
+        (config["number_oscillators"], int, 'number_oscillators'),
         (config["number_integration_steps"], int, 'number_integration_steps'),
         (config["integration_step_size"], float, 'integration_step_size'),
         (config["start_save_idx"], int, 'start_save_idx'),
