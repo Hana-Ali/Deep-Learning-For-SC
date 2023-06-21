@@ -120,7 +120,7 @@ if __name__ == "__main__":
     # Get empirical matrices
     print('Getting SC, FC and BOLD matrices...')
     SC_matrix = get_empirical_SC(root_path)
-    FC_matrix = get_empirical_FC(root_path)
+    FC_matrix = get_empirical_FC(root_path, config_path)
     BOLD_signals = get_empirical_BOLD(root_path)
 
     # Store matrices in .npy files
@@ -200,7 +200,7 @@ if __name__ == "__main__":
     print("Define Bayesian Optimization parameters...")
     bo_params = OrderedDict()
     bo_params['coupling_strength'] = ('cont', [0.0, 1.0])
-    bo_params['delay'] = ('cont', [0.0, 100.0])
+    bo_params['delay'] = ('cont', [0.0, 1.0])
 
     print("Define acquisition function...")
     acq = Acquisition(mode='IntegratedExpectedImprovement')

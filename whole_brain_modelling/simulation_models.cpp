@@ -2,9 +2,7 @@
 #include <random>
 #include <string>
 #include <fstream>
-#include <bayesopt/bayesopt.h>
 #include <gsl/gsl_statistics.h>
-#include <bayesopt/bayesopt.hpp>
 #include <numpy/arrayobject.h>
 #include "cpp_headers/wilson_config.hpp"
 #include "cpp_headers/kuramoto_config.hpp"
@@ -462,7 +460,7 @@ static PyObject* parsing_wilson_inputs(PyObject* self, PyObject* args)
     WilsonConfig config;
     if (
         !PyArg_ParseTuple(
-            args, "ddOiddddddddddddddidOOOOididdd",
+            args, "ddOiddddddddddddddidOOOOid",
             &config.coupling_strength, &config.delay, &structural_connec,
             &config.number_of_oscillators, &config.c_ee,
             &config.c_ei, &config.c_ie, &config.c_ii,
@@ -473,9 +471,7 @@ static PyObject* parsing_wilson_inputs(PyObject* self, PyObject* args)
             &config.integration_step_size,
             &lower_idxs, &upper_idxs,
             &initial_cond_e, &initial_cond_i,
-            &config.noise, &config.noise_amplitude,
-            &config.order, &config.cutoffLow, &config.cutoffHigh,
-            &config.sampling_rate
+            &config.noise, &config.noise_amplitude
         )
         )
     {
@@ -775,15 +771,13 @@ static PyObject* parsing_kuramoto_inputs(PyObject* self, PyObject* args)
     KuramotoConfig config;
     if (
         !PyArg_ParseTuple(
-            args, "ddOiidOOOOididdd",
+            args, "ddOiidOOOOid",
             &config.coupling_strength, &config.delay, &structural_connec,
             &config.number_of_oscillators, &config.number_of_integration_steps,
             &config.integration_step_size,
             &lower_idxs, &upper_idxs,
             &phis_array, &omega_array,
-            &config.noise, &config.noise_amplitude,
-            &config.order, &config.cutoffLow, &config.cutoffHigh,
-            &config.sampling_rate
+            &config.noise, &config.noise_amplitude
         )
         )
     {

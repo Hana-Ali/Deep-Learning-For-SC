@@ -110,11 +110,7 @@ def kuramoto_simulator(coupling_strength, delay):
         initial_conditions_e,
         initial_conditions_i,
         noise_type,
-        noise_amplitude,
-        order,
-        cutoffLow,
-        cutoffHigh,
-        sampling_rate
+        noise_amplitude
     )
 
     print('----------------- After simulation -----------------')

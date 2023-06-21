@@ -78,34 +78,47 @@ def get_empirical_SC(path):
     return SC_final
 
 # Define function for processing the BOLD signals
-def process_BOLD(BOLD_signal):
+def process_BOLD(BOLD_signal, order, sampling_rate, cutoffLow, cutoffHigh):
 
     # Define the butter bandpass filter
-    def butter_bandpass(lowcut, highcut, fs, order=5):
-        return signal.butter(order, [lowcut, highcut], fs=fs, btype='band')
+    def butter_bandpass(order, sampling_rate, lowcut, highcut):
+        return signal.butter(order, [lowcut, highcut], fs=sampling_rate, btype='band')
     # Use the butter bandpass filter
-    def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
-        b, a = butter_bandpass(lowcut, highcut, fs, order=order)
+    def butter_bandpass_filter(data, order, sampling_rate, lowcut, highcut):
+        b, a = butter_bandpass(order, sampling_rate, lowcut, highcut)
         y = signal.filtfilt(b, a, data)
         return y
     
     # Define the parameters for the filter
-    fs = 1 / 0.7
-    lowcut = 0.01 / (fs / 2)
-    highcut = 0.1 / (fs / 2)
+    lowcut = cutoffLow / (sampling_rate / 2)
+    highcut = cutoffHigh / (sampling_rate / 2)
 
     BOLD_mean = np.mean(BOLD_signal, axis=0)
     BOLD_mean = np.expand_dims(BOLD_mean, axis=0)
     ones_matrix = np.ones((BOLD_mean.shape[0], 1))
     BOLD_mean = ones_matrix @ BOLD_mean
     BOLD_regressed = BOLD_signal - BOLD_mean
-    BOLD_butter = butter_bandpass_filter(BOLD_regressed, lowcut, highcut, fs, order=6)
+    BOLD_butter = butter_bandpass_filter(BOLD_regressed, order, sampling_rate, lowcut, highcut)
     BOLD_z_score = stats.zscore(BOLD_butter)
 
     return BOLD_z_score
 
 # Get the Functional Connectivity Matrices
-def get_empirical_FC(path):
+def get_empirical_FC(path, config_path):
+
+    # Check that config path exists
+    if not os.path.exists(config_path):
+        raise ValueError('The input config_path does not exist')
+    
+    # Read the JSON file
+    with open(config_path) as json_file:
+        config = json.load(json_file)
+
+    order = config['order']
+    sampling_rate = config['sampling_rate']
+    cutoffLow = config['cutoffLow']
+    cutoffHigh = config['cutoffHigh']
+
     # Define paths, load matrices, and stack into array shape
     FC_path = os.path.join(path, 'Schaefer100_BOLD_HCP.mat')
     FC_all = sio.loadmat(FC_path)
@@ -118,7 +131,7 @@ def get_empirical_FC(path):
     
     # Process the BOLD signal of every subject, and get correlation
     for subject in FC_all:
-        bold_z_score = process_BOLD(subject)
+        bold_z_score = process_BOLD(subject, order, sampling_rate, cutoffLow, cutoffHigh)
         correlation = np.corrcoef(bold_z_score)
         FC_corr.append(correlation)
 

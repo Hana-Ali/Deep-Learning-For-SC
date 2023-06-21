@@ -145,11 +145,7 @@ def wilson_simulator(coupling_strength, delay):
         initial_conditions_e,
         initial_conditions_i,
         noise_type,
-        noise_amplitude,
-        order,
-        cutoffLow,
-        cutoffHigh,
-        sampling_rate
+        noise_amplitude
     )
 
     print('----------------- After simulation -----------------')
@@ -169,7 +165,7 @@ def wilson_simulator(coupling_strength, delay):
 
     # --------- Calculate FC
     print("Calculating filtered BOLD and FC...")
-    bold_filter = process_BOLD(bold_down1)
+    bold_filter = process_BOLD(bold_down1, order, sampling_rate, cutoffLow, cutoffHigh)
     sim_FC = np.corrcoef(bold_filter)
     np.fill_diagonal(sim_FC, 0.0)
 
