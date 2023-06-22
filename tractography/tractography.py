@@ -12,11 +12,8 @@ import os
 # -------------------------------------------------- Functions -------------------------------------------------- #
 
 # CHECK HOW TO DO THIS IN PARALLEL - STARMAP OR IMAP
-def parallel_process(SUBJECT_FILES, B_VAL_FILE, B_VEC_FILE, ATLAS, 
-                     ATLAS_STRING, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH, 
+def parallel_process(SUBJECT_FILES, ATLAS, ATLAS_STRING, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH, 
                      DSI_COMMAND):
-
-    print("SUBJECT_FILES", SUBJECT_FILES)
 
     # Define the stripped paths indices
     STRIPPED_INDEX = 0
@@ -24,11 +21,11 @@ def parallel_process(SUBJECT_FILES, B_VAL_FILE, B_VEC_FILE, ATLAS,
     STRIPPED_OVERLAY_INDEX = 2
 
     # Get the filename for this specific process
-    dwi_filename = get_filename(SUBJECT_FILES, "filename")
-    t1_filename = get_filename(SUBJECT_FILES, "t1")
+    dwi_filename = extract_dwi_filename(get_filename(SUBJECT_FILES, "filename")["filename"])
+    t1_filename = extract_t1_filename(get_filename(SUBJECT_FILES, "t1")["t1"])
 
     # Ping beginning or process
-    print("Started parallel process - {}, {}".format(dwi_filename, t1_filename))
+    print("Started parallel process - {}".format(dwi_filename))
     
     # --------------- BET/FSL T1 skull stripping command --------------- #
     # Define needed arguments array
@@ -52,41 +49,38 @@ def parallel_process(SUBJECT_FILES, B_VAL_FILE, B_VEC_FILE, ATLAS,
     # Define list of clean stuff
     CLEAN_FILES = [CLEAN_DWI_PATH, CLEAN_BVAL_FILEPATH, CLEAN_BVEC_FILEPATH]
 
-    # --------------- DSI STUDIO reconstruction commands --------------- #
-    # Define needed arguments array
-    ARGS_STUDIO = [
-        SUBJECT_FILES,
-        CLEAN_FILES,
-        MAIN_STUDIO_PATH,
-        DSI_COMMAND,
-        ATLAS_STRING
-    ]
-    # Get the studio commands array
-    STUDIO_COMMANDS = define_studio_commands(ARGS_STUDIO)
+    # # --------------- DSI STUDIO reconstruction commands --------------- #
+    # # Define needed arguments array
+    # ARGS_STUDIO = [
+    #     SUBJECT_FILES,
+    #     CLEAN_FILES,
+    #     MAIN_STUDIO_PATH,
+    #     DSI_COMMAND,
+    #     ATLAS_STRING
+    # ]
+    # # Get the studio commands array
+    # STUDIO_COMMANDS = define_studio_commands(ARGS_STUDIO)
 
-    # --------------- MRTRIX reconstruction commands --------------- #
-    # Define needed arguments array
-    ARGS_MRTRIX = [
-        CLEAN_DWI_PATH,
-        CLEAN_BVAL_FILEPATH,
-        CLEAN_BVEC_FILEPATH,
-        B_VEC_FILE,
-        B_VAL_FILE,
-        MAIN_MRTRIX_PATH,
-        STRIPPED_PATHS[STRIPPED_INDEX],
-        ATLAS
-    ]
-    # Get the mrtrix commands array
-    MRTRIX_COMMANDS = define_mrtrix_recon_commands(ARGS_MRTRIX)
+    # # --------------- MRTRIX reconstruction commands --------------- #
+    # # Define needed arguments array
+    # ARGS_MRTRIX = [
+    #     SUBJECT_FILES,
+    #     CLEAN_FILES,
+    #     MAIN_MRTRIX_PATH,
+    #     STRIPPED_PATHS[STRIPPED_INDEX],
+    #     ATLAS
+    # ]
+    # # Get the mrtrix commands array
+    # MRTRIX_COMMANDS = define_mrtrix_recon_commands(ARGS_MRTRIX)
 
     # --------------- Calling subprocesses commands --------------- #
-    # for (bet_cmd, cmd_name) in BET_COMMANDS:
-    #     print("Started {} - {}".format(cmd_name, t1_filename))
-    #     subprocess.run(bet_cmd, shell=True)
+    for (bet_cmd, cmd_name) in BET_COMMANDS:
+        print("Started {} - {}".format(cmd_name, t1_filename))
+        subprocess.run(bet_cmd, shell=True)
 
-    # for (mrtrix_cmd, cmd_name) in MRTRIX_CLEAN_COMMANDS:
-    #     print("Started {} - {}".format(cmd_name, dwi_filename))
-    #     subprocess.run(mrtrix_cmd, shell=True)
+    for (mrtrix_cmd, cmd_name) in MRTRIX_CLEAN_COMMANDS:
+        print("Started {} - {}".format(cmd_name, dwi_filename))
+        subprocess.run(mrtrix_cmd, shell=True)
 
     # for (dsi_cmd, cmd_name) in STUDIO_COMMANDS:
     #     print("Started {} - {}".format(cmd_name, dwi_filename))
@@ -167,7 +161,6 @@ def main():
     # --------------- Create list of DWI and T1 for each subject --------------- #
     SUBJECT_LISTS = create_subject_list(DWI_INPUT_FILES, DWI_JSON_HEADERS, B_VAL_FILES, 
                                         B_VEC_FILES, T1_INPUT_FILES)
-    print("SUBJECT_LISTS", SUBJECT_LISTS)
     
     # --------------- Define what atlases to use --------------- #
     ATLAS_FILES = glob_files(ATLAS_FOLDER, "nii.gz")
@@ -181,8 +174,8 @@ def main():
     # -------------------------------------------------- TRACTOGRAPHY COMMANDS -------------------------------------------------- #
 
     # --------------- DSI STUDIO defining inputs for mapping parallel --------------- #
-    mapping_inputs = list(zip(SUBJECT_LISTS, B_VAL_FILES, B_VEC_FILES, [ATLAS_FILES[0]]*len(DWI_INPUT_FILES), 
-                              [ATLAS_STRING]*len(DWI_INPUT_FILES), [MAIN_STUDIO_PATH]*len(DWI_INPUT_FILES), [MAIN_MRTRIX_PATH]*len(DWI_INPUT_FILES), 
+    mapping_inputs = list(zip(SUBJECT_LISTS, [ATLAS_FILES[0]]*len(DWI_INPUT_FILES), [ATLAS_STRING]*len(DWI_INPUT_FILES), 
+                              [MAIN_STUDIO_PATH]*len(DWI_INPUT_FILES), [MAIN_MRTRIX_PATH]*len(DWI_INPUT_FILES), 
                               [MAIN_FSL_PATH]*len(DWI_INPUT_FILES), [DSI_COMMAND]*len(DWI_INPUT_FILES)))
 
     # Use the mapping inputs with starmap to run the parallel processes

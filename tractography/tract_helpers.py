@@ -99,29 +99,19 @@ def check_globbed_files(files, name):
     else:
         print("{} files found. Continuing...".format(name))
 
-# Create a dictionary that associates each subject with its T1 and DWI files
-def create_subject_dict(DWI_INPUT_FILES, T1_INPUT_FILES):
-    SUBJECT_DICT = {}
+# Function to extract the DWI filename
+def extract_dwi_filename(dwi_file):
+    # Extract the filename
+    dwi_filename = dwi_file.split("/sub-")[-1].split("_")[0]
+    # Return the filename
+    return dwi_filename
 
-    # For each DWI file
-    for dwi_file in DWI_INPUT_FILES:
-        # Get the filename
-        dwi_filename = get_dwi_filename(dwi_file)
-        # Get the subject name
-        subject_dwi = dwi_filename.split("sub-")[1].split("_dwi")[0]
-        # Add the dwi path to the dictionary corresponding to the subject
-        SUBJECT_DICT[subject_dwi] = {'DWI_PATH': dwi_file} | SUBJECT_DICT.get(subject_dwi, {})
-
-    # For each T1 file
-    for t1_file in T1_INPUT_FILES:
-        # Get the filename
-        t1_filename = get_t1_filename(t1_file)
-        # Get the subject name
-        subject_t1 = t1_filename.split("_")[1].split("-")[0]
-        # Add the t1 path to the dictionary corresponding to the subject
-        SUBJECT_DICT[subject_t1] = {'T1_PATH': t1_file} | SUBJECT_DICT.get(subject_t1, {})
-    
-    return SUBJECT_DICT
+# Function to extract the T1 filename
+def extract_t1_filename(t1_file):
+    # Extract the filename
+    t1_filename = t1_file.split("/")[-1].split("_")[1].split("-")[0]
+    # Return the filename
+    return t1_filename
 
 # Create a list that associates each subject with its T1 and DWI files
 def create_subject_list(DWI_INPUT_FILES, DWI_JSON_HEADERS, B_VAL_FILES, B_VEC_FILES, T1_INPUT_FILES):
@@ -135,44 +125,34 @@ def create_subject_list(DWI_INPUT_FILES, DWI_JSON_HEADERS, B_VAL_FILES, B_VEC_FI
     # For each DWI file
     for dwi_file in DWI_INPUT_FILES:
         # Get the filename
-        dwi_filename = get_filename(dwi_file, "filename")
-        # Get the subject name
-        subject_dwi = dwi_filename.split("sub-")[1].split("_dwi")[0]
+        subject_ID = extract_dwi_filename(dwi_file)
         # Append to a DWI list
-        DWI_LIST.append([subject_dwi, dwi_file])
+        DWI_LIST.append([subject_ID, dwi_file])
     # For each JSON file
     for json_file in DWI_JSON_HEADERS:
         # Get the filename
-        json_filename = get_filename(json_file, "filename")
-        # Get the subject name
-        subject_json = json_filename.split("sub-")[1].split("_dwi")[0]
+        subject_ID = extract_dwi_filename(json_file)
         # Append to a JSON list
-        JSON_LIST.append([subject_json, json_file])
+        JSON_LIST.append([subject_ID, json_file])
     # For each BVAL file
     for bval_file in B_VAL_FILES:
         # Get the filename
-        bval_filename = get_filename(bval_file, "filename")
-        # Get the subject name
-        subject_bval = bval_filename.split("sub-")[1].split("_dwi")[0]
+        subject_ID = extract_dwi_filename(bval_file)
         # Append to a BVAL list
-        B_VAL_LIST.append([subject_bval, bval_file])
+        B_VAL_LIST.append([subject_ID, bval_file])
     # For each BVEC file
     for bvec_file in B_VEC_FILES:
         # Get the filename
-        bvec_filename = get_filename(bvec_file, "filename")
-        # Get the subject name
-        subject_bvec = bvec_filename.split("sub-")[1].split("_dwi")[0]
+        subject_ID = extract_dwi_filename(bvec_file)
         # Append to a BVEC list
-        B_VEC_LIST.append([subject_bvec, bvec_file])
+        B_VEC_LIST.append([subject_ID, bvec_file])
     # For each T1 file
     for t1_file in T1_INPUT_FILES:
         # Get the filename
-        t1_filename = get_filename(t1_file, "filename")
-        # Get the subject name
-        subject_t1 = t1_filename.split("_")[1].split("-")[0]
+        subject_ID = extract_t1_filename(t1_file)
         # Append to a T1 list
-        T1_LIST.append([subject_t1, t1_file])
-    
+        T1_LIST.append([subject_ID, t1_file])
+
     # Join the two lists based on common subject name
     for dwi in DWI_LIST:
         # Get the name, or common element ID
@@ -188,7 +168,8 @@ def create_subject_list(DWI_INPUT_FILES, DWI_JSON_HEADERS, B_VAL_FILES, B_VEC_FI
     return SUBJECT_LISTS
 
 # -------------------------------------------------- PARALLEL FUNCTION MODULES -------------------------------------------------- #
-# Get name of DWI file
+
+# Get filename
 def get_filename(SUBJECT_FILES, items):
     # Define the indices of the subject list
     SUBJECT_DWI_NAME = 0
@@ -199,6 +180,10 @@ def get_filename(SUBJECT_FILES, items):
     SUBJECT_T1_INDEX = 5
     # Create dictionary that defines what to get
     items_to_get = {}
+
+    # Check whether we're passing in a list or a string
+    if isinstance(items, str):
+        items = [items]
 
     # For every item in items, get the item
     for item in items:
@@ -305,19 +290,19 @@ def define_mrtrix_clean_commands(ARGS):
     MAIN_MRTRIX_PATH = ARGS[1]
 
     # Define what's needed for MRTrix cleaning and extract them from subject files
-    CLEANING_NEEDED = ["filename", "dwi", "json" "bval", "bvec"]
+    CLEANING_NEEDED = ["filename", "dwi", "json", "bval", "bvec"]
     NEEDED_FILE_PATHS = get_filename(SUBJECT_FILES, CLEANING_NEEDED)
 
     # Extract what we need here from the needed file paths
-    dwi_filename = NEEDED_FILE_PATHS["filename"]
-    dwi = NEEDED_FILE_PATHS["dwi"]
-    json = NEEDED_FILE_PATHS["json"]
-    bval = NEEDED_FILE_PATHS["bval"]
-    bvec = NEEDED_FILE_PATHS["bvec"]
+    dwi_filename = NEEDED_FILE_PATHS['filename']
+    dwi = NEEDED_FILE_PATHS['dwi']
+    json = NEEDED_FILE_PATHS['json']
+    bval = NEEDED_FILE_PATHS['bval']
+    bvec = NEEDED_FILE_PATHS['bvec']
 
     # Get the rest of the paths for the commands
     (CLEANING_FOLDER_NAME, INPUT_MIF_PATH, DWI_DENOISE_PATH, DWI_NOISE_PATH, DWI_EDDY_PATH, 
-     DWI_BIAS_PATH, DWI_CONVERT_PATH) = get_mrtrix_clean_paths(dwi_filename, MAIN_MRTRIX_PATH)
+     DWI_BIAS_PATH, DWI_CONVERT_PATH) = get_mrtrix_clean_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
     
     # Define some extra paths to the outputs
     CLEAN_BVAL_FILEPATH = os.path.join(CLEANING_FOLDER_NAME, "clean_bval")
@@ -326,9 +311,9 @@ def define_mrtrix_clean_commands(ARGS):
     # Define the commands
     MIF_CMD = "mrconvert {input_nii} -fslgrad {bvec} {bval} -json_import {json} {output}.mif".format(
         input_nii=dwi, bvec=bvec, bval=bval, json=json, output=INPUT_MIF_PATH)
-    DWI_DENOISE_CMD = "dwidenoise {input} {output}.mif -noise {noise}.mif".format(
-        input=dwi, output=DWI_DENOISE_PATH, noise=DWI_NOISE_PATH)
-    DWI_EDDY_CMD = "dwifslpreproc {input}.mif {output}.mif -fslgrad {bvec} {bval} -rpe_header".format(
+    DWI_DENOISE_CMD = "dwidenoise {input}.mif {output}.mif -noise {noise}.mif".format(
+        input=INPUT_MIF_PATH, output=DWI_DENOISE_PATH, noise=DWI_NOISE_PATH)
+    DWI_EDDY_CMD = 'dwifslpreproc {input}.mif {output}.mif -fslgrad {bvec} {bval} -eddy_options " --slm=linear" -rpe_header'.format(
         input=DWI_DENOISE_PATH, bvec=bvec, bval=bval, output=DWI_EDDY_PATH)
     DWI_BIAS_CMD = "dwibiascorrect ants {input}.mif {output}.mif".format(input=DWI_EDDY_PATH, output=DWI_BIAS_PATH)
     DWI_CONVERT_CMD = "mrconvert {input}.mif {output}.nii -export_grad_fsl {bvec_clean} {bval_clean}".format(
@@ -343,9 +328,6 @@ def define_mrtrix_clean_commands(ARGS):
     CLEAN_DWI_PATH = DWI_CONVERT_PATH + ".nii.gz"
     CLEAN_BVAL_FILEPATH = CLEAN_BVAL_FILEPATH + ".bval"
     CLEAN_BVEC_FILEPATH = CLEAN_BVEC_FILEPATH + ".bvec"
-    print("clean dwi path: {}".format(CLEAN_DWI_PATH))
-    print("clean bval path: {}".format(CLEAN_BVAL_FILEPATH))
-    print("clean bvec path: {}".format(CLEAN_BVEC_FILEPATH))
 
     # Return the commands array
     return (MRTRIX_COMMANDS, CLEAN_DWI_PATH, CLEAN_BVAL_FILEPATH, CLEAN_BVEC_FILEPATH)
@@ -408,7 +390,7 @@ def define_studio_commands(ARGS):
 
     # Get the rest of the paths for the commands
     (SRC_PATH, DTI_PATH, QSDR_PATH, SRC_LOG_PATH, DTI_LOG_PATH, DTI_EXP_LOG_PATH,
-            QSDR_LOG_PATH, QSDR_EXP_LOG_PATH, TRACT_LOG_PATH) = get_dsi_studio_paths(dwi_filename, MAIN_STUDIO_PATH)
+            QSDR_LOG_PATH, QSDR_EXP_LOG_PATH, TRACT_LOG_PATH) = get_dsi_studio_paths(NEEDED_FILE_PATHS, MAIN_STUDIO_PATH)
     
     # Define the commands
     SRC_CMD = "{command} --action=src --source={dwi} --bval={bval} --bvec={bvec} --output={output} > {log}".format(
@@ -440,7 +422,10 @@ def define_studio_commands(ARGS):
     return STUDIO_COMMANDS
 
 # Get the MRTRIX file paths
-def get_mrtrix_recon_paths(dwi_filename, MAIN_MRTRIX_PATH):
+def get_mrtrix_recon_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH):
+
+    # Extract what we need here from the needed file paths
+    dwi_filename = NEEDED_FILE_PATHS["filename"]
 
     # Creating folder for each subject in MRTRIX folder. DON'T WIPE as it'll be used by other functions
     SUBJECT_FOLDER_NAME = os.path.join(MAIN_MRTRIX_PATH, dwi_filename)
@@ -505,21 +490,33 @@ def get_mrtrix_recon_paths(dwi_filename, MAIN_MRTRIX_PATH):
 # Define MRTRIX commands
 def define_mrtrix_recon_commands(ARGS):
     # Extract arguments needed to define paths
-    CLEAN_DWI_PATH = ARGS[0]
-    CLEAN_BVAL_FILEPATH = ARGS[1]
-    CLEAN_BVEC_FILEPATH = ARGS[2]
-    B_VEC_FILE = ARGS[3]
-    B_VAL_FILE = ARGS[4]
-    MAIN_MRTRIX_PATH = ARGS[5]
-    STRIPPED_T1_PATH = ARGS[6]
-    ATLAS = ARGS[7]
+    SUBJECT_FILES = ARGS[0]
+    CLEAN_FILES = ARGS[1]
+    MAIN_MRTRIX_PATH = ARGS[2]
+    STRIPPED_T1_PATH = ARGS[3]
+    ATLAS = ARGS[4]
+
+    # Define what's needed for DSI STUDIO and extract them from subject files
+    CLEANING_NEEDED = ["filename", "dwi", "bval", "bvec"]
+    NEEDED_FILE_PATHS = get_filename(SUBJECT_FILES, CLEANING_NEEDED)
+
+    # Extract what we need here from the needed file paths
+    dwi_filename = NEEDED_FILE_PATHS["filename"]
+    dwi = NEEDED_FILE_PATHS["dwi"]
+    bval = NEEDED_FILE_PATHS["bval"]
+    bvec = NEEDED_FILE_PATHS["bvec"]
+
+    # Extract the clean files
+    CLEAN_DWI_PATH = CLEAN_FILES[0]
+    CLEAN_BVAL_FILEPATH = CLEAN_FILES[1]
+    CLEAN_BVEC_FILEPATH = CLEAN_FILES[2]
 
     # Get the rest of the paths for the commands
-    dwi_filename = get_dwi_filename(CLEAN_DWI_PATH)
     (INPUT_MIF_PATH, RESPONSE_WM_PATH, RESPONSE_GM_PATH, RESPONSE_CSF_PATH, RESPONSE_VOXEL_PATH, WM_FOD_PATH,
     GM_FOD_PATH, CSF_FOD_PATH, VF_FOD_PATH, WM_FOD_NORM_PATH, GM_FOD_NORM_PATH, CSF_FOD_NORM_PATH,
     MASK_MIF_PATH, T1_MIF_PATH, FIVETT_GEN_PATH, DWI_B0_PATH, DWI_B0_NII, FIVETT_GEN_NII, T1_DWI_MAP_MAT,
-    T1_DWI_CONVERT_INV, FIVETT_REG_PATH, GM_WM_SEED_PATH, TRACT_TCK_PATH, CONNECTIVITY_PATH) = get_mrtrix_recon_paths(dwi_filename, MAIN_MRTRIX_PATH)
+    T1_DWI_CONVERT_INV, FIVETT_REG_PATH, GM_WM_SEED_PATH, TRACT_TCK_PATH, 
+    CONNECTIVITY_PATH) = get_mrtrix_recon_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
 
     # DWI nii -> mif command
     MIF_CMD = "mrconvert {input_nii} -fslgrad {bvec} {bval} {output}.mif".format(input_nii=CLEAN_DWI_PATH, 
