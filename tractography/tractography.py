@@ -5,29 +5,60 @@ This Python file contains the main pipeline used for tractography
 # Import libraries
 import multiprocessing as mp
 from tract_helpers import *
+import regex as re
 import subprocess
 import os
 
 # -------------------------------------------------- Functions -------------------------------------------------- #
 
 # CHECK HOW TO DO THIS IN PARALLEL - STARMAP OR IMAP
-def parallel_process(DWI_INPUT_FILE, B_VAL_FILE, B_VEC_FILE, ATLAS, ATLAS_STRING, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, DWI_LOGS_FOLDER, DSI_COMMAND):
+def parallel_process(SUBJECT_FILES, B_VAL_FILE, B_VEC_FILE, ATLAS, 
+                     ATLAS_STRING, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH, 
+                     DSI_COMMAND):
+
+    print("SUBJECT_FILES", SUBJECT_FILES)
+
+    # Define the stripped paths indices
+    STRIPPED_INDEX = 0
+    STRIPPED_MASK_INDEX = 1
+    STRIPPED_OVERLAY_INDEX = 2
 
     # Get the filename for this specific process
-    dwi_filename = get_dwi_filename(DWI_INPUT_FILE)
+    dwi_filename = get_filename(SUBJECT_FILES, "filename")
+    t1_filename = get_filename(SUBJECT_FILES, "t1")
 
     # Ping beginning or process
-    print("Started parallel process - {}".format(dwi_filename))
+    print("Started parallel process - {}, {}".format(dwi_filename, t1_filename))
     
+    # --------------- BET/FSL T1 skull stripping command --------------- #
+    # Define needed arguments array
+    ARGS_BET = [
+        SUBJECT_FILES,
+        MAIN_FSL_PATH
+    ]
+    # Get the bet commands array and the stripped paths
+    (BET_COMMANDS, STRIPPED_PATHS) = define_fsl_commands(ARGS_BET)
+
+    # --------------- DSI STUDIO preprocessing commands --------------- #
+    # Define needed arguments array
+    ARGS_MRTRIX_CLEAN = [
+        SUBJECT_FILES,
+        MAIN_MRTRIX_PATH
+    ]
+    # Get the mrtrix commands array
+    (MRTRIX_CLEAN_COMMANDS, CLEAN_DWI_PATH, CLEAN_BVAL_FILEPATH, 
+     CLEAN_BVEC_FILEPATH) = define_mrtrix_clean_commands(ARGS_MRTRIX_CLEAN)
+    
+    # Define list of clean stuff
+    CLEAN_FILES = [CLEAN_DWI_PATH, CLEAN_BVAL_FILEPATH, CLEAN_BVEC_FILEPATH]
+
     # --------------- DSI STUDIO reconstruction commands --------------- #
     # Define needed arguments array
     ARGS_STUDIO = [
+        SUBJECT_FILES,
+        CLEAN_FILES,
         MAIN_STUDIO_PATH,
-        DWI_LOGS_FOLDER,
         DSI_COMMAND,
-        DWI_INPUT_FILE,
-        B_VAL_FILE,
-        B_VEC_FILE,
         ATLAS_STRING
     ]
     # Get the studio commands array
@@ -36,23 +67,60 @@ def parallel_process(DWI_INPUT_FILE, B_VAL_FILE, B_VEC_FILE, ATLAS, ATLAS_STRING
     # --------------- MRTRIX reconstruction commands --------------- #
     # Define needed arguments array
     ARGS_MRTRIX = [
-        DWI_INPUT_FILE,
+        CLEAN_DWI_PATH,
+        CLEAN_BVAL_FILEPATH,
+        CLEAN_BVEC_FILEPATH,
         B_VEC_FILE,
         B_VAL_FILE,
         MAIN_MRTRIX_PATH,
+        STRIPPED_PATHS[STRIPPED_INDEX],
         ATLAS
     ]
     # Get the mrtrix commands array
-    MRTRIX_COMMANDS = define_mrtrix_commands(ARGS_MRTRIX)
+    MRTRIX_COMMANDS = define_mrtrix_recon_commands(ARGS_MRTRIX)
 
     # --------------- Calling subprocesses commands --------------- #
+    # for (bet_cmd, cmd_name) in BET_COMMANDS:
+    #     print("Started {} - {}".format(cmd_name, t1_filename))
+    #     subprocess.run(bet_cmd, shell=True)
+
+    # for (mrtrix_cmd, cmd_name) in MRTRIX_CLEAN_COMMANDS:
+    #     print("Started {} - {}".format(cmd_name, dwi_filename))
+    #     subprocess.run(mrtrix_cmd, shell=True)
+
     # for (dsi_cmd, cmd_name) in STUDIO_COMMANDS:
     #     print("Started {} - {}".format(cmd_name, dwi_filename))
     #     subprocess.run(dsi_cmd, shell=True)
 
-    for (mrtrix_cmd, cmd_name) in MRTRIX_COMMANDS:
-        print("Started {} - {}".format(cmd_name, dwi_filename))
-        subprocess.run(mrtrix_cmd, shell=True)
+    # for (mrtrix_cmd, cmd_name) in MRTRIX_COMMANDS:
+    #     print("Started {} - {}".format(cmd_name, dwi_filename))
+    #     subprocess.run(mrtrix_cmd, shell=True)
+
+    #################################
+    # SHOULD ALSO HAVE
+
+    # Global tractography
+    # --> In MRtrix, or from the optimization paper
+
+    # SET https://github.com/StongeEtienne/set-nf
+    # --> Needs surface
+
+    # GESTA - DEEP AE https://github.com/scil-vital/tractolearn
+    # --> Not sure how to run, emailed author
+
+    # TRACK-TO-LEARN - DEEP RL https://github.com/scil-vital/TrackToLearn/tree/main
+    # --> Needs fODFs, seeding mask (normal mask whole brain mask dwi2mask or bet BET IN T1 GIVES MASK N SKULL STRIP
+    # THEN DWI TO MASK THEN COMPUTE IOU OF BET MASK AND B0 MASK THEN KNOW EVERYTHIN MATCH), and WM mask (visually
+    # look at wmfod to see if it makes sense as a mask)
+    # Agents used for tracking are constrained by their training regime. For example, the agents provided in 
+    # `example_models` were trained on a volume with a resolution of 2mm iso voxels and a step size of 0.75mm 
+    # using fODFs of order 6, `descoteaux07` basis. When tracking on arbitrary data, the step-size and fODF 
+    # order and basis will be adjusted accordingly automatically. **However**, if using fODFs in the `tournier07` 
+    # (coming from MRtrix, for example), you will need to set the `--sh_basis` argument accordingly.
+
+    # CNN-TRANSFORMER - ALSO ML
+    # --> Don't have code, emailed author
+    
 
 
 # -------------------------------------------------- Folder Paths and Data Checking -------------------------------------------------- #
@@ -61,30 +129,46 @@ def main():
     # --------------- Defining main folders and paths --------------- #
     # Get paths, depending on whether we're in HPC or not
     hpc = False
-    (DWI_MAIN_FOLDER, DWI_OUTPUT_FOLDER, DWI_LOGS_FOLDER, DSI_COMMAND, ATLAS_FOLDER, TRACT_FOLDER, 
-        MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH) = get_main_paths(hpc)
+    (DWI_MAIN_FOLDER, T1_MAIN_FOLDER, DWI_OUTPUT_FOLDER, DSI_COMMAND, ATLAS_FOLDER, 
+     TRACT_FOLDER, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH) = get_main_paths(hpc)
 
     # Check if input folders - if not, exit program
     check_input_folders(DWI_MAIN_FOLDER, "DWI")
+    check_input_folders(T1_MAIN_FOLDER, "T1")
     check_input_folders(ATLAS_FOLDER, "Atlas")
 
     # If output folderes don't exist, create them
     check_output_folders_with_subfolders(DWI_OUTPUT_FOLDER, "DWI output")
-    check_output_folders(DWI_LOGS_FOLDER, "Logs")
     check_output_folders(TRACT_FOLDER, "Tracts")
     check_output_folders(MAIN_STUDIO_PATH, "Studio")
     check_output_folders(MAIN_MRTRIX_PATH, "MRtrix")
+    check_output_folders(MAIN_FSL_PATH, "FSL")
         
     # --------------- Get DWI, BVAL, BVEC from subdirectories --------------- #
     DWI_INPUT_FILES = glob_files(DWI_MAIN_FOLDER, "nii.gz")
+    DWI_JSON_HEADERS = glob_files(DWI_MAIN_FOLDER, "json")
     B_VAL_FILES = glob_files(DWI_MAIN_FOLDER, "bval")
     B_VEC_FILES = glob_files(DWI_MAIN_FOLDER, "bvec")
     
     # If no files are found - exit the program
     check_globbed_files(DWI_INPUT_FILES, "DWI")
+    check_globbed_files(DWI_JSON_HEADERS, "JSON")
     check_globbed_files(B_VAL_FILES, "BVAL")
     check_globbed_files(B_VEC_FILES, "BVEC")
 
+    # --------------- Get T1 from subdirectories --------------- #
+    T1_INPUT_FILES = glob_files(T1_MAIN_FOLDER, "nii")
+    # Clean up the template files
+    T1_INPUT_FILES = list(filter(lambda x: not re.search('Template', x), T1_INPUT_FILES))
+    
+    # If no files are found - exit the program
+    check_globbed_files(T1_INPUT_FILES, "T1")
+
+    # --------------- Create list of DWI and T1 for each subject --------------- #
+    SUBJECT_LISTS = create_subject_list(DWI_INPUT_FILES, DWI_JSON_HEADERS, B_VAL_FILES, 
+                                        B_VEC_FILES, T1_INPUT_FILES)
+    print("SUBJECT_LISTS", SUBJECT_LISTS)
+    
     # --------------- Define what atlases to use --------------- #
     ATLAS_FILES = glob_files(ATLAS_FOLDER, "nii.gz")
     # Exit if no atlases are found
@@ -94,14 +178,22 @@ def main():
     ATLAS_STRING = ",".join(ATLAS_FILES)
 
 
-    # -------------------------------------------------- PEDRO COMMANDS -------------------------------------------------- #
+    # -------------------------------------------------- TRACTOGRAPHY COMMANDS -------------------------------------------------- #
 
     # --------------- DSI STUDIO defining inputs for mapping parallel --------------- #
-    mapping_inputs = list(zip(DWI_INPUT_FILES, B_VAL_FILES, B_VEC_FILES, [ATLAS_FILES[0]]*len(DWI_INPUT_FILES), [ATLAS_STRING]*len(DWI_INPUT_FILES), 
-                              [MAIN_STUDIO_PATH]*len(DWI_INPUT_FILES), [MAIN_MRTRIX_PATH]*len(DWI_INPUT_FILES), [DWI_LOGS_FOLDER]*len(DWI_INPUT_FILES), 
-                              [DSI_COMMAND]*len(DWI_INPUT_FILES)))
+    mapping_inputs = list(zip(SUBJECT_LISTS, B_VAL_FILES, B_VEC_FILES, [ATLAS_FILES[0]]*len(DWI_INPUT_FILES), 
+                              [ATLAS_STRING]*len(DWI_INPUT_FILES), [MAIN_STUDIO_PATH]*len(DWI_INPUT_FILES), [MAIN_MRTRIX_PATH]*len(DWI_INPUT_FILES), 
+                              [MAIN_FSL_PATH]*len(DWI_INPUT_FILES), [DSI_COMMAND]*len(DWI_INPUT_FILES)))
 
     # Use the mapping inputs with starmap to run the parallel processes
+
+    # dwiextract dwi.mif - -bzero | mrmath - mean b0.mif -axis 3
+    # REGISTER T1 TO B0 USING FLIRT
+    # PREPROCESS DWI
+    # DOWNLOAD MRCROW WINDOWS BINARY AND VIEW STUFF - mricroGL
+
+    # REGISTER ATLAS TO DIFFUSION DWI SPACE SO THEY ALIGN
+
     with mp.Pool() as pool:
         print("mapping")
         pool.starmap(parallel_process, list(mapping_inputs))
