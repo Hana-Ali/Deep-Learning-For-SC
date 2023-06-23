@@ -13,7 +13,7 @@ import os
 
 # CHECK HOW TO DO THIS IN PARALLEL - STARMAP OR IMAP
 def parallel_process(SUBJECT_FILES, ATLAS, ATLAS_STRING, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH, 
-                     DSI_COMMAND):
+                        DSI_COMMAND):
 
     # Define the stripped paths indices
     STRIPPED_INDEX = 0
@@ -50,16 +50,16 @@ def parallel_process(SUBJECT_FILES, ATLAS, ATLAS_STRING, MAIN_STUDIO_PATH, MAIN_
     CLEAN_FILES = [CLEAN_DWI_PATH, CLEAN_BVAL_FILEPATH, CLEAN_BVEC_FILEPATH]
 
     # # --------------- DSI STUDIO reconstruction commands --------------- #
-    # Define needed arguments array
-    ARGS_STUDIO = [
-        SUBJECT_FILES,
-        CLEAN_FILES,
-        MAIN_STUDIO_PATH,
-        DSI_COMMAND,
-        ATLAS_STRING
-    ]
-    # Get the studio commands array
-    STUDIO_COMMANDS = define_studio_commands(ARGS_STUDIO)
+    # # Define needed arguments array
+    # ARGS_STUDIO = [
+    #     SUBJECT_FILES,
+    #     CLEAN_FILES,
+    #     MAIN_STUDIO_PATH,
+    #     DSI_COMMAND,
+    #     ATLAS_STRING
+    # ]
+    # # Get the studio commands array
+    # STUDIO_COMMANDS = define_studio_commands(ARGS_STUDIO)
 
     # # --------------- MRTRIX reconstruction commands --------------- #
     # Define needed arguments array
@@ -71,7 +71,7 @@ def parallel_process(SUBJECT_FILES, ATLAS, ATLAS_STRING, MAIN_STUDIO_PATH, MAIN_
         ATLAS
     ]
     # Get the mrtrix commands array
-    MRTRIX_COMMANDS = define_mrtrix_prob_commands(ARGS_MRTRIX)
+    MRTRIX_COMMANDS = probabilistic_tractography(ARGS_MRTRIX)
 
     # --------------- Calling subprocesses commands --------------- #
     # Stripping T1
@@ -85,9 +85,9 @@ def parallel_process(SUBJECT_FILES, ATLAS, ATLAS_STRING, MAIN_STUDIO_PATH, MAIN_
         subprocess.run(mrtrix_cmd, shell=True)
 
     # Deterministic tractography
-    for (dsi_cmd, cmd_name) in STUDIO_COMMANDS:
-        print("Started {} - {}".format(cmd_name, dwi_filename))
-        subprocess.run(dsi_cmd, shell=True)
+    # for (dsi_cmd, cmd_name) in STUDIO_COMMANDS:
+    #     print("Started {} - {}".format(cmd_name, dwi_filename))
+    #     subprocess.run(dsi_cmd, shell=True)
 
     # Probabilistic tractography
     for (mrtrix_cmd, cmd_name) in MRTRIX_COMMANDS:

@@ -84,6 +84,12 @@ def check_output_folders(folder, name):
                 os.remove(file)
             print("Content deleted. Continuing...")
 
+# Function to check output folders without wiping
+def check_output_folders_nowipe(folder, name):
+    if not os.path.exists(folder):
+        print("--- {} folder not found. Created folder: {}".format(name, folder))
+        os.makedirs(folder)
+
 # Retrieve (GLOB) files
 def glob_files(PATH_NAME, file_format):
     INPUT_FILES = []
@@ -421,36 +427,69 @@ def define_studio_commands(ARGS):
     # Return the commands array
     return STUDIO_COMMANDS
 
-# Get the MRTRIX file paths
-def get_mrtrix_recon_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, ATLAS):
+# Define MRTRIX folder paths
+def main_mrtrix_folder_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH):
 
     # Extract what we need here from the needed file paths
     dwi_filename = NEEDED_FILE_PATHS["filename"]
 
     # Creating folder for each subject in MRTRIX folder. DON'T WIPE as it'll be used by other functions
     SUBJECT_FOLDER_NAME = os.path.join(MAIN_MRTRIX_PATH, dwi_filename)
-    if not os.path.exists(SUBJECT_FOLDER_NAME):
-        print("--- MRtrix subject folder not found. Created folder: {}".format(SUBJECT_FOLDER_NAME))
-        os.makedirs(SUBJECT_FOLDER_NAME)
+    check_output_folders_nowipe(SUBJECT_FOLDER_NAME, "MRtrix subject folder")
     
-    # Creating folder for cleaning in MRTRIX folder. WIPE since this is the only function that uses it
+    # Creating folder for cleaning in MRTRIX folder. DON'T WIPE as it'll be used by other functions
     RECON_FOLDER_NAME = os.path.join(SUBJECT_FOLDER_NAME, "reconstruction")
-    check_output_folders(RECON_FOLDER_NAME, "MRtrix reconstruction folder")
+    check_output_folders_nowipe(RECON_FOLDER_NAME, "MRtrix reconstruction folder")
 
-    # Because there's a lot of commands, we define extra folder paths here
+    # Because there's a lot of commands, we define extra folder paths here. DON'T WIPE as it'll be used by other functions
     RESPONSE_FOLDER_NAME = os.path.join(RECON_FOLDER_NAME, "response")
     FOD_FOLDER_NAME = os.path.join(RECON_FOLDER_NAME, "fod")
     FOD_NORM_FOLDER_NAME = os.path.join(RECON_FOLDER_NAME, "fod_norm")
     T1_REG_FOLDER_NAME = os.path.join(RECON_FOLDER_NAME, "t1_and_Fivett_reg")
-    TRACKING_FOLDER_NAME = os.path.join(RECON_FOLDER_NAME, "tracking")
-    check_output_folders(RESPONSE_FOLDER_NAME, "MRtrix response folder")
-    check_output_folders(FOD_FOLDER_NAME, "MRtrix fod folder")
-    check_output_folders(FOD_NORM_FOLDER_NAME, "MRtrix fod norm folder")
-    check_output_folders(T1_REG_FOLDER_NAME, "MRtrix t1 and Fivett reg folder")
-    check_output_folders(TRACKING_FOLDER_NAME, "MRtrix tracking folder")
+    ATLAS_REG_FOLDER_NAME = os.path.join(RECON_FOLDER_NAME, "atlas_reg")
+    PROB_TRACKING_FOLDER_NAME = os.path.join(RECON_FOLDER_NAME, "prob_tracking")
+    GLOBAL_TRACKING_FOLDER_NAME = os.path.join(RECON_FOLDER_NAME, "global_tracking")
+    CONNECTIVITY_FOLDER_NAME = os.path.join(RECON_FOLDER_NAME, "connectivity")
+    check_output_folders_nowipe(RESPONSE_FOLDER_NAME, "MRtrix response folder")
+    check_output_folders_nowipe(FOD_FOLDER_NAME, "MRtrix fod folder")
+    check_output_folders_nowipe(FOD_NORM_FOLDER_NAME, "MRtrix fod norm folder")
+    check_output_folders_nowipe(T1_REG_FOLDER_NAME, "MRtrix t1 and Fivett reg folder")
+    check_output_folders_nowipe(PROB_TRACKING_FOLDER_NAME, "MRtrix probabilistic tracking folder")
+    check_output_folders_nowipe(GLOBAL_TRACKING_FOLDER_NAME, "MRtrix global tracking folder")
+    check_output_folders_nowipe(CONNECTIVITY_FOLDER_NAME, "MRtrix connectivity folder")
+
+    # Return the paths
+    return (SUBJECT_FOLDER_NAME, RECON_FOLDER_NAME, RESPONSE_FOLDER_NAME, FOD_FOLDER_NAME, FOD_NORM_FOLDER_NAME,
+                T1_REG_FOLDER_NAME, ATLAS_REG_FOLDER_NAME, PROB_TRACKING_FOLDER_NAME, GLOBAL_TRACKING_FOLDER_NAME,
+                    CONNECTIVITY_FOLDER_NAME)
+
+# Define MRtrix general paths
+def get_mrtrix_general_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH):
+
+    # Extract what we need here from the needed file paths
+    dwi_filename = NEEDED_FILE_PATHS["filename"]
     
+    # Get the folder names
+    (_, RECON_FOLDER_NAME, _, _, _, _, _, _, _, _) = main_mrtrix_folder_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
+
     # DWI nii -> mif filepath
     INPUT_MIF_PATH = os.path.join(RECON_FOLDER_NAME, "{}_recon_input".format(dwi_filename))
+    # Path of the brain mask
+    MASK_MIF_PATH = os.path.join(RECON_FOLDER_NAME, "{}_mask".format(dwi_filename))
+
+    # Return the paths
+    return (INPUT_MIF_PATH, MASK_MIF_PATH)
+    
+# Define MRTrix FOD paths
+def get_mrtrix_fod_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH):
+
+    # Extract what we need here from the needed file paths
+    dwi_filename = NEEDED_FILE_PATHS["filename"]
+    
+    # Get the folder names
+    (_, _, RESPONSE_FOLDER_NAME, FOD_FOLDER_NAME, FOD_NORM_FOLDER_NAME, _, 
+        _, _, _, _) = main_mrtrix_folder_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
+
     # Finding the response function paths
     RESPONSE_WM_PATH = os.path.join(RESPONSE_FOLDER_NAME, "{}_wm".format(dwi_filename))
     RESPONSE_GM_PATH = os.path.join(RESPONSE_FOLDER_NAME, "{}_gm".format(dwi_filename))
@@ -465,60 +504,22 @@ def get_mrtrix_recon_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, ATLAS):
     WM_FOD_NORM_PATH = os.path.join(FOD_NORM_FOLDER_NAME, "{}_wmfod_norm".format(dwi_filename))
     GM_FOD_NORM_PATH = os.path.join(FOD_NORM_FOLDER_NAME, "{}_gmfod_norm".format(dwi_filename))
     CSF_FOD_NORM_PATH = os.path.join(FOD_NORM_FOLDER_NAME, "{}_csffod_norm".format(dwi_filename))
-    # Path of the brain mask
-    MASK_MIF_PATH = os.path.join(T1_REG_FOLDER_NAME, "{}_mask".format(dwi_filename))
-    # T1 nii -> mif filepath
-    T1_MIF_PATH = os.path.join(T1_REG_FOLDER_NAME, "{}_t1".format(dwi_filename))
-    # 5ttgen without coregistration filepath
-    FIVETT_GEN_PATH = os.path.join(T1_REG_FOLDER_NAME, "{}_5ttgen".format(dwi_filename))
-    # Mean B0 of DWI filepath
-    DWI_B0_PATH = os.path.join(T1_REG_FOLDER_NAME, "{}_b0".format(dwi_filename))
-    # Mean B0 mif -> nii filepath
-    DWI_B0_NII = os.path.join(T1_REG_FOLDER_NAME, "{}_b0.nii.gz".format(dwi_filename))
-    # 5ttgen mif -> nii filepath
-    FIVETT_GEN_NII = os.path.join(T1_REG_FOLDER_NAME, "{}_5ttgen.nii.gz".format(dwi_filename))
-    # Registerting and transforming T1 to DWI space paths
-    T1_DWI_MAP_MAT = os.path.join(T1_REG_FOLDER_NAME, "{}_t12dwi_fsl".format(dwi_filename))
-    T1_DWI_CONVERT_INV = os.path.join(T1_REG_FOLDER_NAME, "{}_t12dwi_mrtrix".format(dwi_filename))
-    FIVETT_REG_PATH = os.path.join(T1_REG_FOLDER_NAME, "{}_5ttgenreg".format(dwi_filename))
-    # Mask for streamline seeding paths
-    GM_WM_SEED_PATH = os.path.join(TRACKING_FOLDER_NAME, "{}_gmwmseed".format(dwi_filename))
-    # Fiber tracking path
-    TRACT_TCK_PATH = os.path.join(TRACKING_FOLDER_NAME, "{}_tract".format(dwi_filename))
-    # Connectivity matrix paths
-    ATLAS_DWI_MAP_MAT = os.path.join(TRACKING_FOLDER_NAME, "{}_atlas2dwi_fsl".format(dwi_filename))
-    ATLAS_DWI_CONVERT_INV = os.path.join(TRACKING_FOLDER_NAME, "{}_atlas2dwi_mrtrix".format(dwi_filename))
-    ATLAS_REG_PATH = os.path.join(TRACKING_FOLDER_NAME, "{}_atlasreg".format(dwi_filename))
-    # Getting the name of the atlas without .nii.gz
-    ATLAS_NAME = ATLAS.split("/")[-1].split(".")[0].split("_")[0]
-    ATLAS_MIF_PATH = os.path.join(TRACKING_FOLDER_NAME, "{}_atlas_mif".format(ATLAS_NAME))
-    # Connectivity matrix path
-    CONNECTIVITY_PATH = os.path.join(TRACKING_FOLDER_NAME, "{}_connectivity".format(dwi_filename))
+    
+    # Return the paths
+    return (RESPONSE_WM_PATH, RESPONSE_GM_PATH, RESPONSE_CSF_PATH, RESPONSE_VOXEL_PATH,
+                WM_FOD_PATH, GM_FOD_PATH, CSF_FOD_PATH, VF_FOD_PATH, WM_FOD_NORM_PATH, GM_FOD_NORM_PATH, CSF_FOD_NORM_PATH)
 
-    return (INPUT_MIF_PATH, RESPONSE_WM_PATH, RESPONSE_GM_PATH, RESPONSE_CSF_PATH, RESPONSE_VOXEL_PATH, WM_FOD_PATH,
-            GM_FOD_PATH, CSF_FOD_PATH, VF_FOD_PATH, WM_FOD_NORM_PATH, GM_FOD_NORM_PATH, CSF_FOD_NORM_PATH,
-            MASK_MIF_PATH, T1_MIF_PATH, FIVETT_GEN_PATH, DWI_B0_PATH, DWI_B0_NII, FIVETT_GEN_NII, T1_DWI_MAP_MAT,
-            T1_DWI_CONVERT_INV, FIVETT_REG_PATH, GM_WM_SEED_PATH, TRACT_TCK_PATH, ATLAS_DWI_MAP_MAT, ATLAS_DWI_CONVERT_INV,
-            ATLAS_REG_PATH, ATLAS_MIF_PATH, CONNECTIVITY_PATH)
+# Define MRtrix FOD commands
+def define_mrtrix_fod_commands(ARGS):
 
-# Define MRTRIX commands
-def define_mrtrix_prob_commands(ARGS):
     # Extract arguments needed to define paths
     SUBJECT_FILES = ARGS[0]
     CLEAN_FILES = ARGS[1]
     MAIN_MRTRIX_PATH = ARGS[2]
-    STRIPPED_T1_PATH = ARGS[3]
-    ATLAS = ARGS[4]
 
     # Define what's needed for DSI STUDIO and extract them from subject files
-    CLEANING_NEEDED = ["filename", "dwi", "bval", "bvec"]
-    NEEDED_FILE_PATHS = get_filename(SUBJECT_FILES, CLEANING_NEEDED)
-
-    # Extract what we need here from the needed file paths
-    dwi_filename = NEEDED_FILE_PATHS["filename"]
-    dwi = NEEDED_FILE_PATHS["dwi"]
-    bval = NEEDED_FILE_PATHS["bval"]
-    bvec = NEEDED_FILE_PATHS["bvec"]
+    FILES_NEEDED = ["filename", "dwi", "bval", "bvec"]
+    NEEDED_FILE_PATHS = get_filename(SUBJECT_FILES, FILES_NEEDED)
 
     # Extract the clean files
     CLEAN_DWI_PATH = CLEAN_FILES[0]
@@ -526,11 +527,12 @@ def define_mrtrix_prob_commands(ARGS):
     CLEAN_BVEC_FILEPATH = CLEAN_FILES[2]
 
     # Get the rest of the paths for the commands
-    (INPUT_MIF_PATH, RESPONSE_WM_PATH, RESPONSE_GM_PATH, RESPONSE_CSF_PATH, RESPONSE_VOXEL_PATH, WM_FOD_PATH,
-    GM_FOD_PATH, CSF_FOD_PATH, VF_FOD_PATH, WM_FOD_NORM_PATH, GM_FOD_NORM_PATH, CSF_FOD_NORM_PATH,
-    MASK_MIF_PATH, T1_MIF_PATH, FIVETT_GEN_PATH, DWI_B0_PATH, DWI_B0_NII, FIVETT_GEN_NII, T1_DWI_MAP_MAT,
-    T1_DWI_CONVERT_INV, FIVETT_REG_PATH, GM_WM_SEED_PATH, TRACT_TCK_PATH, ATLAS_DWI_MAP_MAT, ATLAS_DWI_CONVERT_INV,
-    ATLAS_REG_PATH, ATLAS_MIF_PATH, CONNECTIVITY_PATH) = get_mrtrix_recon_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, ATLAS)
+    (INPUT_MIF_PATH, MASK_MIF_PATH) = get_mrtrix_general_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
+    # Get the fod paths
+    (RESPONSE_WM_PATH, RESPONSE_GM_PATH, RESPONSE_CSF_PATH, RESPONSE_VOXEL_PATH,
+        WM_FOD_PATH, GM_FOD_PATH, CSF_FOD_PATH, VF_FOD_PATH, WM_FOD_NORM_PATH, GM_FOD_NORM_PATH, 
+            CSF_FOD_NORM_PATH) = get_mrtrix_fod_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
+
 
     # DWI nii -> mif command
     MIF_CMD = "mrconvert {input_nii} -fslgrad {bvec} {bval} {output}.mif".format(input_nii=CLEAN_DWI_PATH, 
@@ -561,32 +563,77 @@ def define_mrtrix_prob_commands(ARGS):
     VIEW_NORMALIZED_FODS_CMD = "mrview {vf}.mif -odf.load_sh {wmfod_norm}.mif".format(vf=VF_FOD_PATH,
                                                                                       wmfod_norm=WM_FOD_NORM_PATH)
     
+    # Return the commands
+    return (MIF_CMD, MASK_CMD, RESPONSE_EST_CMD, VIEW_RESPONSE_CMD, MULTISHELL_CSD_CMD, COMBINE_FODS_CMD,
+                VIEW_COMBINED_FODS_CMD, NORMALIZE_FODS_CMD, VIEW_NORMALIZED_FODS_CMD)
+
+# Define MRtrix Registration paths
+def get_mrtrix_registration_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, ATLAS):
+
+    # Extract what we need here from the needed file paths
+    dwi_filename = NEEDED_FILE_PATHS["filename"]
+    
+    # Get the folder names
+    (_, _, _, _, _, T1_REG_FOLDER_NAME, ATLAS_REG_PATH, _, _, _) = main_mrtrix_folder_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
+
+    # Convert T1 nii to mif, then create 5ttgen, register/map it to the B0 space of DWI, then convert back to nii
+    T1_MIF_PATH = os.path.join(T1_REG_FOLDER_NAME, "{}_t1".format(dwi_filename))
+    FIVETT_NOREG_PATH = os.path.join(T1_REG_FOLDER_NAME, "{}_5ttgen".format(dwi_filename))
+    DWI_B0_PATH = os.path.join(T1_REG_FOLDER_NAME, "{}_b0".format(dwi_filename))
+    DWI_B0_NII = os.path.join(T1_REG_FOLDER_NAME, "{}_b0.nii.gz".format(dwi_filename))
+    FIVETT_GEN_NII = os.path.join(T1_REG_FOLDER_NAME, "{}_5ttgen.nii.gz".format(dwi_filename))
+    T1_DWI_MAP_MAT = os.path.join(T1_REG_FOLDER_NAME, "{}_t12dwi_fsl".format(dwi_filename))
+    T1_DWI_CONVERT_INV = os.path.join(T1_REG_FOLDER_NAME, "{}_t12dwi_mrtrix".format(dwi_filename))
+    FIVETT_REG_PATH = os.path.join(T1_REG_FOLDER_NAME, "{}_5ttgenreg".format(dwi_filename))
+    # Convert atlas nii to mif, then register/map it to the B0 space of DWI
+    ATLAS_DWI_MAP_MAT = os.path.join(ATLAS_REG_PATH, "{}_atlas2dwi_fsl".format(dwi_filename))
+    ATLAS_DWI_CONVERT_INV = os.path.join(ATLAS_REG_PATH, "{}_atlas2dwi_mrtrix".format(dwi_filename))
+    ATLAS_REG_PATH = os.path.join(ATLAS_REG_PATH, "{}_atlasreg".format(dwi_filename))
+    # Getting the name of the atlas without .nii.gz
+    ATLAS_NAME = ATLAS.split("/")[-1].split(".")[0].split("_")[0]
+    ATLAS_MIF_PATH = os.path.join(ATLAS_REG_PATH, "{}_atlas_mif".format(ATLAS_NAME))
+
+    # Return the paths
+    return (T1_MIF_PATH, FIVETT_NOREG_PATH, DWI_B0_PATH, DWI_B0_NII, FIVETT_GEN_NII, T1_DWI_MAP_MAT,
+                T1_DWI_CONVERT_INV, FIVETT_REG_PATH, ATLAS_DWI_MAP_MAT, ATLAS_DWI_CONVERT_INV, ATLAS_REG_PATH, ATLAS_MIF_PATH)
+
+# Define MRtrix Registration commands
+def define_mrtrix_registration_commands(ARGS):
+
+    # Extract arguments needed to define paths
+    SUBJECT_FILES = ARGS[0]
+    MAIN_MRTRIX_PATH = ARGS[1]
+    STRIPPED_T1_PATH = ARGS[2]
+    ATLAS = ARGS[3]
+
+    # Define what's needed for DSI STUDIO and extract them from subject files
+    FILES_NEEDED = ["filename", "dwi", "bval", "bvec"]
+    NEEDED_FILE_PATHS = get_filename(SUBJECT_FILES, FILES_NEEDED)
+
+    # Get the rest of the paths for the commands
+    (INPUT_MIF_PATH, _) = get_mrtrix_general_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
+    # Get the registration paths
+    (T1_MIF_PATH, FIVETT_NOREG_PATH, DWI_B0_PATH, DWI_B0_NII, FIVETT_GEN_NII, T1_DWI_MAP_MAT,
+        T1_DWI_CONVERT_INV, FIVETT_REG_PATH, ATLAS_DWI_MAP_MAT, ATLAS_DWI_CONVERT_INV, ATLAS_REG_PATH, 
+            ATLAS_MIF_PATH) = get_mrtrix_registration_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, ATLAS)
+
     # T1 nii -> mif command
     MIF_T1_CMD = "mrconvert {input_nii} {output}.mif".format(input_nii=STRIPPED_T1_PATH, output=T1_MIF_PATH)
     # 5ttgen creation with no registration command
-    FIVETT_GEN_CMD = "5ttgen fsl {input}.mif {output}.mif".format(input=T1_MIF_PATH, output=FIVETT_GEN_PATH)
-    # Extracting the mean B0 from DWI command
+    FIVETT_NOREG_CMD = "5ttgen fsl {input}.mif {output}.mif".format(input=T1_MIF_PATH, output=FIVETT_NOREG_PATH)
+    # Extracting mean B0 and transforming to NII command
     DWI_B0_CMD = "dwiextract {input}.mif - -bzero | mrmath - mean {output}.mif -axis 3".format(
         input=INPUT_MIF_PATH, output=DWI_B0_PATH)
-    # Mean B0 and 5ttgen mif -> nii conversion command
     DWI_B0_NII_CMD = "mrconvert {input}.mif {output}".format(input=DWI_B0_PATH, output=DWI_B0_NII)
-    FIVETT_GEN_NII_CMD = "mrconvert {input}.mif {output}".format(input=FIVETT_GEN_PATH, output=FIVETT_GEN_NII)
+    FIVETT_GEN_NII_CMD = "mrconvert {input}.mif {output}".format(input=FIVETT_NOREG_PATH, output=FIVETT_GEN_NII)
     # Transformation and registration of T1 to DWI space commands
     REGISTER_T1_DWI_CMD = "flirt -in {dwi} -ref {fivett} -interp nearestneighbour -dof 6 -omat {transform_mat}.mat".format(
         dwi=DWI_B0_NII, fivett=FIVETT_GEN_NII, transform_mat=T1_DWI_MAP_MAT)
     TRANSFORMATION_T1_DWI_CMD = "transformconvert {transform_mat}.mat {dwi} {fivett} flirt_import {output}.txt".format(
         transform_mat=T1_DWI_MAP_MAT, dwi=DWI_B0_NII, fivett=FIVETT_GEN_NII, output=T1_DWI_CONVERT_INV)
     FINAL_TRANSFORM_CMD = "mrtransform {fivett}.mif -linear {transform}.txt -inverse {output}.mif".format(
-        fivett=FIVETT_GEN_PATH, transform=T1_DWI_CONVERT_INV, output=FIVETT_REG_PATH)
-
-    # Preparing mask for streamline seeding command
-    MASK_SEEDING_CMD = "5tt2gmwmi {fivett_reg}.mif {output}.mif".format(fivett_reg=FIVETT_REG_PATH, output=GM_WM_SEED_PATH)
-    # Probabilistic tractography command
-    PROB_TRACT_CMD = "tckgen -act {fivett_reg}.mif -backtrack -seed_gmwmi {gmwm_seed}.mif -select 300000 \
-          {wmfod_norm}.mif {output}.tck -algorithm iFOD2 -force".format( fivett_reg=FIVETT_REG_PATH, gmwm_seed=GM_WM_SEED_PATH,
-        wmfod_norm=WM_FOD_NORM_PATH, output=TRACT_TCK_PATH)
-
-    # Converting the atlas to the DWI space to be used for connectome generation
+        fivett=FIVETT_NOREG_PATH, transform=T1_DWI_CONVERT_INV, output=FIVETT_REG_PATH)
+    # Transformation and registration of atlas to DWI space (to be used for connectome generation)
     REGISTER_ATLAS_DWI_CMD = "flirt -in {dwi} -ref {atlas} -interp nearestneighbour -dof 6 -omat {transform_mat}.mat".format(
         dwi=DWI_B0_NII, atlas=ATLAS, transform_mat=ATLAS_DWI_MAP_MAT)
     TRANSFORMATION_ATLAS_DWI_CMD = "transformconvert {transform_mat}.mat {dwi} {atlas} flirt_import {output}.txt".format(
@@ -595,21 +642,137 @@ def define_mrtrix_prob_commands(ARGS):
     FINAL_ATLAS_TRANSFORM_CMD = "mrtransform {atlas}.mif -linear {transform}.txt -inverse {output}.mif".format(
         atlas=ATLAS_MIF_PATH, transform=ATLAS_DWI_CONVERT_INV, output=ATLAS_REG_PATH)
     
+    # Return the commands
+    return (MIF_T1_CMD, FIVETT_NOREG_CMD, DWI_B0_CMD, DWI_B0_NII_CMD, FIVETT_GEN_NII_CMD, REGISTER_T1_DWI_CMD,
+                TRANSFORMATION_T1_DWI_CMD, FINAL_TRANSFORM_CMD, REGISTER_ATLAS_DWI_CMD, TRANSFORMATION_ATLAS_DWI_CMD,
+                    ATLAS_MIF_CMD, FINAL_ATLAS_TRANSFORM_CMD)
+
+# Define MRtrix probabilistic tracking paths
+def get_mrtrix_probtrack_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH):
+
+    # Extract what we need here from the needed file paths
+    dwi_filename = NEEDED_FILE_PATHS["filename"]
+    
+    # Get the folder names
+    (_, _, _, _, _, _, _, PROB_TRACKING_FOLDER_NAME, _, _) = main_mrtrix_folder_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
+
+    # Mask for streamline seeding paths and probabilistic tractography path
+    GM_WM_SEED_PATH = os.path.join(PROB_TRACKING_FOLDER_NAME, "{}_gmwmseed".format(dwi_filename))
+    TRACT_TCK_PATH = os.path.join(PROB_TRACKING_FOLDER_NAME, "{}_tract".format(dwi_filename))
+
+    # Return the paths
+    return (GM_WM_SEED_PATH, TRACT_TCK_PATH)
+
+# Define MRtrix probabilistic tracking commands
+def define_mrtrix_probtrack_commands(ARGS):
+    
+    # Extract arguments needed to define paths
+    SUBJECT_FILES = ARGS[0]
+    MAIN_MRTRIX_PATH = ARGS[1]
+    ATLAS = ARGS[2]
+
+    # Define what's needed for to extract from subject files
+    FILES_NEEDED = ["filename", "dwi", "bval", "bvec"]
+    NEEDED_FILE_PATHS = get_filename(SUBJECT_FILES, FILES_NEEDED)
+
+    # Get the registration paths
+    (_, _, _, _, _, _, _, FIVETT_REG_PATH, _, _, _, 
+        _) = get_mrtrix_registration_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, ATLAS)
+    # Get the fod paths
+    (_, _, _, _, _, _, _, _, WM_FOD_NORM_PATH, _, _) = get_mrtrix_fod_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
+    # Get the probabilistic tracking paths
+    (GM_WM_SEED_PATH, TRACT_TCK_PATH) = get_mrtrix_probtrack_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
+    
+    # Preparing mask for streamline seeding command
+    GM_WM_SEED_CMD = "5tt2gmwmi {fivett_reg}.mif {output}.mif".format(fivett_reg=FIVETT_REG_PATH, output=GM_WM_SEED_PATH)
+    # Probabilistic tractography command
+    PROB_TRACT_CMD = "tckgen -act {fivett_reg}.mif -backtrack -seed_gmwmi {gmwm_seed}.mif -select 300000 \
+        {wmfod_norm}.mif {output}.tck -algorithm iFOD2 -force".format(fivett_reg=FIVETT_REG_PATH, gmwm_seed=GM_WM_SEED_PATH,
+            wmfod_norm=WM_FOD_NORM_PATH, output=TRACT_TCK_PATH)
+
+    # Return the commands
+    return (GM_WM_SEED_CMD, PROB_TRACT_CMD)
+
+# Define MRtrix global tracking paths
+
+# Define MRtrix connectome paths
+def get_mrtrix_connectome_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH):
+
+    # Extract what we need here from the needed file paths
+    dwi_filename = NEEDED_FILE_PATHS["filename"]
+
+    # Get the folder names
+    (_, _, _, _, _, _, _, _, _, CONNECTIVITY_FOLDER_NAME) = main_mrtrix_folder_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
+
+    # Connectivity matrix path
+    CONNECTIVITY_PATH = os.path.join(CONNECTIVITY_FOLDER_NAME, "{}_connectivity".format(dwi_filename))
+
+    # Return the paths
+    return (CONNECTIVITY_PATH)
+
+# Define MRtrix connectome commands
+def define_mrtrix_connectome_commands(ARGS):
+    
+    # Extract arguments needed to define paths
+    SUBJECT_FILES = ARGS[0]
+    MAIN_MRTRIX_PATH = ARGS[1]
+    ATLAS = ARGS[2]
+
+    # Define what's needed for to extract from subject files
+    FILES_NEEDED = ["filename", "dwi", "bval", "bvec"]
+    NEEDED_FILE_PATHS = get_filename(SUBJECT_FILES, FILES_NEEDED)
+
+    # Get the registration paths
+    (_, _, _, _, _, _, _, _, _, _, ATLAS_REG_PATH, 
+        _) = get_mrtrix_registration_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, ATLAS)
+    # Get the probabilistic tracking paths
+    (GM_WM_SEED_PATH, TRACT_TCK_PATH) = get_mrtrix_probtrack_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
+    # Get the connectivity paths
+    (CONNECTIVITY_PATH) = get_mrtrix_connectome_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
+    
     # Connectivity matrix command
     CONNECTIVITY_CMD = "tck2connectome {input}.tck {atlas}.mif {output}.csv -zero_diagonal -symmetric \
-        -assignment_all_voxels -force".format(
-        input=TRACT_TCK_PATH, output=CONNECTIVITY_PATH, atlas=ATLAS_REG_PATH)
+        -assignment_all_voxels -force".format(input=TRACT_TCK_PATH, output=CONNECTIVITY_PATH, atlas=ATLAS_REG_PATH)
     
+    # Return the commands
+    return (CONNECTIVITY_CMD)
+
+# Define MRTRIX commands
+def probabilistic_tractography(ARGS):
+    # Extract arguments needed to define paths
+    SUBJECT_FILES = ARGS[0]
+    CLEAN_FILES = ARGS[1]
+    MAIN_MRTRIX_PATH = ARGS[2]
+    STRIPPED_T1_PATH = ARGS[3]
+    ATLAS = ARGS[4]
+
+    # Define the FOD commands
+    FOD_ARGS = [SUBJECT_FILES, CLEAN_FILES, MAIN_MRTRIX_PATH]
+    (MIF_CMD, MASK_CMD, RESPONSE_EST_CMD, _, MULTISHELL_CSD_CMD, COMBINE_FODS_CMD,
+        _, NORMALIZE_FODS_CMD, _) = define_mrtrix_fod_commands(FOD_ARGS)
+    # Define the registration commands
+    REG_ARGS = [SUBJECT_FILES, MAIN_MRTRIX_PATH, STRIPPED_T1_PATH, ATLAS]
+    (MIF_T1_CMD, FIVETT_NOREG_CMD, DWI_B0_CMD, DWI_B0_NII_CMD, FIVETT_GEN_NII_CMD, REGISTER_T1_DWI_CMD,
+        TRANSFORMATION_T1_DWI_CMD, FINAL_TRANSFORM_CMD, REGISTER_ATLAS_DWI_CMD, TRANSFORMATION_ATLAS_DWI_CMD,
+            ATLAS_MIF_CMD, FINAL_ATLAS_TRANSFORM_CMD) = define_mrtrix_registration_commands(REG_ARGS)
+    # Define the probabilistic tracking commands
+    PROB_ARGS = [SUBJECT_FILES, MAIN_MRTRIX_PATH, ATLAS]
+    (GM_WM_SEED_CMD, PROB_TRACT_CMD) = define_mrtrix_probtrack_commands(PROB_ARGS)
+    # Define the connectome commands
+    CONNECTOME_ARGS = [SUBJECT_FILES, MAIN_MRTRIX_PATH, ATLAS]
+    (CONNECTIVITY_CMD) = define_mrtrix_connectome_commands(CONNECTOME_ARGS)
+
+
     # Create commands array
     MRTRIX_COMMANDS = [(MIF_CMD, "Conversion NifTI -> MIF"), (MASK_CMD, "Brain mask creation"),
                        (RESPONSE_EST_CMD, "Response estimation"),
                        (MULTISHELL_CSD_CMD, "Spherical deconvolution"), (COMBINE_FODS_CMD, "Combining fODs"),
                        (NORMALIZE_FODS_CMD, "Normalizing fODs"),
                        (MIF_T1_CMD, "Conversion T1 NifTI -> MIF"),
-                       (FIVETT_GEN_CMD, "5ttgen"), (DWI_B0_CMD, "Extracting mean B0 from DWI"),
+                       (FIVETT_NOREG_CMD, "5ttgen"), (DWI_B0_CMD, "Extracting mean B0 from DWI"),
                        (DWI_B0_NII_CMD, "Conversion mean B0 MIF -> NifTI"), (FIVETT_GEN_NII_CMD, "Conversion 5ttgen MIF -> NifTI"),
                        (REGISTER_T1_DWI_CMD, "Registering T1 to DWI space"), (TRANSFORMATION_T1_DWI_CMD, "Transformation T1 to DWI space"),
-                       (FINAL_TRANSFORM_CMD, "Final transformation"), (MASK_SEEDING_CMD, "Preparing mask for streamline seeding"),
+                       (FINAL_TRANSFORM_CMD, "Final transformation"), (GM_WM_SEED_CMD, "Preparing GM-WM mask for streamline seeding"),
                        (PROB_TRACT_CMD, "Probabilistic tractography"), (REGISTER_ATLAS_DWI_CMD, "Registering atlas to DWI space"),
                        (TRANSFORMATION_ATLAS_DWI_CMD, "Transformation atlas to DWI space"), (ATLAS_MIF_CMD, "Conversion atlas NifTI -> MIF"),
                        (FINAL_ATLAS_TRANSFORM_CMD, "Final atlas transformation"),
