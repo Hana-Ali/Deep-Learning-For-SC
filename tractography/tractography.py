@@ -50,45 +50,51 @@ def parallel_process(SUBJECT_FILES, ATLAS, ATLAS_STRING, MAIN_STUDIO_PATH, MAIN_
     CLEAN_FILES = [CLEAN_DWI_PATH, CLEAN_BVAL_FILEPATH, CLEAN_BVEC_FILEPATH]
 
     # # --------------- DSI STUDIO reconstruction commands --------------- #
-    # # Define needed arguments array
-    # ARGS_STUDIO = [
-    #     SUBJECT_FILES,
-    #     CLEAN_FILES,
-    #     MAIN_STUDIO_PATH,
-    #     DSI_COMMAND,
-    #     ATLAS_STRING
-    # ]
-    # # Get the studio commands array
-    # STUDIO_COMMANDS = define_studio_commands(ARGS_STUDIO)
+    # Define needed arguments array
+    ARGS_STUDIO = [
+        SUBJECT_FILES,
+        CLEAN_FILES,
+        MAIN_STUDIO_PATH,
+        DSI_COMMAND,
+        ATLAS_STRING
+    ]
+    # Get the studio commands array
+    STUDIO_COMMANDS = define_studio_commands(ARGS_STUDIO)
 
     # # --------------- MRTRIX reconstruction commands --------------- #
-    # # Define needed arguments array
-    # ARGS_MRTRIX = [
-    #     SUBJECT_FILES,
-    #     CLEAN_FILES,
-    #     MAIN_MRTRIX_PATH,
-    #     STRIPPED_PATHS[STRIPPED_INDEX],
-    #     ATLAS
-    # ]
-    # # Get the mrtrix commands array
-    # MRTRIX_COMMANDS = define_mrtrix_recon_commands(ARGS_MRTRIX)
+    # Define needed arguments array
+    ARGS_MRTRIX = [
+        SUBJECT_FILES,
+        CLEAN_FILES,
+        MAIN_MRTRIX_PATH,
+        STRIPPED_PATHS[STRIPPED_INDEX],
+        ATLAS
+    ]
+    # Get the mrtrix commands array
+    MRTRIX_COMMANDS = define_mrtrix_prob_commands(ARGS_MRTRIX)
 
     # --------------- Calling subprocesses commands --------------- #
+    # Stripping T1
     for (bet_cmd, cmd_name) in BET_COMMANDS:
         print("Started {} - {}".format(cmd_name, t1_filename))
         subprocess.run(bet_cmd, shell=True)
 
+    # Preprocessing and cleaning DWI
     for (mrtrix_cmd, cmd_name) in MRTRIX_CLEAN_COMMANDS:
         print("Started {} - {}".format(cmd_name, dwi_filename))
         subprocess.run(mrtrix_cmd, shell=True)
 
-    # for (dsi_cmd, cmd_name) in STUDIO_COMMANDS:
-    #     print("Started {} - {}".format(cmd_name, dwi_filename))
-    #     subprocess.run(dsi_cmd, shell=True)
+    # Deterministic tractography
+    for (dsi_cmd, cmd_name) in STUDIO_COMMANDS:
+        print("Started {} - {}".format(cmd_name, dwi_filename))
+        subprocess.run(dsi_cmd, shell=True)
 
-    # for (mrtrix_cmd, cmd_name) in MRTRIX_COMMANDS:
-    #     print("Started {} - {}".format(cmd_name, dwi_filename))
-    #     subprocess.run(mrtrix_cmd, shell=True)
+    # Probabilistic tractography
+    for (mrtrix_cmd, cmd_name) in MRTRIX_COMMANDS:
+        print("Started {} - {}".format(cmd_name, dwi_filename))
+        subprocess.run(mrtrix_cmd, shell=True)
+    
+    # Global tractography
 
     #################################
     # SHOULD ALSO HAVE
@@ -179,14 +185,6 @@ def main():
                               [MAIN_FSL_PATH]*len(DWI_INPUT_FILES), [DSI_COMMAND]*len(DWI_INPUT_FILES)))
 
     # Use the mapping inputs with starmap to run the parallel processes
-
-    # dwiextract dwi.mif - -bzero | mrmath - mean b0.mif -axis 3
-    # REGISTER T1 TO B0 USING FLIRT
-    # PREPROCESS DWI
-    # DOWNLOAD MRCROW WINDOWS BINARY AND VIEW STUFF - mricroGL
-
-    # REGISTER ATLAS TO DIFFUSION DWI SPACE SO THEY ALIGN
-
     with mp.Pool() as pool:
         print("mapping")
         pool.starmap(parallel_process, list(mapping_inputs))
