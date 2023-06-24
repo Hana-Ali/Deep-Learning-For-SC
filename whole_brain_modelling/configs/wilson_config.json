@@ -26,5 +26,5 @@
     "order": 6,
     "cutoffLow": 0.01,
     "cutoffHigh": 0.1,
-    "sampling_rate": 1.4285714285714286
+    "TR": 0.7
 }

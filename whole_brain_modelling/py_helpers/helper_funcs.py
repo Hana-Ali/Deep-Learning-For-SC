@@ -78,7 +78,7 @@ def get_empirical_SC(path):
     return SC_final
 
 # Define function for processing the BOLD signals
-def process_BOLD(BOLD_signal):
+def process_BOLD(BOLD_signal, order, TR, cutoffLow, cutoffHigh):
 
     # Define the butter bandpass filter
     def butter_bandpass(lowcut, highcut, fs, order=5):
@@ -90,16 +90,16 @@ def process_BOLD(BOLD_signal):
         return y
     
     # Define the parameters for the filter
-    fs = 1 / 0.7
-    lowcut = 0.01 / (fs / 2)
-    highcut = 0.1 / (fs / 2)
+    fs = 1 / TR
+    lowcut = cutoffLow / (fs / 2)
+    highcut = cutoffHigh / (fs / 2)
 
     BOLD_mean = np.mean(BOLD_signal, axis=0)
     BOLD_mean = np.expand_dims(BOLD_mean, axis=0)
     ones_matrix = np.ones((BOLD_mean.shape[0], 1))
     BOLD_mean = ones_matrix @ BOLD_mean
     BOLD_regressed = BOLD_signal - BOLD_mean
-    BOLD_butter = butter_bandpass_filter(BOLD_regressed, lowcut, highcut, fs, order=6)
+    BOLD_butter = butter_bandpass_filter(BOLD_regressed, lowcut, highcut, fs, order)
     BOLD_z_score = stats.zscore(BOLD_butter)
 
     return BOLD_z_score
@@ -116,7 +116,7 @@ def get_empirical_FC(path, config_path):
         config = json.load(json_file)
 
     order = config['order']
-    sampling_rate = config['sampling_rate']
+    TR = config['TR']
     cutoffLow = config['cutoffLow']
     cutoffHigh = config['cutoffHigh']
 
@@ -132,7 +132,7 @@ def get_empirical_FC(path, config_path):
     
     # Process the BOLD signal of every subject, and get correlation
     for subject in FC_all:
-        bold_z_score = process_BOLD(subject)
+        bold_z_score = process_BOLD(subject, order, TR, cutoffLow, cutoffHigh)
         correlation = np.corrcoef(bold_z_score)
         FC_corr.append(correlation)
 
@@ -294,7 +294,7 @@ def write_json_config(params, config_path):
     order = params[24]
     cutoffLow = params[25]
     cutoffHigh = params[26]
-    sampling_rate = params[27]
+    TR = params[27]
 
     # Check that the input arguments are of the correct type
     check_all_types([
@@ -325,7 +325,7 @@ def write_json_config(params, config_path):
         (order, int, 'order'),
         (cutoffLow, float, 'cutoffLow'),
         (cutoffHigh, float, 'cutoffHigh'),
-        (sampling_rate, float, 'sampling_rate')
+        (TR, float, 'TR')
     ])
 
     # Create the dictionary
@@ -357,7 +357,7 @@ def write_json_config(params, config_path):
         "order": order,
         "cutoffLow": cutoffLow,
         "cutoffHigh": cutoffHigh,
-        "sampling_rate": sampling_rate
+        "TR": TR
     }
 
     # Dump as a string
@@ -383,7 +383,7 @@ def write_json_config_kura(params, config_path):
     order = params[10]
     cutoffLow = params[11]
     cutoffHigh = params[12]
-    sampling_rate = params[13]
+    TR = params[13]
 
     # Check that the input arguments are of the correct type
     check_all_types([
@@ -400,7 +400,7 @@ def write_json_config_kura(params, config_path):
         (order, int, 'order'),
         (cutoffLow, float, 'cutoffLow'),
         (cutoffHigh, float, 'cutoffHigh'),
-        (sampling_rate, float, 'sampling_rate')
+        (TR, float, 'TR')
     ])
 
     # Create the dictionary
@@ -418,7 +418,7 @@ def write_json_config_kura(params, config_path):
         "order": order,
         "cutoffLow": cutoffLow,
         "cutoffHigh": cutoffHigh,
-        "sampling_rate": sampling_rate
+        "TR": TR
     }
 
     # Dump as a string
@@ -468,7 +468,7 @@ def read_json_config(config_path):
         (config["order"], int, 'order'),
         (config["cutoffLow"], float, 'cutoffLow'),
         (config["cutoffHigh"], float, 'cutoffHigh'),
-        (config["sampling_rate"], float, 'sampling_rate')
+        (config["TR"], float, 'TR')
     ])
 
     return config
@@ -499,7 +499,7 @@ def read_json_config_kura(config_path):
         (config["order"], int, 'order'),
         (config["cutoffLow"], float, 'cutoffLow'),
         (config["cutoffHigh"], float, 'cutoffHigh'),
-        (config["sampling_rate"], float, 'sampling_rate')
+        (config["TR"], float, 'TR')
     ])
 
     return config

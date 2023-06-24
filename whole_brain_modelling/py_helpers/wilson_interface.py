@@ -66,7 +66,7 @@ def wilson_simulator(coupling_strength, delay):
     order = config['order']
     cutoffLow = config['cutoffLow']
     cutoffHigh = config['cutoffHigh']
-    sampling_rate = config['sampling_rate']
+    TR = config['TR']
 
     # --------- Get the SC and FC matrices
     print('Getting SC and FC matrices...')
@@ -165,7 +165,7 @@ def wilson_simulator(coupling_strength, delay):
 
     # --------- Calculate FC
     print("Calculating filtered BOLD and FC...")
-    bold_filter = process_BOLD(bold_down1)
+    bold_filter = process_BOLD(bold_down1, order, TR, cutoffLow, cutoffHigh)
     sim_FC = np.corrcoef(bold_filter)
     np.fill_diagonal(sim_FC, 0.0)
 

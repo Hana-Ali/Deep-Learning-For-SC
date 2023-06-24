@@ -87,7 +87,7 @@ number_oscillators = 100
 order = 6
 cutoffLow = 0.01
 cutoffHigh = 0.1
-sampling_rate = 1 / 0.7
+TR = 0.7
 
 # Defining Bayesian Optimization parameters
 n_iterations = 50
@@ -116,18 +116,6 @@ if __name__ == "__main__":
     # Derive some parameters for simulation
     number_integration_steps = int(time_simulated / integration_step_size)
     start_save_idx = int(save_data_start / integration_step_size) + downsampling_rate
-
-    # Get empirical matrices
-    print('Getting SC, FC and BOLD matrices...')
-    SC_matrix = get_empirical_SC(root_path)
-    FC_matrix = get_empirical_FC(root_path, config_path)
-    BOLD_signals = get_empirical_BOLD(root_path)
-
-    # Store matrices in .npy files
-    print('Storing matrices in .npy files...')
-    np.save('emp_data\\SC_matrix.npy', SC_matrix)
-    np.save('emp_data\\FC_matrix.npy', FC_matrix)
-    np.save('emp_data\\BOLD_signals.npy', BOLD_signals)
 
     # Defining the paths with this data
     SC_path = os.path.join(os.getcwd(), "emp_data\\SC_matrix.npy")
@@ -162,12 +150,24 @@ if __name__ == "__main__":
         order,
         cutoffLow,
         cutoffHigh,
-        sampling_rate
+        TR
     ]
 
     print('Create config of parameters...')
     # Create a JSON file with the parameters
     write_json_config(wilson_params, config_path)
+
+    # Get empirical matrices
+    print('Getting SC, FC and BOLD matrices...')
+    SC_matrix = get_empirical_SC(root_path)
+    FC_matrix = get_empirical_FC(root_path, config_path)
+    BOLD_signals = get_empirical_BOLD(root_path)
+
+    # Store matrices in .npy files
+    print('Storing matrices in .npy files...')
+    np.save('emp_data\\SC_matrix.npy', SC_matrix)
+    np.save('emp_data\\FC_matrix.npy', FC_matrix)
+    np.save('emp_data\\BOLD_signals.npy', BOLD_signals)
 
 
     #%% Check number of available threads - multiprocessing tingz
@@ -220,14 +220,14 @@ if __name__ == "__main__":
     
     np.random.seed(20)
 
-    print("Define Bayesian Optimization object...")
-    gpgo = GPGO(gp, acq, wilson_simulator, bo_params)
-    gpgo.run(max_iter=n_iterations)
+    # print("Define Bayesian Optimization object...")
+    # gpgo = GPGO(gp, acq, wilson_simulator, bo_params)
+    # gpgo.run(max_iter=n_iterations)
 
-    print("Get results...")
-    print(gpgo.getResult())
+    # print("Get results...")
+    # print(gpgo.getResult())
 
-    # wilson_results = wilson_simulator(coupling_strength=0.1, delay=0.1)
+    wilson_results = wilson_simulator(coupling_strength=0.1, delay=0.1)
 
     # Define end time after simulation
     end_time = time.time()

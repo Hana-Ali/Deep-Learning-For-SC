@@ -44,10 +44,6 @@ def kuramoto_simulator(coupling_strength, delay):
     noise_type = config['noise_type']
     noise_amplitude = config['noise_amplitude']
     write_path = config['write_path']
-    order = config['order']
-    cutoffLow = config['cutoffLow']
-    cutoffHigh = config['cutoffHigh']
-    sampling_rate = config['sampling_rate']
 
     # --------- Get the SC and FC matrices
     print('Getting SC and FC matrices...')
