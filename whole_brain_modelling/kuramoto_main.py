@@ -167,7 +167,7 @@ if __name__ == "__main__":
     bo_params['delay'] = ('cont', [0.0, 20.0])
 
     print("Define acquisition function...")
-    acq = Acquisition(mode='IntegratedExpectedImprovement')
+    acq = Acquisition(mode='ExpectedImprovement')
 
     print("Define covariance function...")
     cov = matern52()

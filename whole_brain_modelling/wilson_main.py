@@ -22,7 +22,6 @@ except Exception:
 
 np.bool = np.bool_
 
-import pyGPGO
 import time
 import json
 
@@ -30,8 +29,9 @@ import json
 from pyGPGO.GPGO import GPGO
 from pyGPGO.acquisition import Acquisition
 from pyGPGO.surrogates.GaussianProcess import GaussianProcess
+# from pyGPGO.surrogates.GaussianProcessMCMC import GaussianProcessMCMC
 from pyGPGO.covfunc import matern52
-import pymc3 as pm
+# import pymc3 as pm
 
 # Defining paths
 root_path = 'C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Spring Sem\\iso_dubai\\ISO\\HCP_DTI_BOLD'
@@ -203,7 +203,8 @@ if __name__ == "__main__":
     bo_params['delay'] = ('cont', [0.0, 1.0])
 
     print("Define acquisition function...")
-    acq = Acquisition(mode='IntegratedExpectedImprovement')
+    acq = Acquisition(mode='ExpectedImprovement')
+    # acq = Acquisition(mode='IntegratedExpectedImprovement')
 
     print("Define covariance function...")
     cov = matern52()

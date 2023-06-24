@@ -436,8 +436,8 @@ std::vector<std::vector<double>> Wilson::run_simulation()
     for(auto& row:bold_signal) row.erase(std::next(row.begin(), 0));
 
     // Saving it just for a sanity check
-    printf("Saving unpacked BOLD signal...\n");
-    save_data_2D(bold_signal, "temp_arrays/sim_bold.csv");
+    // printf("Saving unpacked BOLD signal...\n");
+    // save_data_2D(bold_signal, "temp_arrays/sim_bold.csv");
     
     // This is finally the objective value
     return bold_signal;
@@ -745,8 +745,8 @@ std::vector<std::vector<double>> Kuramoto::run_simulation()
             (*this).config.output_phi[0].size());
     
     // Save the output to a file
-    printf("Saving output to file...\n");
-    save_data_2D((*this).config.output_phi, "temp_arrays/output_phi.csv");
+    // printf("Saving output to file...\n");
+    // save_data_2D((*this).config.output_phi, "temp_arrays/output_phi.csv");
     
     // Return the output
     std::vector<std::vector<double>> output_phi = (*this).config.output_phi;

@@ -189,21 +189,21 @@ def wilson_simulator(coupling_strength, delay):
         os.makedirs(write_path)
 
     folder_name = "Coupling {:.4f}, Delay{:.4f}\\".format(coupling_strength, delay)
-    bold_path_main = os.path.join(write_path, folder_name)
+    # bold_path_main = os.path.join(write_path, folder_name)
     FC_path_main = os.path.join(write_path, folder_name)
     empFC_simFC_corr_path_main = os.path.join(write_path, folder_name)
 
-    if not os.path.exists(bold_path_main):
-        os.makedirs(bold_path_main)
+    # if not os.path.exists(bold_path_main):
+    #     os.makedirs(bold_path_main)
     if not os.path.exists(FC_path_main):
         os.makedirs(FC_path_main)
     if not os.path.exists(empFC_simFC_corr_path_main):
         os.makedirs(empFC_simFC_corr_path_main)
 
-    raw_bold_path = os.path.join(bold_path_main, "raw_bold.csv")
-    bold_down1_path = os.path.join(bold_path_main, "bold_down1.csv")
-    bold_filter_path = os.path.join(bold_path_main, "bold_filter.csv")
-    bold_down2_path = os.path.join(bold_path_main, "bold_down2.csv")
+    # raw_bold_path = os.path.join(bold_path_main, "raw_bold.csv")
+    # bold_down1_path = os.path.join(bold_path_main, "bold_down1.csv")
+    # bold_filter_path = os.path.join(bold_path_main, "bold_filter.csv")
+    # bold_down2_path = os.path.join(bold_path_main, "bold_down2.csv")
     FC_path = os.path.join(FC_path_main, "sim_FC.csv")
     emp_FC_img_path = os.path.join(FC_path_main, "emp_FC.png")
     sim_FC_img_path = os.path.join(FC_path_main, "sim_FC.png")
@@ -211,10 +211,10 @@ def wilson_simulator(coupling_strength, delay):
 
     # # Save the results
     print("Saving the results...")
-    np.savetxt(raw_bold_path, raw_sim_bold, fmt="% .4f", delimiter=",")
-    np.savetxt(bold_down1_path, bold_down1, fmt="% .4f", delimiter=",")
-    np.savetxt(bold_filter_path, bold_filter, fmt="% .4f", delimiter=",")
-    np.savetxt(bold_down2_path, bold_down2, fmt="% .4f", delimiter=",")
+    # np.savetxt(raw_bold_path, raw_sim_bold, fmt="% .4f", delimiter=",")
+    # np.savetxt(bold_down1_path, bold_down1, fmt="% .4f", delimiter=",")
+    # np.savetxt(bold_filter_path, bold_filter, fmt="% .4f", delimiter=",")
+    # np.savetxt(bold_down2_path, bold_down2, fmt="% .4f", delimiter=",")
     np.savetxt(FC_path, sim_FC, fmt="% .8f", delimiter=",")
     np.savetxt(empFC_simFC_corr_path, np.array([empFC_simFC_corr]), fmt="% .8f")
 
