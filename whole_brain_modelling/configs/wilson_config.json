@@ -23,7 +23,7 @@
     "noise_type": 1,
     "noise_amplitude": 0.001,
     "write_path": "C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Dissertation\\Notebooks\\MyCodes\\whole_brain_modelling\\results\\wilson",
-    "order": 2,
+    "order": 6,
     "cutoffLow": 0.01,
     "cutoffHigh": 0.1,
     "sampling_rate": 1.4285714285714286

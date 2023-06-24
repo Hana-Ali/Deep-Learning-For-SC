@@ -78,27 +78,28 @@ def get_empirical_SC(path):
     return SC_final
 
 # Define function for processing the BOLD signals
-def process_BOLD(BOLD_signal, order, sampling_rate, cutoffLow, cutoffHigh):
+def process_BOLD(BOLD_signal):
 
     # Define the butter bandpass filter
-    def butter_bandpass(order, sampling_rate, lowcut, highcut):
-        return signal.butter(order, [lowcut, highcut], fs=sampling_rate, btype='band')
+    def butter_bandpass(lowcut, highcut, fs, order=5):
+        return signal.butter(order, [lowcut, highcut], fs=fs, btype='band')
     # Use the butter bandpass filter
-    def butter_bandpass_filter(data, order, sampling_rate, lowcut, highcut):
-        b, a = butter_bandpass(order, sampling_rate, lowcut, highcut)
+    def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
+        b, a = butter_bandpass(lowcut, highcut, fs, order=order)
         y = signal.filtfilt(b, a, data)
         return y
     
     # Define the parameters for the filter
-    lowcut = cutoffLow / (sampling_rate / 2)
-    highcut = cutoffHigh / (sampling_rate / 2)
+    fs = 1 / 0.7
+    lowcut = 0.01 / (fs / 2)
+    highcut = 0.1 / (fs / 2)
 
     BOLD_mean = np.mean(BOLD_signal, axis=0)
     BOLD_mean = np.expand_dims(BOLD_mean, axis=0)
     ones_matrix = np.ones((BOLD_mean.shape[0], 1))
     BOLD_mean = ones_matrix @ BOLD_mean
     BOLD_regressed = BOLD_signal - BOLD_mean
-    BOLD_butter = butter_bandpass_filter(BOLD_regressed, order, sampling_rate, lowcut, highcut)
+    BOLD_butter = butter_bandpass_filter(BOLD_regressed, lowcut, highcut, fs, order=6)
     BOLD_z_score = stats.zscore(BOLD_butter)
 
     return BOLD_z_score
@@ -131,7 +132,7 @@ def get_empirical_FC(path, config_path):
     
     # Process the BOLD signal of every subject, and get correlation
     for subject in FC_all:
-        bold_z_score = process_BOLD(subject, order, sampling_rate, cutoffLow, cutoffHigh)
+        bold_z_score = process_BOLD(subject)
         correlation = np.corrcoef(bold_z_score)
         FC_corr.append(correlation)
 

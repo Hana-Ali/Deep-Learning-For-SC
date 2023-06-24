@@ -84,7 +84,7 @@ noise_amplitude = 0.001
 number_oscillators = 100
 
 # Defining filter parameters
-order = 2
+order = 6
 cutoffLow = 0.01
 cutoffHigh = 0.1
 sampling_rate = 1 / 0.7
@@ -224,12 +224,10 @@ if __name__ == "__main__":
     gpgo = GPGO(gp, acq, wilson_simulator, bo_params)
     gpgo.run(max_iter=n_iterations)
 
-    gpgo.GP.posteriorPlot()
-
     print("Get results...")
     print(gpgo.getResult())
 
-    # wilson_results = wilson_simulator(coupling_strength=coupling_strength, delay=delay)
+    # wilson_results = wilson_simulator(coupling_strength=0.1, delay=0.1)
 
     # Define end time after simulation
     end_time = time.time()
