@@ -5,6 +5,7 @@ This Python file contains the main pipeline used for tractography
 # Import libraries
 import multiprocessing as mp
 from tract_helpers import *
+from sc_functions import *
 import regex as re
 import subprocess
 import os
@@ -22,7 +23,7 @@ def parallel_process(SUBJECT_FILES, ATLAS, ATLAS_STRING, MAIN_STUDIO_PATH, MAIN_
 
     # Get the filename for this specific process
     dwi_filename = extract_dwi_filename(get_filename(SUBJECT_FILES, "filename")["filename"])
-    t1_filename = extract_t1_filename(get_filename(SUBJECT_FILES, "t1")["t1"])
+    t1_filename = extract_t1_fmri_filename(get_filename(SUBJECT_FILES, "t1")["t1"])
 
     # Ping beginning or process
     print("Started parallel process - {}".format(dwi_filename))
@@ -124,17 +125,19 @@ def main():
     # --------------- Defining main folders and paths --------------- #
     # Get paths, depending on whether we're in HPC or not
     hpc = False
-    (DWI_MAIN_FOLDER, T1_MAIN_FOLDER, DWI_OUTPUT_FOLDER, DSI_COMMAND, ATLAS_FOLDER, 
-     TRACT_FOLDER, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH) = get_main_paths(hpc)
+    (ALL_DATA_FOLDER, SUBJECTS_FOLDER, DWI_OUTPUT_FOLDER, DWI_MAIN_FOLDER, 
+        T1_MAIN_FOLDER, FMRI_MAIN_FOLDER, DSI_COMMAND, ATLAS_FOLDER, MAIN_STUDIO_PATH, 
+            MAIN_MRTRIX_PATH, MAIN_FSL_PATH) = get_main_paths(hpc)
 
     # Check if input folders - if not, exit program
     check_input_folders(DWI_MAIN_FOLDER, "DWI")
     check_input_folders(T1_MAIN_FOLDER, "T1")
+    check_input_folders(FMRI_MAIN_FOLDER, "fMRI")
     check_input_folders(ATLAS_FOLDER, "Atlas")
+
 
     # If output folderes don't exist, create them
     check_output_folders_with_subfolders(DWI_OUTPUT_FOLDER, "DWI output")
-    check_output_folders(TRACT_FOLDER, "Tracts")
     check_output_folders(MAIN_STUDIO_PATH, "Studio")
     check_output_folders(MAIN_MRTRIX_PATH, "MRtrix")
     check_output_folders(MAIN_FSL_PATH, "FSL")
@@ -144,25 +147,25 @@ def main():
     DWI_JSON_HEADERS = glob_files(DWI_MAIN_FOLDER, "json")
     B_VAL_FILES = glob_files(DWI_MAIN_FOLDER, "bval")
     B_VEC_FILES = glob_files(DWI_MAIN_FOLDER, "bvec")
+    T1_INPUT_FILES = glob_files(T1_MAIN_FOLDER, "nii")
+    FMRI_INPUT_FILES = glob_files(FMRI_MAIN_FOLDER, "nii")
+    
+    # Clean up T1 template files
+    T1_INPUT_FILES = list(filter(lambda x: not re.search('Template', x), T1_INPUT_FILES))
     
     # If no files are found - exit the program
     check_globbed_files(DWI_INPUT_FILES, "DWI")
     check_globbed_files(DWI_JSON_HEADERS, "JSON")
     check_globbed_files(B_VAL_FILES, "BVAL")
     check_globbed_files(B_VEC_FILES, "BVEC")
-
-    # --------------- Get T1 from subdirectories --------------- #
-    T1_INPUT_FILES = glob_files(T1_MAIN_FOLDER, "nii")
-    # Clean up the template files
-    T1_INPUT_FILES = list(filter(lambda x: not re.search('Template', x), T1_INPUT_FILES))
-    
-    # If no files are found - exit the program
     check_globbed_files(T1_INPUT_FILES, "T1")
-
-    # --------------- Create list of DWI and T1 for each subject --------------- #
+    check_globbed_files(FMRI_INPUT_FILES, "fMRI")
+ 
+    # --------------- Create list of all data for each subject and filter --------------- #
     SUBJECT_LISTS = create_subject_list(DWI_INPUT_FILES, DWI_JSON_HEADERS, B_VAL_FILES, 
-                                        B_VEC_FILES, T1_INPUT_FILES)
-    
+                                        B_VEC_FILES, T1_INPUT_FILES, FMRI_INPUT_FILES)
+    FILTERED_SUBJECT_LIST = filter_subjects_list(SUBJECT_LISTS, SUBJECTS_FOLDER)
+   
     # --------------- Define what atlases to use --------------- #
     ATLAS_FILES = glob_files(ATLAS_FOLDER, "nii.gz")
     # Exit if no atlases are found
@@ -174,7 +177,7 @@ def main():
     # -------------------------------------------------- TRACTOGRAPHY COMMANDS -------------------------------------------------- #
 
     # --------------- DSI STUDIO defining inputs for mapping parallel --------------- #
-    mapping_inputs = list(zip(SUBJECT_LISTS, [ATLAS_FILES[0]]*len(DWI_INPUT_FILES), [ATLAS_STRING]*len(DWI_INPUT_FILES), 
+    mapping_inputs = list(zip(FILTERED_SUBJECT_LIST, [ATLAS_FILES[0]]*len(DWI_INPUT_FILES), [ATLAS_STRING]*len(DWI_INPUT_FILES), 
                               [MAIN_STUDIO_PATH]*len(DWI_INPUT_FILES), [MAIN_MRTRIX_PATH]*len(DWI_INPUT_FILES), 
                               [MAIN_FSL_PATH]*len(DWI_INPUT_FILES), [DSI_COMMAND]*len(DWI_INPUT_FILES)))
 

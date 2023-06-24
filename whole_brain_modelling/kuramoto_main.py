@@ -65,7 +65,7 @@ number_oscillators = 100
 order = 2
 cutoffLow = 0.01
 cutoffHigh = 0.1
-sampling_rate = 1 / 0.7
+TR = 0.7
 
 # Defining Bayesian Optimization parameters
 n_iterations = 50
@@ -126,7 +126,7 @@ if __name__ == "__main__":
         order,
         cutoffLow,
         cutoffHigh,
-        sampling_rate
+        TR
     ]
 
     print('Create config of parameters...')

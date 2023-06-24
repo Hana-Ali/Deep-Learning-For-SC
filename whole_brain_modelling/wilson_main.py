@@ -220,14 +220,14 @@ if __name__ == "__main__":
     
     np.random.seed(20)
 
-    # print("Define Bayesian Optimization object...")
-    # gpgo = GPGO(gp, acq, wilson_simulator, bo_params)
-    # gpgo.run(max_iter=n_iterations)
+    print("Define Bayesian Optimization object...")
+    gpgo = GPGO(gp, acq, wilson_simulator, bo_params)
+    gpgo.run(max_iter=n_iterations)
 
-    # print("Get results...")
-    # print(gpgo.getResult())
+    print("Get results...")
+    print(gpgo.getResult())
 
-    wilson_results = wilson_simulator(coupling_strength=0.1, delay=0.1)
+    # wilson_results = wilson_simulator(coupling_strength=0.1, delay=0.1)
 
     # Define end time after simulation
     end_time = time.time()
