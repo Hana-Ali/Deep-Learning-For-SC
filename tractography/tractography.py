@@ -49,17 +49,17 @@ def parallel_process(SUBJECT_FILES, ATLAS, ATLAS_STRING, MAIN_STUDIO_PATH, MAIN_
     # Define list of clean stuff
     CLEAN_FILES = [CLEAN_DWI_PATH, CLEAN_BVAL_FILEPATH, CLEAN_BVEC_FILEPATH]
 
-    # # --------------- DSI STUDIO reconstruction commands --------------- #
-    # # Define needed arguments array
-    # ARGS_STUDIO = [
-    #     SUBJECT_FILES,
-    #     CLEAN_FILES,
-    #     MAIN_STUDIO_PATH,
-    #     DSI_COMMAND,
-    #     ATLAS_STRING
-    # ]
-    # # Get the studio commands array
-    # STUDIO_COMMANDS = define_studio_commands(ARGS_STUDIO)
+    # --------------- DSI STUDIO reconstruction commands --------------- #
+    # Define needed arguments array
+    ARGS_STUDIO = [
+        SUBJECT_FILES,
+        CLEAN_FILES,
+        MAIN_STUDIO_PATH,
+        DSI_COMMAND,
+        ATLAS_STRING
+    ]
+    # Get the studio commands array
+    STUDIO_COMMANDS = define_studio_commands(ARGS_STUDIO)
 
     # # --------------- MRTRIX reconstruction commands --------------- #
     # Define needed arguments array
@@ -85,24 +85,19 @@ def parallel_process(SUBJECT_FILES, ATLAS, ATLAS_STRING, MAIN_STUDIO_PATH, MAIN_
         subprocess.run(mrtrix_cmd, shell=True)
 
     # Deterministic tractography
-    # for (dsi_cmd, cmd_name) in STUDIO_COMMANDS:
-    #     print("Started {} - {}".format(cmd_name, dwi_filename))
-    #     subprocess.run(dsi_cmd, shell=True)
+    for (dsi_cmd, cmd_name) in STUDIO_COMMANDS:
+        print("Started {} - {}".format(cmd_name, dwi_filename))
+        subprocess.run(dsi_cmd, shell=True)
 
-    # Probabilistic tractography
+    # Probabilistic and global tractography
     for (mrtrix_cmd, cmd_name) in MRTRIX_COMMANDS:
         print("Started {} - {}".format(cmd_name, dwi_filename))
         subprocess.run(mrtrix_cmd, shell=True)
     
-    # Global tractography
-
     #################################
     # SHOULD ALSO HAVE
 
-    # Global tractography
-    # --> In MRtrix, or from the optimization paper
-
-    # SET https://github.com/StongeEtienne/set-nf
+    # SET https://github.com/StongeEtienne/set-nf (NOT ML)
     # --> Needs surface
 
     # GESTA - DEEP AE https://github.com/scil-vital/tractolearn
@@ -172,7 +167,6 @@ def main():
     ATLAS_FILES = glob_files(ATLAS_FOLDER, "nii.gz")
     # Exit if no atlases are found
     check_globbed_files(ATLAS_FILES, "Atlas")
-    print('ATLAS_FILES[0]', ATLAS_FILES[0])
     # Create atlas string otherwise
     ATLAS_STRING = ",".join(ATLAS_FILES)
 

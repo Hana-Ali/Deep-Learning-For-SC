@@ -18,14 +18,14 @@ def get_main_paths(hpc):
     else:
         # Define paths based on whether we're Windows or Linux
         if os.name == "nt":
-            DWI_MAIN_FOLDER = os.path.realpath(r"C:\\tractography\\subjects")
-            DWI_OUTPUT_FOLDER = os.path.realpath(r"C:\\tractography\\dsi_outputs")
-            DWI_LOGS_FOLDER = os.path.realpath(r"C:\\tractography\\logs")
+            DWI_MAIN_FOLDER = os.path.realpath(r"C:\\tractography\\data\\subjects\\dwi")
+            T1_MAIN_FOLDER = os.path.realpath(r"C:\\tractography\\data\\subjects\\t1")
+            DWI_OUTPUT_FOLDER = os.path.realpath(r"C:\\tractography\\data\\dsi_outputs")
 
             DSI_COMMAND = "dsi_studio"
 
-            ATLAS_FOLDER = os.path.realpath(r"C:\\tractography\\atlas")
-            TRACT_FOLDER = os.path.realpath(r"C:\\tractography\\tracts")
+            ATLAS_FOLDER = os.path.realpath(r"C:\\tractography\\data\\atlas")
+            TRACT_FOLDER = os.path.realpath(r"C:\\tractography\\data\\tracts")
         else:
             DWI_MAIN_FOLDER = os.path.realpath(os.path.join(os.getcwd(), "data/subjects/dwi"))
             T1_MAIN_FOLDER = os.path.realpath(os.path.join(os.getcwd(), "data/subjects/t1"))
@@ -108,14 +108,20 @@ def check_globbed_files(files, name):
 # Function to extract the DWI filename
 def extract_dwi_filename(dwi_file):
     # Extract the filename
-    dwi_filename = dwi_file.split("/sub-")[-1].split("_")[0]
+    if os.name == "nt":
+        dwi_filename = dwi_file.split("\\sub-")[-1].split("_")[0]
+    else:
+        dwi_filename = dwi_file.split("/sub-")[-1].split("_")[0]
     # Return the filename
     return dwi_filename
 
 # Function to extract the T1 filename
 def extract_t1_filename(t1_file):
     # Extract the filename
-    t1_filename = t1_file.split("/")[-1].split("_")[1].split("-")[0]
+    if os.name == "nt":
+        t1_filename = t1_file.split("\\")[-1].split("_")[1].split("-")[0]
+    else:
+        t1_filename = t1_file.split("/")[-1].split("_")[1].split("-")[0]
     # Return the filename
     return t1_filename
 
@@ -346,25 +352,43 @@ def get_dsi_studio_paths(NEEDED_FILE_PATHS, MAIN_STUDIO_PATH):
 
     # Creating folder for each subject in DSI_STUDIO folder. CAN WIPE as this is the only function that uses it
     SUBJECT_FOLDER_NAME = os.path.join(MAIN_STUDIO_PATH, dwi_filename)
-    check_output_folders(SUBJECT_FOLDER_NAME, "DSI Studio subject folder")
+    check_output_folders_with_subfolders(SUBJECT_FOLDER_NAME, "DSI Studio subject folder")
     # Creating logs folder for each subject. CAN WIPE as this is the only function that uses it
     SUBJECT_LOGS_FOLDER = os.path.join(SUBJECT_FOLDER_NAME, "logs")
-    check_output_folders(SUBJECT_LOGS_FOLDER, "DSI Studio logs folder")
+    check_output_folders_with_subfolders(SUBJECT_LOGS_FOLDER, "DSI Studio logs folder")
 
-    # DWI nii -> src filepath
-    STUDIO_SRC_PATH = os.path.join(SUBJECT_FOLDER_NAME, "{}_clean".format(dwi_filename))
-    # DTI estimation filepath
-    STUDIO_DTI_PATH = os.path.join(SUBJECT_FOLDER_NAME, "{}_dti".format(dwi_filename))
-    # QSDR estimation filepath
-    STUDIO_QSDR_PATH = os.path.join(SUBJECT_FOLDER_NAME, "{}_qsdr".format(dwi_filename))
+    # Create folders and file paths for eachcommand
+    STUDIO_SRC_FOLDER = os.path.join(SUBJECT_FOLDER_NAME, "src")
+    STUDIO_DTI_FOLDER = os.path.join(SUBJECT_FOLDER_NAME, "dti")
+    STUDIO_QSDR_FOLDER = os.path.join(SUBJECT_FOLDER_NAME, "qsdr")
+    check_output_folders(STUDIO_SRC_FOLDER, "DSI Studio src folder")
+    check_output_folders(STUDIO_DTI_FOLDER, "DSI Studio dti folder")
+    check_output_folders(STUDIO_QSDR_FOLDER, "DSI Studio qsdr folder")
 
-    # Log file paths
-    SRC_LOG_PATH = os.path.join(SUBJECT_LOGS_FOLDER, os.path.join("dwi_to_src", "src_log_{}.txt".format(dwi_filename)))
-    DTI_LOG_PATH = os.path.join(SUBJECT_LOGS_FOLDER, os.path.join("src_to_dti","dti_log_{}.txt".format(dwi_filename)))
-    DTI_EXP_LOG_PATH = os.path.join(SUBJECT_LOGS_FOLDER, os.path.join("dti_export","exporting_dti_log_{}.txt".format(dwi_filename)))
-    QSDR_LOG_PATH = os.path.join(SUBJECT_LOGS_FOLDER, os.path.join("src_to_qsdr","qsdr_log_{}.txt".format(dwi_filename)))
-    QSDR_EXP_LOG_PATH = os.path.join(SUBJECT_LOGS_FOLDER, os.path.join("qsdr_export","exporting_qsdr_log_{}.txt".format(dwi_filename)))
-    TRACT_LOG_PATH = os.path.join(SUBJECT_LOGS_FOLDER, os.path.join("recon_to_tract","tract_log_{}.txt".format(dwi_filename)))
+    STUDIO_SRC_PATH = os.path.join(STUDIO_SRC_FOLDER, "{}_clean".format(dwi_filename))
+    STUDIO_DTI_PATH = os.path.join(STUDIO_DTI_FOLDER, "{}_dti".format(dwi_filename))
+    STUDIO_QSDR_PATH = os.path.join(STUDIO_QSDR_FOLDER, "{}_qsdr".format(dwi_filename))
+
+    # Log folders and file paths
+    SRC_LOG_FOLDER = os.path.join(SUBJECT_LOGS_FOLDER, "dwi_to_src")
+    DTI_LOG_FOLDER = os.path.join(SUBJECT_LOGS_FOLDER, "src_to_dti")
+    QSDR_LOG_FOLDER = os.path.join(SUBJECT_LOGS_FOLDER, "src_to_qsdr")
+    TRACT_LOG_FOLDER = os.path.join(SUBJECT_LOGS_FOLDER, "recon_to_tract")
+    DTI_EXP_LOG_FOLDER = os.path.join(SUBJECT_LOGS_FOLDER, "dti_export")
+    QSDR_EXP_LOG_FOLDER = os.path.join(SUBJECT_LOGS_FOLDER, "qsdr_export")
+    check_output_folders(SRC_LOG_FOLDER, "DSI Studio dwi to src logs folder")
+    check_output_folders(DTI_LOG_FOLDER, "DSI Studio src to dti logs folder")
+    check_output_folders(QSDR_LOG_FOLDER, "DSI Studio src to qsdr logs folder")
+    check_output_folders(TRACT_LOG_FOLDER, "DSI Studio recon to tract logs folder")
+    check_output_folders(DTI_EXP_LOG_FOLDER, "DSI Studio dti export logs folder")
+    check_output_folders(QSDR_EXP_LOG_FOLDER, "DSI Studio qsdr export logs folder")
+
+    SRC_LOG_PATH = os.path.join(SRC_LOG_FOLDER, "src_log_{}.txt".format(dwi_filename))
+    DTI_LOG_PATH = os.path.join(DTI_LOG_FOLDER, "dti_log_{}.txt".format(dwi_filename))
+    DTI_EXP_LOG_PATH = os.path.join(DTI_EXP_LOG_FOLDER, "exporting_dti_log_{}.txt".format(dwi_filename))
+    QSDR_LOG_PATH = os.path.join(QSDR_LOG_FOLDER, "qsdr_log_{}.txt".format(dwi_filename))
+    QSDR_EXP_LOG_PATH = os.path.join(QSDR_EXP_LOG_FOLDER, "exporting_qsdr_log_{}.txt".format(dwi_filename))
+    TRACT_LOG_PATH = os.path.join(TRACT_LOG_FOLDER, "tract_log_{}.txt".format(dwi_filename))
 
     # Return the paths
     return (STUDIO_SRC_PATH, STUDIO_DTI_PATH, STUDIO_QSDR_PATH, SRC_LOG_PATH, DTI_LOG_PATH, 
@@ -454,6 +478,7 @@ def main_mrtrix_folder_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH):
     check_output_folders_nowipe(FOD_FOLDER_NAME, "MRtrix fod folder")
     check_output_folders_nowipe(FOD_NORM_FOLDER_NAME, "MRtrix fod norm folder")
     check_output_folders_nowipe(T1_REG_FOLDER_NAME, "MRtrix t1 and Fivett reg folder")
+    check_output_folders_nowipe(ATLAS_REG_FOLDER_NAME, "MRtrix atlas reg folder")
     check_output_folders_nowipe(PROB_TRACKING_FOLDER_NAME, "MRtrix probabilistic tracking folder")
     check_output_folders_nowipe(GLOBAL_TRACKING_FOLDER_NAME, "MRtrix global tracking folder")
     check_output_folders_nowipe(CONNECTIVITY_FOLDER_NAME, "MRtrix connectivity folder")
@@ -574,7 +599,8 @@ def get_mrtrix_registration_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, ATLAS):
     dwi_filename = NEEDED_FILE_PATHS["filename"]
     
     # Get the folder names
-    (_, _, _, _, _, T1_REG_FOLDER_NAME, ATLAS_REG_PATH, _, _, _) = main_mrtrix_folder_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
+    (_, _, _, _, _, T1_REG_FOLDER_NAME, ATLAS_REG_FOLDER_NAME, _, _, 
+        _) = main_mrtrix_folder_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
 
     # Convert T1 nii to mif, then create 5ttgen, register/map it to the B0 space of DWI, then convert back to nii
     T1_MIF_PATH = os.path.join(T1_REG_FOLDER_NAME, "{}_t1".format(dwi_filename))
@@ -586,12 +612,12 @@ def get_mrtrix_registration_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, ATLAS):
     T1_DWI_CONVERT_INV = os.path.join(T1_REG_FOLDER_NAME, "{}_t12dwi_mrtrix".format(dwi_filename))
     FIVETT_REG_PATH = os.path.join(T1_REG_FOLDER_NAME, "{}_5ttgenreg".format(dwi_filename))
     # Convert atlas nii to mif, then register/map it to the B0 space of DWI
-    ATLAS_DWI_MAP_MAT = os.path.join(ATLAS_REG_PATH, "{}_atlas2dwi_fsl".format(dwi_filename))
-    ATLAS_DWI_CONVERT_INV = os.path.join(ATLAS_REG_PATH, "{}_atlas2dwi_mrtrix".format(dwi_filename))
-    ATLAS_REG_PATH = os.path.join(ATLAS_REG_PATH, "{}_atlasreg".format(dwi_filename))
+    ATLAS_DWI_MAP_MAT = os.path.join(ATLAS_REG_FOLDER_NAME, "{}_atlas2dwi_fsl".format(dwi_filename))
+    ATLAS_DWI_CONVERT_INV = os.path.join(ATLAS_REG_FOLDER_NAME, "{}_atlas2dwi_mrtrix".format(dwi_filename))
+    ATLAS_REG_PATH = os.path.join(ATLAS_REG_FOLDER_NAME, "{}_atlasreg".format(dwi_filename))
     # Getting the name of the atlas without .nii.gz
     ATLAS_NAME = ATLAS.split("/")[-1].split(".")[0].split("_")[0]
-    ATLAS_MIF_PATH = os.path.join(ATLAS_REG_PATH, "{}_atlas_mif".format(ATLAS_NAME))
+    ATLAS_MIF_PATH = os.path.join(ATLAS_REG_FOLDER_NAME, "{}_atlas_mif".format(ATLAS_NAME))
 
     # Return the paths
     return (T1_MIF_PATH, FIVETT_NOREG_PATH, DWI_B0_PATH, DWI_B0_NII, FIVETT_GEN_NII, T1_DWI_MAP_MAT,
@@ -694,6 +720,50 @@ def define_mrtrix_probtrack_commands(ARGS):
     return (GM_WM_SEED_CMD, PROB_TRACT_CMD)
 
 # Define MRtrix global tracking paths
+def get_mrtrix_global_tracking_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH):
+    
+    # Extract what we need here from the needed file paths
+    dwi_filename = NEEDED_FILE_PATHS["filename"]
+    
+    # Get the folder names
+    (_, _, _, _, _, _, _, _, GLOBAL_TRACKING_FOLDER_NAME, _) = main_mrtrix_folder_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
+
+    # FOD and FISO for global tractography paths
+    GLOBAL_FOD_PATH = os.path.join(GLOBAL_TRACKING_FOLDER_NAME, "{}_global_fod".format(dwi_filename))
+    GLOBAL_FISO_PATH = os.path.join(GLOBAL_TRACKING_FOLDER_NAME, "{}_global_fiso".format(dwi_filename))
+    # Global tractography path
+    GLOBAL_TRACT_PATH = os.path.join(GLOBAL_TRACKING_FOLDER_NAME, "{}_global_tract".format(dwi_filename))
+
+    # Return the paths
+    return (GLOBAL_FOD_PATH, GLOBAL_FISO_PATH, GLOBAL_TRACT_PATH)
+
+# Define MRtrix global tracking commands
+def define_mrtrix_global_tracking_commands(ARGS):
+        
+    # Extract arguments needed to define paths
+    SUBJECT_FILES = ARGS[0]
+    MAIN_MRTRIX_PATH = ARGS[1]
+
+    # Define what's needed for to extract from subject files
+    FILES_NEEDED = ["filename", "dwi", "bval", "bvec"]
+    NEEDED_FILE_PATHS = get_filename(SUBJECT_FILES, FILES_NEEDED)
+
+    # Get the general paths
+    (INPUT_MIF_PATH, MASK_MIF_PATH) = get_mrtrix_general_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
+    # Get the fod paths
+    (RESPONSE_WM_PATH, RESPONSE_GM_PATH, RESPONSE_CSF_PATH, 
+        _, _, _, _, _, _, _, _) = get_mrtrix_fod_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
+    # Get the global tracking paths
+    (GLOBAL_FOD_PATH, GLOBAL_FISO_PATH, GLOBAL_TRACT_PATH) = get_mrtrix_global_tracking_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
+    
+    # Global tractography command
+    GLOBAL_TRACT_CMD = "tckglobal {dwi}.mif {wm_response}.txt -riso {csf_response}.txt -riso \
+         {gm_response}.txt -mask {mask}.mif -niter 1e9 -fod {gt_fod}.mif -fiso {gt_fiso}.mif {output}.tck".format(
+            dwi=INPUT_MIF_PATH, wm_response=RESPONSE_WM_PATH, csf_response=RESPONSE_CSF_PATH, gm_response=RESPONSE_GM_PATH,
+            mask=MASK_MIF_PATH, gt_fod=GLOBAL_FOD_PATH, gt_fiso=GLOBAL_FISO_PATH, output=GLOBAL_TRACT_PATH)
+
+    # Return the commands
+    return (GLOBAL_TRACT_CMD)
 
 # Define MRtrix connectome paths
 def get_mrtrix_connectome_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH):
@@ -705,10 +775,11 @@ def get_mrtrix_connectome_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH):
     (_, _, _, _, _, _, _, _, _, CONNECTIVITY_FOLDER_NAME) = main_mrtrix_folder_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
 
     # Connectivity matrix path
-    CONNECTIVITY_PATH = os.path.join(CONNECTIVITY_FOLDER_NAME, "{}_connectivity".format(dwi_filename))
+    CONNECTIVITY_PROB_PATH = os.path.join(CONNECTIVITY_FOLDER_NAME, "{}_prob_connectivity".format(dwi_filename))
+    CONNECTIVITY_GLOBAL_PATH = os.path.join(CONNECTIVITY_FOLDER_NAME, "{}_global_connectivity".format(dwi_filename))
 
     # Return the paths
-    return (CONNECTIVITY_PATH)
+    return (CONNECTIVITY_PROB_PATH, CONNECTIVITY_GLOBAL_PATH)
 
 # Define MRtrix connectome commands
 def define_mrtrix_connectome_commands(ARGS):
@@ -726,16 +797,20 @@ def define_mrtrix_connectome_commands(ARGS):
     (_, _, _, _, _, _, _, _, _, _, ATLAS_REG_PATH, 
         _) = get_mrtrix_registration_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, ATLAS)
     # Get the probabilistic tracking paths
-    (GM_WM_SEED_PATH, TRACT_TCK_PATH) = get_mrtrix_probtrack_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
+    (_, TRACT_TCK_PATH) = get_mrtrix_probtrack_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
+    # Get the global tracking paths
+    (_, _, GLOBAL_TRACT_PATH) = get_mrtrix_global_tracking_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
     # Get the connectivity paths
-    (CONNECTIVITY_PATH) = get_mrtrix_connectome_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
+    (CONNECTIVITY_PROB_PATH, CONNECTIVITY_GLOBAL_PATH) = get_mrtrix_connectome_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
     
     # Connectivity matrix command
-    CONNECTIVITY_CMD = "tck2connectome {input}.tck {atlas}.mif {output}.csv -zero_diagonal -symmetric \
-        -assignment_all_voxels -force".format(input=TRACT_TCK_PATH, output=CONNECTIVITY_PATH, atlas=ATLAS_REG_PATH)
+    CONNECTIVITY_PROB_CMD = "tck2connectome {input}.tck {atlas}.mif {output}.csv -zero_diagonal -symmetric \
+        -assignment_all_voxels -force".format(input=TRACT_TCK_PATH, output=CONNECTIVITY_PROB_PATH, atlas=ATLAS_REG_PATH)
+    CONNECTIVITY_GLOBAL_CMD = "tck2connectome {input}.tck {atlas}.mif {output}.csv -zero_diagonal -symmetric \
+        -assignment_all_voxels -force".format(input=GLOBAL_TRACT_PATH, output=CONNECTIVITY_GLOBAL_PATH, atlas=ATLAS_REG_PATH)
     
     # Return the commands
-    return (CONNECTIVITY_CMD)
+    return (CONNECTIVITY_PROB_CMD, CONNECTIVITY_GLOBAL_CMD)
 
 # Define MRTRIX commands
 def probabilistic_tractography(ARGS):
@@ -758,25 +833,31 @@ def probabilistic_tractography(ARGS):
     # Define the probabilistic tracking commands
     PROB_ARGS = [SUBJECT_FILES, MAIN_MRTRIX_PATH, ATLAS]
     (GM_WM_SEED_CMD, PROB_TRACT_CMD) = define_mrtrix_probtrack_commands(PROB_ARGS)
+    # Define the global tracking commands
+    GLOBAL_ARGS = [SUBJECT_FILES, MAIN_MRTRIX_PATH]
+    (GLOBAL_TRACT_CMD) = define_mrtrix_global_tracking_commands(GLOBAL_ARGS)
     # Define the connectome commands
     CONNECTOME_ARGS = [SUBJECT_FILES, MAIN_MRTRIX_PATH, ATLAS]
-    (CONNECTIVITY_CMD) = define_mrtrix_connectome_commands(CONNECTOME_ARGS)
+    (CONNECTIVITY_PROB_CMD, CONNECTIVITY_GLOBAL_CMD) = define_mrtrix_connectome_commands(CONNECTOME_ARGS)
 
 
     # Create commands array
-    MRTRIX_COMMANDS = [(MIF_CMD, "Conversion NifTI -> MIF"), (MASK_CMD, "Brain mask creation"),
-                       (RESPONSE_EST_CMD, "Response estimation"),
-                       (MULTISHELL_CSD_CMD, "Spherical deconvolution"), (COMBINE_FODS_CMD, "Combining fODs"),
-                       (NORMALIZE_FODS_CMD, "Normalizing fODs"),
-                       (MIF_T1_CMD, "Conversion T1 NifTI -> MIF"),
-                       (FIVETT_NOREG_CMD, "5ttgen"), (DWI_B0_CMD, "Extracting mean B0 from DWI"),
-                       (DWI_B0_NII_CMD, "Conversion mean B0 MIF -> NifTI"), (FIVETT_GEN_NII_CMD, "Conversion 5ttgen MIF -> NifTI"),
-                       (REGISTER_T1_DWI_CMD, "Registering T1 to DWI space"), (TRANSFORMATION_T1_DWI_CMD, "Transformation T1 to DWI space"),
-                       (FINAL_TRANSFORM_CMD, "Final transformation"), (GM_WM_SEED_CMD, "Preparing GM-WM mask for streamline seeding"),
-                       (PROB_TRACT_CMD, "Probabilistic tractography"), (REGISTER_ATLAS_DWI_CMD, "Registering atlas to DWI space"),
-                       (TRANSFORMATION_ATLAS_DWI_CMD, "Transformation atlas to DWI space"), (ATLAS_MIF_CMD, "Conversion atlas NifTI -> MIF"),
-                       (FINAL_ATLAS_TRANSFORM_CMD, "Final atlas transformation"),
-                       (CONNECTIVITY_CMD, "Connectivity matrix")]
+    MRTRIX_COMMANDS = [(MIF_CMD, "Convert DWI nii -> mif"), (MASK_CMD, "Create DWI brain mask"),
+                        (RESPONSE_EST_CMD, "Estimate response function of WM, GM, CSF from DWI"),
+                        (MULTISHELL_CSD_CMD, "Spherical deconvolution to estimate fODs"),
+                        (COMBINE_FODS_CMD, "Combining fODs into a VF"),
+                        (NORMALIZE_FODS_CMD, "Normalizing fODs"),
+                        (MIF_T1_CMD, "Convert T1 nii -> mif"), (FIVETT_NOREG_CMD, "5ttgen creation with no registration"),
+                        (DWI_B0_CMD, "Extracting mean B0 and transforming to NII"), (DWI_B0_NII_CMD, "DWI B0 mif -> NII"),
+                        (FIVETT_GEN_NII_CMD, "5ttgen mif -> nii"), (REGISTER_T1_DWI_CMD, "Begin registering T1 to DWI space"),
+                        (TRANSFORMATION_T1_DWI_CMD, "Initial transformation of T1 to DWI space"), 
+                        (FINAL_TRANSFORM_CMD, "Final transformation of T1 to DWI space"),
+                        (REGISTER_ATLAS_DWI_CMD, "Begin registering atlas to DWI space"),
+                        (TRANSFORMATION_ATLAS_DWI_CMD, "Initial transformation of atlas to DWI space"),
+                        (ATLAS_MIF_CMD, "Convert atlas nii -> mif"), (FINAL_ATLAS_TRANSFORM_CMD, "Final transformation of atlas to DWI space"),
+                        (GM_WM_SEED_CMD, "Preparing mask for streamline seeding"), (PROB_TRACT_CMD, "Probabilistic tractography"),
+                        (GLOBAL_TRACT_CMD, "Global tractography"), (CONNECTIVITY_PROB_CMD, "Creating connectivity matrix - probabilistic"),
+                        (CONNECTIVITY_GLOBAL_CMD, "Creating connectivity matrix - global")]
 
     # Return the commands array
     return MRTRIX_COMMANDS
