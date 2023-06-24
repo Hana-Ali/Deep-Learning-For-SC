@@ -2,7 +2,7 @@ import os
 import sys
 import shutil
 import glob
-import regex as re
+import numpy as np
 
 # -------------------------------------------------- MAIN FUNCTION MODULES -------------------------------------------------- #
 def get_main_paths(hpc):
@@ -18,14 +18,16 @@ def get_main_paths(hpc):
     else:
         # Define paths based on whether we're Windows or Linux
         if os.name == "nt":
-            DWI_MAIN_FOLDER = os.path.realpath(r"C:\\tractography\\data\\subjects\\dwi")
-            T1_MAIN_FOLDER = os.path.realpath(r"C:\\tractography\\data\\subjects\\t1")
-            DWI_OUTPUT_FOLDER = os.path.realpath(r"C:\\tractography\\data\\dsi_outputs")
+            ALL_DATA_FOLDER = os.path.realpath(r"C:\\tractography\\data")
+            SUBJECTS_FOLDER = os.path.realpath(os.path.join(ALL_DATA_FOLDER, "subjects"))
+            DWI_OUTPUT_FOLDER = os.path.realpath(os.path.join(ALL_DATA_FOLDER, "dsi_outputs"))
+            DWI_MAIN_FOLDER = os.path.realpath(os.path.join(SUBJECTS_FOLDER, "dwi"))
+            T1_MAIN_FOLDER = os.path.realpath(os.path.join(SUBJECTS_FOLDER, "t1"))
+            FMRI_MAIN_FOLDER = os.path.realpath(os.path.join(SUBJECTS_FOLDER, "fmri"))
 
             DSI_COMMAND = "dsi_studio"
 
             ATLAS_FOLDER = os.path.realpath(r"C:\\tractography\\data\\atlas")
-            TRACT_FOLDER = os.path.realpath(r"C:\\tractography\\data\\tracts")
         else:
             ALL_DATA_FOLDER = os.path.realpath(os.path.join(os.getcwd(), "data"))
             SUBJECTS_FOLDER = os.path.realpath(os.path.join(ALL_DATA_FOLDER, "subjects"))
