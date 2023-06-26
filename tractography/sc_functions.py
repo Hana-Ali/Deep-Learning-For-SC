@@ -645,20 +645,3 @@ def probabilistic_tractography(ARGS):
 
     # Return the commands array
     return MRTRIX_COMMANDS
-
-
-# REGISTER_T1_DWI_CMD = "flirt -in {input} -ref {ref} -out {output} -omat {output_mat} -dof 6 -cost mutualinfo -searchcost mutualinfo".format(
-#     input=DWI_B0_NII, ref=FIVETT_GEN_NII, output=FIVETT_GEN_NII, output_mat=os.path.join(MAIN_MRTRIX_PATH, "t1_to_dwi.mat"))
-# CHECK_QSPACE_SAMPLE = "mrinfo {}.mif -dwgrad".format(MIF_PATH)
-# CHECK_QSPACE_SAMPLE2 = "mrinfo -shell_bvalues {}.mif".format(MIF_PATH)
-# CHECK_QSPACE_SAMPLE3 = "mrinfo -shell_sizes {}.mif".format(MIF_PATH)
-# inspect voxels used for response function estimation
-# INSPECT_RESPONSE_CMD = "mrview {input_nii} -overlay.load {response_voxels}.mif -plane 2".format(input_nii=DWI_INPUT_FILE,
-#                                                                                                 response_voxels=RESPONSE_VOXEL_PATH)
-# inspect response functions
-# INSPECT_RESPONSE_CMD2 = "shview {wm}.txt {gm}.txt {csf}.txt".format(wm=RESPONSE_WM_PATH, gm=RESPONSE_GM_PATH, csf=RESPONSE_CSF_PATH)
-# Create commands array
-
-# PROB_TRACT_CMD = "tckgen {input}.mif {output}.tck -act {wm}.mif -backtrack -crop_at_gmwmi -seed_dynamic {input}.mif -maxlength 250 -select 100000 \
-#     -cutoff 0.06 -minlength 10 -power 1.0 -nthreads 0".format(
-#         input=INPUT_MIF_PATH, output=TRACT_MIF_PATH, wm=RESPONSE_WM_PATH)
