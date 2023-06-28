@@ -1,4 +1,4 @@
-from tract_helpers import *
+from general_helpers import *
 import os
 
 # Get the FSL file paths

@@ -5,19 +5,20 @@
 # Could either use fmriprep for this, or do it using FSL stuff
 
 import matplotlib.pyplot as plt
-from tract_helpers import *
-import subprocess
+from py_helpers.general_helpers import *
+from py_helpers.sc_functions import *
+
 import nibabel as nib
+
+from nipype import Workflow, Node, MapNode
+from nipype.interfaces.utility import IdentityInterface
+from nipype.interfaces.io import SelectFiles, DataSink
+import nipype.interfaces.io as nio
+
 from nipype.interfaces.fsl import (BET, ExtractROI, FAST, FLIRT, ImageMaths,
                                    MCFLIRT, SliceTimer, Threshold)
 from nipype.interfaces.spm import Smooth
 from nipype.algorithms.rapidart import ArtifactDetect
-from nipype import Workflow, Node, MapNode
-from sc_functions import *
-
-from nipype.interfaces.utility import IdentityInterface
-from nipype.interfaces.io import SelectFiles, DataSink
-import nipype.interfaces.io as nio
 
 from IPython.display import Image
 

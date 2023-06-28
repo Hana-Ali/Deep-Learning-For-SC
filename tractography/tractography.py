@@ -4,8 +4,8 @@ This Python file contains the main pipeline used for tractography
 
 # Import libraries
 import multiprocessing as mp
-from tract_helpers import *
-from sc_functions import *
+from py_helpers.general_helpers import *
+from py_helpers.sc_functions import *
 import regex as re
 import subprocess
 import os
