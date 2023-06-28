@@ -3,13 +3,105 @@ import sys
 import shutil
 import glob
 import numpy as np
+import regex as re
+import nipype.interfaces.io as nio
+from nipype import Node
+from nipype.interfaces.utility import IdentityInterface
+from nipype.pipeline.engine import Workflow
 
 # -------------------------------------------------- MAIN FUNCTION MODULES -------------------------------------------------- #
+def get_nipype_datasource(hpc):
+
+    # Get paths, depending on whether we're in HPC or not
+    hpc = False
+    (ALL_DATA_FOLDER, SUBJECTS_FOLDER, TRACTOGRAPHY_OUTPUT_FOLDER, NIPYPE_OUTPUT_FOLDER, 
+        DWI_MAIN_FOLDER, T1_MAIN_FOLDER, FMRI_MAIN_FOLDER, DSI_COMMAND, ATLAS_FOLDER, 
+            MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH) = get_main_paths(hpc)
+    
+    # Get the subject IDs
+    SUBJECT_IDS = os.listdir(FMRI_MAIN_FOLDER)
+
+    # Create iterable list of subjects
+    info_source = Node(IdentityInterface(fields=['subject_id']), name='info_source')
+    info_source.iterables = [('subject_id', SUBJECT_IDS)]
+
+    # Grab the data
+    dwi_files = os.path.join(DWI_MAIN_FOLDER, 'sub-{subject_id}', 'dwi', '*_dwi.nii.gz')
+    fmri_files = os.path.join(FMRI_MAIN_FOLDER, '{subject_id}', 'Rest', '*.nii')
+    t1_files = os.path.join(T1_MAIN_FOLDER, '{subject_id}', 'structurals', '*.nii')
+
+    # Create templates and grab the files using SelectFiles
+    templates = {'dwi': dwi_files, 'fmri': fmri_files, 't1': t1_files}
+    select_files = Node(nio.SelectFiles(templates, 
+                                        base_directory=SUBJECTS_FOLDER),
+                        name='select_files')
+
+    # Return the info source, select files and nipype output folder
+    return [info_source, select_files, NIPYPE_OUTPUT_FOLDER]
+
+
+def get_dmri_fmri_arguments(hpc):
+
+    # Get paths, depending on whether we're in HPC or not
+    hpc = False
+    (ALL_DATA_FOLDER, SUBJECTS_FOLDER, TRACTOGRAPHY_OUTPUT_FOLDER, NIPYPE_OUTPUT_FOLDER, 
+        DWI_MAIN_FOLDER, T1_MAIN_FOLDER, FMRI_MAIN_FOLDER, DSI_COMMAND, ATLAS_FOLDER, 
+            MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH) = get_main_paths(hpc)
+
+    # Check if input folders - if not, exit program
+    check_input_folders(DWI_MAIN_FOLDER, "DWI")
+    check_input_folders(T1_MAIN_FOLDER, "T1")
+    check_input_folders(FMRI_MAIN_FOLDER, "fMRI")
+    check_input_folders(ATLAS_FOLDER, "Atlas")
+
+    # If output folderes don't exist, create them
+    check_output_folders_with_subfolders(TRACTOGRAPHY_OUTPUT_FOLDER, "Tractography output")
+    check_output_folders(MAIN_STUDIO_PATH, "Studio")
+    check_output_folders(MAIN_MRTRIX_PATH, "MRtrix")
+    check_output_folders(MAIN_FSL_PATH, "FSL")
+        
+    # --------------- Get DWI, BVAL, BVEC, T1, fMRI from subdirectories --------------- #
+    DWI_INPUT_FILES = glob_files(DWI_MAIN_FOLDER, "nii.gz")
+    DWI_JSON_HEADERS = glob_files(DWI_MAIN_FOLDER, "json")
+    B_VAL_FILES = glob_files(DWI_MAIN_FOLDER, "bval")
+    B_VEC_FILES = glob_files(DWI_MAIN_FOLDER, "bvec")
+    T1_INPUT_FILES = glob_files(T1_MAIN_FOLDER, "nii")
+    FMRI_INPUT_FILES = glob_files(FMRI_MAIN_FOLDER, "nii")
+    ATLAS_FILES = glob_files(ATLAS_FOLDER, "nii.gz")
+    
+    # Clean up T1 template files
+    T1_INPUT_FILES = list(filter(lambda x: not re.search('Template', x), T1_INPUT_FILES))
+    
+    # Create string of atlases available
+    ATLAS_STRING = ",".join(ATLAS_FILES)
+
+    # If no files are found - exit the program
+    check_globbed_files(DWI_INPUT_FILES, "DWI")
+    check_globbed_files(DWI_JSON_HEADERS, "JSON")
+    check_globbed_files(B_VAL_FILES, "BVAL")
+    check_globbed_files(B_VEC_FILES, "BVEC")
+    check_globbed_files(T1_INPUT_FILES, "T1")
+    check_globbed_files(FMRI_INPUT_FILES, "fMRI")
+    check_globbed_files(ATLAS_FILES, "Atlas")
+
+    # --------------- Create list of all data for each subject and filter --------------- #
+    SUBJECT_LISTS = create_subject_list(DWI_INPUT_FILES, DWI_JSON_HEADERS, B_VAL_FILES, 
+                                        B_VEC_FILES, T1_INPUT_FILES, FMRI_INPUT_FILES)
+    FILTERED_SUBJECT_LIST = filter_subjects_list(SUBJECT_LISTS, SUBJECTS_FOLDER)
+    
+    # --------------- Defining inputs for mapping parallel --------------- #
+    mapping_inputs = list(zip(FILTERED_SUBJECT_LIST, [ATLAS_FILES[0]]*len(FILTERED_SUBJECT_LIST), [ATLAS_STRING]*len(FILTERED_SUBJECT_LIST), 
+                              [MAIN_STUDIO_PATH]*len(FILTERED_SUBJECT_LIST), [MAIN_MRTRIX_PATH]*len(FILTERED_SUBJECT_LIST), 
+                              [MAIN_FSL_PATH]*len(FILTERED_SUBJECT_LIST), [DSI_COMMAND]*len(FILTERED_SUBJECT_LIST)))
+
+    # Return the mapping inputs
+    return mapping_inputs
+
 def get_main_paths(hpc):
     # Depending on whether we're in HPC or not, paths change
     if hpc == True:
         DWI_MAIN_FOLDER = "/rds/general/user/hsa22/home/dissertation/tractography"
-        DWI_OUTPUT_FOLDER = "/rds/general/user/hsa22/home/dissertation/tractography/dsi_outputs"
+        TRACTOGRAPHY_OUTPUT_FOLDER = "/rds/general/user/hsa22/home/dissertation/tractography/dsi_outputs"
 
         DSI_COMMAND = "singularity exec dsistudio_latest.sif dsi_studio"
 
@@ -20,7 +112,7 @@ def get_main_paths(hpc):
         if os.name == "nt":
             ALL_DATA_FOLDER = os.path.realpath(r"C:\\tractography\\data")
             SUBJECTS_FOLDER = os.path.realpath(os.path.join(ALL_DATA_FOLDER, "subjects"))
-            DWI_OUTPUT_FOLDER = os.path.realpath(os.path.join(ALL_DATA_FOLDER, "dsi_outputs"))
+            TRACTOGRAPHY_OUTPUT_FOLDER = os.path.realpath(os.path.join(ALL_DATA_FOLDER, "dsi_outputs"))
             DWI_MAIN_FOLDER = os.path.realpath(os.path.join(SUBJECTS_FOLDER, "dwi"))
             T1_MAIN_FOLDER = os.path.realpath(os.path.join(SUBJECTS_FOLDER, "t1"))
             FMRI_MAIN_FOLDER = os.path.realpath(os.path.join(SUBJECTS_FOLDER, "fmri"))
@@ -31,7 +123,8 @@ def get_main_paths(hpc):
         else:
             ALL_DATA_FOLDER = os.path.realpath(os.path.join(os.getcwd(), "data"))
             SUBJECTS_FOLDER = os.path.realpath(os.path.join(ALL_DATA_FOLDER, "subjects"))
-            DWI_OUTPUT_FOLDER = os.path.realpath(os.path.join(ALL_DATA_FOLDER, "dsi_outputs"))
+            TRACTOGRAPHY_OUTPUT_FOLDER = os.path.realpath(os.path.join(ALL_DATA_FOLDER, "dsi_outputs"))
+            NIPYPE_OUTPUT_FOLDER = os.path.realpath(os.path.join(ALL_DATA_FOLDER, "nipype_outputs"))
             DWI_MAIN_FOLDER = os.path.realpath(os.path.join(SUBJECTS_FOLDER, "dwi"))
             T1_MAIN_FOLDER = os.path.realpath(os.path.join(SUBJECTS_FOLDER, "t1"))
             FMRI_MAIN_FOLDER = os.path.realpath(os.path.join(SUBJECTS_FOLDER, "fmri"))
@@ -40,14 +133,15 @@ def get_main_paths(hpc):
 
             ATLAS_FOLDER = os.path.realpath(os.path.join(ALL_DATA_FOLDER, "atlas"))
 
-    MAIN_STUDIO_PATH = os.path.join(DWI_OUTPUT_FOLDER, "studio")
-    MAIN_MRTRIX_PATH = os.path.join(DWI_OUTPUT_FOLDER, "mrtrix")
-    MAIN_FSL_PATH = os.path.join(DWI_OUTPUT_FOLDER, "fsl")
+    MAIN_STUDIO_PATH = os.path.join(TRACTOGRAPHY_OUTPUT_FOLDER, "studio")
+    MAIN_MRTRIX_PATH = os.path.join(TRACTOGRAPHY_OUTPUT_FOLDER, "mrtrix")
+    MAIN_FSL_PATH = os.path.join(TRACTOGRAPHY_OUTPUT_FOLDER, "fsl")
+
 
     # Return folder names
-    return (ALL_DATA_FOLDER, SUBJECTS_FOLDER, DWI_OUTPUT_FOLDER, DWI_MAIN_FOLDER, 
-            T1_MAIN_FOLDER, FMRI_MAIN_FOLDER, DSI_COMMAND, ATLAS_FOLDER, MAIN_STUDIO_PATH, 
-            MAIN_MRTRIX_PATH, MAIN_FSL_PATH)
+    return (ALL_DATA_FOLDER, SUBJECTS_FOLDER, TRACTOGRAPHY_OUTPUT_FOLDER, NIPYPE_OUTPUT_FOLDER, 
+            DWI_MAIN_FOLDER, T1_MAIN_FOLDER, FMRI_MAIN_FOLDER, DSI_COMMAND, ATLAS_FOLDER, 
+            MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH)
 
 # Check that input folders exist
 def check_input_folders(folder, name):

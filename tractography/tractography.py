@@ -95,10 +95,11 @@ def parallel_process(SUBJECT_FILES, ATLAS, ATLAS_STRING, MAIN_STUDIO_PATH, MAIN_
         print("Started {} - {}".format(cmd_name, dwi_filename))
         subprocess.run(mrtrix_cmd, shell=True)
     
+
     #################################
     # SHOULD ALSO HAVE
 
-    # SET https://github.com/StongeEtienne/set-nf (NOT ML)
+    # SET https://github.com/StongeEtienne/set-nf
     # --> Needs surface
 
     # GESTA - DEEP AE https://github.com/scil-vital/tractolearn
@@ -122,64 +123,9 @@ def parallel_process(SUBJECT_FILES, ATLAS, ATLAS_STRING, MAIN_STUDIO_PATH, MAIN_
 # -------------------------------------------------- Folder Paths and Data Checking -------------------------------------------------- #
 
 def main():
-    # --------------- Defining main folders and paths --------------- #
     # Get paths, depending on whether we're in HPC or not
     hpc = False
-    (ALL_DATA_FOLDER, SUBJECTS_FOLDER, DWI_OUTPUT_FOLDER, DWI_MAIN_FOLDER, 
-        T1_MAIN_FOLDER, FMRI_MAIN_FOLDER, DSI_COMMAND, ATLAS_FOLDER, MAIN_STUDIO_PATH, 
-            MAIN_MRTRIX_PATH, MAIN_FSL_PATH) = get_main_paths(hpc)
-
-    # Check if input folders - if not, exit program
-    check_input_folders(DWI_MAIN_FOLDER, "DWI")
-    check_input_folders(T1_MAIN_FOLDER, "T1")
-    check_input_folders(FMRI_MAIN_FOLDER, "fMRI")
-    check_input_folders(ATLAS_FOLDER, "Atlas")
-
-
-    # If output folderes don't exist, create them
-    check_output_folders_with_subfolders(DWI_OUTPUT_FOLDER, "DWI output")
-    check_output_folders(MAIN_STUDIO_PATH, "Studio")
-    check_output_folders(MAIN_MRTRIX_PATH, "MRtrix")
-    check_output_folders(MAIN_FSL_PATH, "FSL")
-        
-    # --------------- Get DWI, BVAL, BVEC from subdirectories --------------- #
-    DWI_INPUT_FILES = glob_files(DWI_MAIN_FOLDER, "nii.gz")
-    DWI_JSON_HEADERS = glob_files(DWI_MAIN_FOLDER, "json")
-    B_VAL_FILES = glob_files(DWI_MAIN_FOLDER, "bval")
-    B_VEC_FILES = glob_files(DWI_MAIN_FOLDER, "bvec")
-    T1_INPUT_FILES = glob_files(T1_MAIN_FOLDER, "nii")
-    FMRI_INPUT_FILES = glob_files(FMRI_MAIN_FOLDER, "nii")
-    
-    # Clean up T1 template files
-    T1_INPUT_FILES = list(filter(lambda x: not re.search('Template', x), T1_INPUT_FILES))
-    
-    # If no files are found - exit the program
-    check_globbed_files(DWI_INPUT_FILES, "DWI")
-    check_globbed_files(DWI_JSON_HEADERS, "JSON")
-    check_globbed_files(B_VAL_FILES, "BVAL")
-    check_globbed_files(B_VEC_FILES, "BVEC")
-    check_globbed_files(T1_INPUT_FILES, "T1")
-    check_globbed_files(FMRI_INPUT_FILES, "fMRI")
- 
-    # --------------- Create list of all data for each subject and filter --------------- #
-    SUBJECT_LISTS = create_subject_list(DWI_INPUT_FILES, DWI_JSON_HEADERS, B_VAL_FILES, 
-                                        B_VEC_FILES, T1_INPUT_FILES, FMRI_INPUT_FILES)
-    FILTERED_SUBJECT_LIST = filter_subjects_list(SUBJECT_LISTS, SUBJECTS_FOLDER)
-   
-    # --------------- Define what atlases to use --------------- #
-    ATLAS_FILES = glob_files(ATLAS_FOLDER, "nii.gz")
-    # Exit if no atlases are found
-    check_globbed_files(ATLAS_FILES, "Atlas")
-    # Create atlas string otherwise
-    ATLAS_STRING = ",".join(ATLAS_FILES)
-
-
-    # -------------------------------------------------- TRACTOGRAPHY COMMANDS -------------------------------------------------- #
-
-    # --------------- DSI STUDIO defining inputs for mapping parallel --------------- #
-    mapping_inputs = list(zip(FILTERED_SUBJECT_LIST, [ATLAS_FILES[0]]*len(DWI_INPUT_FILES), [ATLAS_STRING]*len(DWI_INPUT_FILES), 
-                              [MAIN_STUDIO_PATH]*len(DWI_INPUT_FILES), [MAIN_MRTRIX_PATH]*len(DWI_INPUT_FILES), 
-                              [MAIN_FSL_PATH]*len(DWI_INPUT_FILES), [DSI_COMMAND]*len(DWI_INPUT_FILES)))
+    mapping_inputs = get_dmri_fmri_arguments(hpc)
 
     # Use the mapping inputs with starmap to run the parallel processes
     with mp.Pool() as pool:

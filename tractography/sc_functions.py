@@ -9,7 +9,7 @@ def get_fsl_paths(NEEDED_FILE_PATHS, MAIN_FSL_PATH):
 
     # Creating folder for each subject in FSL folder
     SUBJECT_FOLDER_NAME = os.path.join(MAIN_FSL_PATH, filename)
-    check_output_folders(SUBJECT_FOLDER_NAME, "FSL subject folder")
+    # check_output_folders(SUBJECT_FOLDER_NAME, "FSL subject folder")
     
     # Define the path for skull stripped T1
     SKULL_STRIP_PATH = os.path.join(SUBJECT_FOLDER_NAME, "_skull_strip")
