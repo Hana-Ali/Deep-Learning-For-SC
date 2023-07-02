@@ -13,7 +13,7 @@ import os
 # -------------------------------------------------- Functions -------------------------------------------------- #
 
 # CHECK HOW TO DO THIS IN PARALLEL - STARMAP OR IMAP
-def parallel_process(SUBJECT_FILES, ATLAS, ATLAS_STRING, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH, 
+def parallel_process(SUBJECT_FILES, ATLAS_CHOSEN, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH, 
                         DSI_COMMAND):
 
     # Define the stripped paths indices
@@ -23,7 +23,7 @@ def parallel_process(SUBJECT_FILES, ATLAS, ATLAS_STRING, MAIN_STUDIO_PATH, MAIN_
 
     # Get the filename for this specific process
     dwi_filename = extract_dwi_filename(get_filename(SUBJECT_FILES, "filename")["filename"])
-    t1_filename = extract_t1_fmri_filename(get_filename(SUBJECT_FILES, "t1")["t1"])
+    t1_filename = extract_t1_filename(get_filename(SUBJECT_FILES, "t1")["t1"])
 
     # Ping beginning or process
     print("Started parallel process - {}".format(dwi_filename))
@@ -57,7 +57,7 @@ def parallel_process(SUBJECT_FILES, ATLAS, ATLAS_STRING, MAIN_STUDIO_PATH, MAIN_
         CLEAN_FILES,
         MAIN_STUDIO_PATH,
         DSI_COMMAND,
-        ATLAS_STRING
+        ATLAS_CHOSEN
     ]
     # Get the studio commands array
     STUDIO_COMMANDS = define_studio_commands(ARGS_STUDIO)
@@ -69,7 +69,7 @@ def parallel_process(SUBJECT_FILES, ATLAS, ATLAS_STRING, MAIN_STUDIO_PATH, MAIN_
         CLEAN_FILES,
         MAIN_MRTRIX_PATH,
         STRIPPED_PATHS[STRIPPED_INDEX],
-        ATLAS
+        ATLAS_CHOSEN
     ]
     # Get the mrtrix commands array
     MRTRIX_COMMANDS = probabilistic_tractography(ARGS_MRTRIX)

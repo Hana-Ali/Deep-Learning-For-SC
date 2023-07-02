@@ -1,4 +1,4 @@
-from general_helpers import *
+from .general_helpers import *
 import os
 
 # Get the FSL file paths
@@ -9,7 +9,7 @@ def get_fsl_paths(NEEDED_FILE_PATHS, MAIN_FSL_PATH):
 
     # Creating folder for each subject in FSL folder
     SUBJECT_FOLDER_NAME = os.path.join(MAIN_FSL_PATH, filename)
-    # check_output_folders(SUBJECT_FOLDER_NAME, "FSL subject folder")
+    check_output_folders(SUBJECT_FOLDER_NAME, "FSL subject folder", wipe=True)
     
     # Define the path for skull stripped T1
     SKULL_STRIP_PATH = os.path.join(SUBJECT_FOLDER_NAME, "_skull_strip")
@@ -63,7 +63,7 @@ def get_mrtrix_clean_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH):
     
     # Creating folder for cleaning in MRTRIX folder. WIPE since this is the only function that uses it
     CLEANING_FOLDER_NAME = os.path.join(SUBJECT_FOLDER_NAME, "cleaning")
-    check_output_folders(CLEANING_FOLDER_NAME, "MRtrix cleaning folder")
+    check_output_folders(CLEANING_FOLDER_NAME, "MRtrix cleaning folder", wipe=True)
 
     # DWI nii -> mif filepath
     INPUT_MIF_PATH = os.path.join(CLEANING_FOLDER_NAME, "{}_clean_input".format(dwi_filename))
@@ -145,9 +145,9 @@ def get_dsi_studio_paths(NEEDED_FILE_PATHS, MAIN_STUDIO_PATH):
     STUDIO_SRC_FOLDER = os.path.join(SUBJECT_FOLDER_NAME, "src")
     STUDIO_DTI_FOLDER = os.path.join(SUBJECT_FOLDER_NAME, "dti")
     STUDIO_QSDR_FOLDER = os.path.join(SUBJECT_FOLDER_NAME, "qsdr")
-    check_output_folders(STUDIO_SRC_FOLDER, "DSI Studio src folder")
-    check_output_folders(STUDIO_DTI_FOLDER, "DSI Studio dti folder")
-    check_output_folders(STUDIO_QSDR_FOLDER, "DSI Studio qsdr folder")
+    check_output_folders(STUDIO_SRC_FOLDER, "DSI Studio src folder", wipe=True)
+    check_output_folders(STUDIO_DTI_FOLDER, "DSI Studio dti folder", wipe=True)
+    check_output_folders(STUDIO_QSDR_FOLDER, "DSI Studio qsdr folder", wipe=True)
 
     STUDIO_SRC_PATH = os.path.join(STUDIO_SRC_FOLDER, "{}_clean".format(dwi_filename))
     STUDIO_DTI_PATH = os.path.join(STUDIO_DTI_FOLDER, "{}_dti".format(dwi_filename))
@@ -160,12 +160,12 @@ def get_dsi_studio_paths(NEEDED_FILE_PATHS, MAIN_STUDIO_PATH):
     TRACT_LOG_FOLDER = os.path.join(SUBJECT_LOGS_FOLDER, "recon_to_tract")
     DTI_EXP_LOG_FOLDER = os.path.join(SUBJECT_LOGS_FOLDER, "dti_export")
     QSDR_EXP_LOG_FOLDER = os.path.join(SUBJECT_LOGS_FOLDER, "qsdr_export")
-    check_output_folders(SRC_LOG_FOLDER, "DSI Studio dwi to src logs folder")
-    check_output_folders(DTI_LOG_FOLDER, "DSI Studio src to dti logs folder")
-    check_output_folders(QSDR_LOG_FOLDER, "DSI Studio src to qsdr logs folder")
-    check_output_folders(TRACT_LOG_FOLDER, "DSI Studio recon to tract logs folder")
-    check_output_folders(DTI_EXP_LOG_FOLDER, "DSI Studio dti export logs folder")
-    check_output_folders(QSDR_EXP_LOG_FOLDER, "DSI Studio qsdr export logs folder")
+    check_output_folders(SRC_LOG_FOLDER, "DSI Studio dwi to src logs folder", wipe=True)
+    check_output_folders(DTI_LOG_FOLDER, "DSI Studio src to dti logs folder", wipe=True)
+    check_output_folders(QSDR_LOG_FOLDER, "DSI Studio src to qsdr logs folder", wipe=True)
+    check_output_folders(TRACT_LOG_FOLDER, "DSI Studio recon to tract logs folder", wipe=True)
+    check_output_folders(DTI_EXP_LOG_FOLDER, "DSI Studio dti export logs folder", wipe=True)
+    check_output_folders(QSDR_EXP_LOG_FOLDER, "DSI Studio qsdr export logs folder", wipe=True)
 
     SRC_LOG_PATH = os.path.join(SRC_LOG_FOLDER, "src_log_{}.txt".format(dwi_filename))
     DTI_LOG_PATH = os.path.join(DTI_LOG_FOLDER, "dti_log_{}.txt".format(dwi_filename))
@@ -185,7 +185,7 @@ def define_studio_commands(ARGS):
     CLEAN_FILES = ARGS[1]
     MAIN_STUDIO_PATH = ARGS[2]
     DSI_COMMAND = ARGS[3]
-    ATLAS_STRING = ARGS[4]
+    ATLAS_CHOSEN = ARGS[4]
     
     # Define what's needed for DSI STUDIO and extract them from subject files
     CLEANING_NEEDED = ["filename", "dwi", "bval", "bvec"]
@@ -223,9 +223,9 @@ def define_studio_commands(ARGS):
 
     STUDIO_DET_TRACT_CMD = "{command} --action=trk --source={qsdr}.fib.gz --fiber_count=1000000 --output=no_file \
     --method=0 --interpolation=0 --max_length=400 --min_length=10 --otsu_threshold=0.6 --random_seed=0 --turning_angle=55 \
-        --smoothing=0 --step_size=1 --connectivity={atlas_string} --connectivity_type=end \
+        --smoothing=0 --step_size=1 --connectivity={atlas_chosen} --connectivity_type=end \
             --connectivity_value=count --connectivity_threshold=0.001 > {log}".format(
-        command=DSI_COMMAND, qsdr=QSDR_PATH, atlas_string=ATLAS_STRING, log=TRACT_LOG_PATH)
+        command=DSI_COMMAND, qsdr=QSDR_PATH, atlas_chosen=ATLAS_CHOSEN, log=TRACT_LOG_PATH)
 
     # Create commands array
     STUDIO_COMMANDS = [(SRC_CMD, "SRC creation"), (DTI_CMD, "DTI evaluation"), 
@@ -243,11 +243,11 @@ def main_mrtrix_folder_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH):
 
     # Creating folder for each subject in MRTRIX folder. DON'T WIPE as it'll be used by other functions
     SUBJECT_FOLDER_NAME = os.path.join(MAIN_MRTRIX_PATH, dwi_filename)
-    check_output_folders_nowipe(SUBJECT_FOLDER_NAME, "MRtrix subject folder")
+    check_output_folders(SUBJECT_FOLDER_NAME, "MRtrix subject folder", wipe=False)
     
     # Creating folder for cleaning in MRTRIX folder. DON'T WIPE as it'll be used by other functions
     RECON_FOLDER_NAME = os.path.join(SUBJECT_FOLDER_NAME, "reconstruction")
-    check_output_folders_nowipe(RECON_FOLDER_NAME, "MRtrix reconstruction folder")
+    check_output_folders(RECON_FOLDER_NAME, "MRtrix reconstruction folder", wipe=False)
 
     # Because there's a lot of commands, we define extra folder paths here. DON'T WIPE as it'll be used by other functions
     RESPONSE_FOLDER_NAME = os.path.join(RECON_FOLDER_NAME, "response")
@@ -258,14 +258,14 @@ def main_mrtrix_folder_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH):
     PROB_TRACKING_FOLDER_NAME = os.path.join(RECON_FOLDER_NAME, "prob_tracking")
     GLOBAL_TRACKING_FOLDER_NAME = os.path.join(RECON_FOLDER_NAME, "global_tracking")
     CONNECTIVITY_FOLDER_NAME = os.path.join(RECON_FOLDER_NAME, "connectivity")
-    check_output_folders_nowipe(RESPONSE_FOLDER_NAME, "MRtrix response folder")
-    check_output_folders_nowipe(FOD_FOLDER_NAME, "MRtrix fod folder")
-    check_output_folders_nowipe(FOD_NORM_FOLDER_NAME, "MRtrix fod norm folder")
-    check_output_folders_nowipe(T1_REG_FOLDER_NAME, "MRtrix t1 and Fivett reg folder")
-    check_output_folders_nowipe(ATLAS_REG_FOLDER_NAME, "MRtrix atlas reg folder")
-    check_output_folders_nowipe(PROB_TRACKING_FOLDER_NAME, "MRtrix probabilistic tracking folder")
-    check_output_folders_nowipe(GLOBAL_TRACKING_FOLDER_NAME, "MRtrix global tracking folder")
-    check_output_folders_nowipe(CONNECTIVITY_FOLDER_NAME, "MRtrix connectivity folder")
+    check_output_folders(RESPONSE_FOLDER_NAME, "MRtrix response folder", wipe=False)
+    check_output_folders(FOD_FOLDER_NAME, "MRtrix fod folder", wipe=False)
+    check_output_folders(FOD_NORM_FOLDER_NAME, "MRtrix fod norm folder", wipe=False)
+    check_output_folders(T1_REG_FOLDER_NAME, "MRtrix t1 and Fivett reg folder", wipe=False)
+    check_output_folders(ATLAS_REG_FOLDER_NAME, "MRtrix atlas reg folder", wipe=False)
+    check_output_folders(PROB_TRACKING_FOLDER_NAME, "MRtrix probabilistic tracking folder", wipe=False)
+    check_output_folders(GLOBAL_TRACKING_FOLDER_NAME, "MRtrix global tracking folder", wipe=False)
+    check_output_folders(CONNECTIVITY_FOLDER_NAME, "MRtrix connectivity folder", wipe=False)
 
     # Return the paths
     return (SUBJECT_FOLDER_NAME, RECON_FOLDER_NAME, RESPONSE_FOLDER_NAME, FOD_FOLDER_NAME, FOD_NORM_FOLDER_NAME,

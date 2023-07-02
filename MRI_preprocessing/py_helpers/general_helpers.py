@@ -56,9 +56,9 @@ def get_dmri_fmri_arguments(hpc):
 
     # If output folderes don't exist, create them
     check_output_folders_with_subfolders(TRACTOGRAPHY_OUTPUT_FOLDER, "Tractography output")
-    check_output_folders(MAIN_STUDIO_PATH, "Studio")
-    check_output_folders(MAIN_MRTRIX_PATH, "MRtrix")
-    check_output_folders(MAIN_FSL_PATH, "FSL")
+    check_output_folders(MAIN_STUDIO_PATH, "Studio", wipe=True)
+    check_output_folders(MAIN_MRTRIX_PATH, "MRtrix", wipe=True)
+    check_output_folders(MAIN_FSL_PATH, "FSL", wipe=True)
         
     # --------------- Get DWI, BVAL, BVEC, T1, fMRI from subdirectories --------------- #
     DWI_INPUT_FILES = glob_files(DWI_MAIN_FOLDER, "nii.gz")
@@ -66,15 +66,12 @@ def get_dmri_fmri_arguments(hpc):
     B_VAL_FILES = glob_files(DWI_MAIN_FOLDER, "bval")
     B_VEC_FILES = glob_files(DWI_MAIN_FOLDER, "bvec")
     T1_INPUT_FILES = glob_files(T1_MAIN_FOLDER, "nii")
-    FMRI_INPUT_FILES = glob_files(FMRI_MAIN_FOLDER, "nii")
+    FMRI_INPUT_FILES = glob_files(FMRI_MAIN_FOLDER, "mat")
     ATLAS_FILES = glob_files(ATLAS_FOLDER, "nii.gz")
     
     # Clean up T1 template files
     T1_INPUT_FILES = list(filter(lambda x: not re.search('Template', x), T1_INPUT_FILES))
     
-    # Create string of atlases available
-    ATLAS_STRING = ",".join(ATLAS_FILES)
-
     # If no files are found - exit the program
     check_globbed_files(DWI_INPUT_FILES, "DWI")
     check_globbed_files(DWI_JSON_HEADERS, "JSON")
@@ -87,39 +84,57 @@ def get_dmri_fmri_arguments(hpc):
     # --------------- Create list of all data for each subject and filter --------------- #
     SUBJECT_LISTS = create_subject_list(DWI_INPUT_FILES, DWI_JSON_HEADERS, B_VAL_FILES, 
                                         B_VEC_FILES, T1_INPUT_FILES, FMRI_INPUT_FILES)
-    FILTERED_SUBJECT_LIST = filter_subjects_list(SUBJECT_LISTS, SUBJECTS_FOLDER)
+    # Depending on HPC, the filter CSV file is in a different location
+    if hpc:
+        FILTERED_SUBJECT_LIST = filter_subjects_list(SUBJECT_LISTS, ALL_DATA_FOLDER)
+    else:
+        FILTERED_SUBJECT_LIST = filter_subjects_list(SUBJECT_LISTS, SUBJECTS_FOLDER)
+
+    # --------------- Get the correct atlas depending on parcellated fMRI --------------- #
+    ATLAS_CHOSEN = get_atlas_choice(FILTERED_SUBJECT_LIST, ATLAS_FILES)
+
     
     # --------------- Defining inputs for mapping parallel --------------- #
-    mapping_inputs = list(zip(FILTERED_SUBJECT_LIST, [ATLAS_FILES[0]]*len(FILTERED_SUBJECT_LIST), [ATLAS_STRING]*len(FILTERED_SUBJECT_LIST), 
+    mapping_inputs = list(zip(FILTERED_SUBJECT_LIST, [ATLAS_CHOSEN]*len(FILTERED_SUBJECT_LIST), 
                               [MAIN_STUDIO_PATH]*len(FILTERED_SUBJECT_LIST), [MAIN_MRTRIX_PATH]*len(FILTERED_SUBJECT_LIST), 
                               [MAIN_FSL_PATH]*len(FILTERED_SUBJECT_LIST), [DSI_COMMAND]*len(FILTERED_SUBJECT_LIST)))
 
     # Return the mapping inputs
     return mapping_inputs
 
+
 def get_main_paths(hpc):
     # Depending on whether we're in HPC or not, paths change
     if hpc == True:
-        DWI_MAIN_FOLDER = "/rds/general/user/hsa22/home/dissertation/tractography"
-        TRACTOGRAPHY_OUTPUT_FOLDER = "/rds/general/user/hsa22/home/dissertation/tractography/dsi_outputs"
+        ALL_DATA_FOLDER = "/rds/general/user/hsa22/home/dissertation"
+        SUBJECTS_FOLDER = "" # Empty in the case of HPC
+        TRACTOGRAPHY_OUTPUT_FOLDER = os.path.join(ALL_DATA_FOLDER, "output_data")
+        NIPYPE_OUTPUT_FOLDER = os.path.join(ALL_DATA_FOLDER, "nipype_outputs")
+        FMRI_MAIN_FOLDER = os.path.join(ALL_DATA_FOLDER, "camcan_parcellated_acompcor/schaefer232/fmri700/rest")
+        ATLAS_FOLDER = os.path.join(ALL_DATA_FOLDER, "atlas")
 
+        PEDRO_MAIN_FOLDER = "/rds/general/user/pam213/home/Data/CAMCAN/"
+        DWI_MAIN_FOLDER = os.path.join(PEDRO_MAIN_FOLDER, "dwi")
+        T1_MAIN_FOLDER = os.path.join(PEDRO_MAIN_FOLDER, "aamod_dartel_norm_write_00001")
+        
         DSI_COMMAND = "singularity exec dsistudio_latest.sif dsi_studio"
 
-        ATLAS_FOLDER = "/home/hsa22/ConnectomePreprocessing/atlas"
-        TRACT_FOLDER = "/home/hsa22/ConnectomePreprocessing/tracts"
     else:
         # Define paths based on whether we're Windows or Linux
         if os.name == "nt":
             ALL_DATA_FOLDER = os.path.realpath(r"C:\\tractography\\data")
+            
             SUBJECTS_FOLDER = os.path.realpath(os.path.join(ALL_DATA_FOLDER, "subjects"))
             TRACTOGRAPHY_OUTPUT_FOLDER = os.path.realpath(os.path.join(ALL_DATA_FOLDER, "dsi_outputs"))
+            NIPYPE_OUTPUT_FOLDER = os.path.realpath(os.path.join(ALL_DATA_FOLDER, "nipype_outputs"))
             DWI_MAIN_FOLDER = os.path.realpath(os.path.join(SUBJECTS_FOLDER, "dwi"))
             T1_MAIN_FOLDER = os.path.realpath(os.path.join(SUBJECTS_FOLDER, "t1"))
             FMRI_MAIN_FOLDER = os.path.realpath(os.path.join(SUBJECTS_FOLDER, "fmri"))
 
             DSI_COMMAND = "dsi_studio"
 
-            ATLAS_FOLDER = os.path.realpath(r"C:\\tractography\\data\\atlas")
+            ATLAS_FOLDER = os.path.realpath(os.path.join(ALL_DATA_FOLDER, "atlas"))
+
         else:
             ALL_DATA_FOLDER = os.path.realpath(os.path.join(os.getcwd(), "data"))
             SUBJECTS_FOLDER = os.path.realpath(os.path.join(ALL_DATA_FOLDER, "subjects"))
@@ -170,25 +185,23 @@ def check_output_folders_with_subfolders(folder, name):
                     shutil.rmtree(file_path)
 
 # Check that output folders are in suitable shape
-def check_output_folders(folder, name):
+def check_output_folders(folder, name, wipe=True):
     if not os.path.exists(folder):
         print("--- {} folder not found. Created folder: {}".format(name, folder))
         os.makedirs(folder)
-    # If it has content, delete it
+    # If it has no content, either continue or delete, depending on wipe
     else:
-        print("--- {} folder found. Continuing...".format(name))
-        if len(os.listdir(folder)) != 0:
-            print("{} folder has content. Deleting content...".format(name))
-            for file in glob.glob(os.path.join(folder, "*")):
-                os.remove(file)
-            print("Content deleted. Continuing...")
-
-# Function to check output folders without wiping
-def check_output_folders_nowipe(folder, name):
-    if not os.path.exists(folder):
-        print("--- {} folder not found. Created folder: {}".format(name, folder))
-        os.makedirs(folder)
-
+        # If it has content, delete it
+        if wipe:
+            print("--- {} folder found. Wiping...".format(name))
+            if len(os.listdir(folder)) != 0:
+                print("{} folder has content. Deleting content...".format(name))
+                for file in glob.glob(os.path.join(folder, "*")):
+                    os.remove(file)
+                print("Content deleted. Continuing...")
+        else:
+            print("--- {} folder found. Continuing without wipe...".format(name))
+            
 # Retrieve (GLOB) files
 def glob_files(PATH_NAME, file_format):
     INPUT_FILES = []
@@ -228,11 +241,24 @@ def extract_dwi_filename(dwi_file):
     return dwi_filename
 
 # Function to extract the T1 filename
-def extract_t1_fmri_filename(t1_fmri_file):
+def extract_t1_filename(t1_file):
     # Extract the filename
-    filename = t1_fmri_file.split("/")[-1].split("_")[1].split("-")[0]
+    if os.name == "nt":
+        t1_filename = t1_file.split("\\")[-1].split("_")[1].split("-")[0]
+    else:
+        t1_filename = t1_file.split("/")[-1].split("_")[1].split("-")[0]
     # Return the filename
-    return filename
+    return t1_filename
+
+# Function to extract the fMRI filename
+def extract_fmri_filename(fmri_file):
+    # Extract the filename
+    if os.name == "nt":
+        fmri_filename = fmri_file.split("\\")[-1].split("_")[0]
+    else:
+        fmri_filename = fmri_file.split("/")[-1].split("_")[0]
+    # Return the filename
+    return fmri_filename
 
 # Create a list that associates each subject with its T1 and DWI files
 def create_subject_list(DWI_INPUT_FILES, DWI_JSON_HEADERS, B_VAL_FILES, B_VEC_FILES, T1_INPUT_FILES, FMRI_INPUT_FILES):
@@ -271,13 +297,13 @@ def create_subject_list(DWI_INPUT_FILES, DWI_JSON_HEADERS, B_VAL_FILES, B_VEC_FI
     # For each T1 file
     for t1_file in T1_INPUT_FILES:
         # Get the filename
-        subject_ID = extract_t1_fmri_filename(t1_file)
+        subject_ID = extract_t1_filename(t1_file)
         # Append to a T1 list
         T1_LIST.append([subject_ID, t1_file])
     # For each fMRI file
     for fmri_file in FMRI_INPUT_FILES:
         # Get the filename
-        subject_ID = extract_t1_fmri_filename(fmri_file)
+        subject_ID = extract_fmri_filename(fmri_file)
         # Append to a fMRI list
         FMRI_LIST.append([subject_ID, fmri_file])
 
@@ -291,6 +317,12 @@ def create_subject_list(DWI_INPUT_FILES, DWI_JSON_HEADERS, B_VAL_FILES, B_VEC_FI
         bvec = [bvec[1] for bvec in B_VEC_LIST if bvec[0] == dwi_name]
         t1 = [t1[1] for t1 in T1_LIST if t1[0] == dwi_name]
         fmri = [fmri[1] for fmri in FMRI_LIST if fmri[0] == dwi_name]
+
+        # CHECK THAT SUBJECT HAS ALL FILES
+        if not len(json) or not len(bval) or not len(bvec) or not len(t1) or not len(fmri):
+            print("Subject {} does not have all files. Not appending to subjects".format(dwi_name))
+            continue
+
         # Append the subject name, dwi, json, bval, bvec, t1 and fMRI to the list
         SUBJECT_LISTS.append([dwi_name, dwi[1], json[0], bval[0], bvec[0], t1[0], fmri[0]])
         
@@ -334,3 +366,21 @@ def get_filename(SUBJECT_FILES, items):
             sys.exit('Exiting program')
             
     return items_to_get
+
+# Function to get the atlas choice
+def get_atlas_choice(FILTERED_SUBJECT_LIST, ATLAS_FILES):
+    # Get the atlas name from the first subject
+    atlas_name = get_filename(FILTERED_SUBJECT_LIST[0], "fmri")["fmri"].split("/")[-1].split("_")[1]
+    atlas_name = "schaefer100"
+
+    # If the atlas name is not in the atlas files, exit the program
+    if not any(atlas_name in atlas_file for atlas_file in ATLAS_FILES):
+        print("Atlas name {} not found in atlas files. Please add atlas file".format(atlas_name))
+        sys.exit('Exiting program')
+    else:
+        # Get the atlas path
+        atlas_path = [atlas_file for atlas_file in ATLAS_FILES if atlas_name in atlas_file][0]
+        print("Atlas path: {}".format(atlas_path))
+    
+    # Return the atlas path
+    return atlas_path
