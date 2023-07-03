@@ -124,7 +124,7 @@ def parallel_process(SUBJECT_FILES, ATLAS_CHOSEN, MAIN_STUDIO_PATH, MAIN_MRTRIX_
 
 def main():
     # Get paths, depending on whether we're in HPC or not
-    hpc = True
+    hpc = False
     mapping_inputs = get_dmri_fmri_arguments(hpc)
 
     # Use the mapping inputs with starmap to run the parallel processes

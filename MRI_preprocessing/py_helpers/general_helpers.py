@@ -65,7 +65,10 @@ def get_dmri_fmri_arguments(hpc):
     B_VEC_FILES = glob_files(DWI_MAIN_FOLDER, "bvec")
     T1_INPUT_FILES = glob_files(T1_MAIN_FOLDER, "nii")
     FMRI_INPUT_FILES = glob_files(FMRI_MAIN_FOLDER, "mat")
-    ATLAS_FILES = glob_files(ATLAS_FOLDER, "nii.gz")
+    # There may be multiple formats for the atlas, so we get both
+    ATLAS_FILES_GZ = glob_files(ATLAS_FOLDER, "nii.gz")
+    ATLAS_FILES_NII = glob_files(ATLAS_FOLDER, "nii")
+    ATLAS_FILES = ATLAS_FILES_GZ + ATLAS_FILES_NII
     
     # Clean up T1 template files
     T1_INPUT_FILES = list(filter(lambda x: not re.search('Template', x), T1_INPUT_FILES))
@@ -385,7 +388,10 @@ def get_filename(SUBJECT_FILES, items):
 def get_atlas_choice(FILTERED_SUBJECT_LIST, ATLAS_FILES):
     # Get the atlas name from the first subject
     atlas_name = get_filename(FILTERED_SUBJECT_LIST[0], "fmri")["fmri"].split("/")[-1].split("_")[1]
-    atlas_name = "schaefer100"
+
+    # Make all atlas files lowercase for comparison
+    ATLAS_FILES = [atlas_file.lower() for atlas_file in ATLAS_FILES]
+    atlas_name = atlas_name.lower()
 
     # If the atlas name is not in the atlas files, exit the program
     if not any(atlas_name in atlas_file for atlas_file in ATLAS_FILES):
