@@ -228,6 +228,8 @@ def filter_subjects_list(SUBJECT_LISTS, SUBJECTS_DATA_PATH):
     # Get the subjects that passed the quality check
     FILTERED_SUBJECTS = [subject for subject in SUBJECT_LISTS if subject[0] not in FILTERING_DATA_REMOVE[:, 0]]
     
+    print("Number of subjects after filtering: {}".format(len(FILTERED_SUBJECTS)))
+
     return FILTERED_SUBJECTS
 
 # Function to extract the DWI filename
@@ -319,12 +321,26 @@ def create_subject_list(DWI_INPUT_FILES, DWI_JSON_HEADERS, B_VAL_FILES, B_VEC_FI
         fmri = [fmri[1] for fmri in FMRI_LIST if fmri[0] == dwi_name]
 
         # CHECK THAT SUBJECT HAS ALL FILES
-        if not len(json) or not len(bval) or not len(bvec) or not len(t1) or not len(fmri):
-            print("Subject {} does not have all files. Not appending to subjects".format(dwi_name))
+        if not len(json):
+            print("Subject {} does not have JSON file. Not appending to subjects".format(dwi_name))
+            continue
+        if not len(bval):
+            print("Subject {} does not have BVAL file. Not appending to subjects".format(dwi_name))
+            continue
+        if not len(bvec):
+            print("Subject {} does not have BVEC file. Not appending to subjects".format(dwi_name))
+            continue
+        if not len(t1):
+            print("Subject {} does not have T1 file. Not appending to subjects".format(dwi_name))
+            continue
+        if not len(fmri):
+            print("Subject {} does not have fMRI file. Not appending to subjects".format(dwi_name))
             continue
 
         # Append the subject name, dwi, json, bval, bvec, t1 and fMRI to the list
         SUBJECT_LISTS.append([dwi_name, dwi[1], json[0], bval[0], bvec[0], t1[0], fmri[0]])
+    
+    print("Number of subjects: {}".format(len(SUBJECT_LISTS)))
         
     return SUBJECT_LISTS
 

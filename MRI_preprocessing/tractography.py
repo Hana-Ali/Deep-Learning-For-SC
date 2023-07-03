@@ -128,9 +128,9 @@ def main():
     mapping_inputs = get_dmri_fmri_arguments(hpc)
 
     # Use the mapping inputs with starmap to run the parallel processes
-    with mp.Pool() as pool:
-        print("mapping")
-        pool.starmap(parallel_process, list(mapping_inputs))
+    # with mp.Pool() as pool:
+    #     print("mapping")
+    #     pool.starmap(parallel_process, list(mapping_inputs))
 
 if __name__ == '__main__':
     mp.freeze_support()
