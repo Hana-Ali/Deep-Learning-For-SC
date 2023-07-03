@@ -13,7 +13,6 @@ from nipype.pipeline.engine import Workflow
 def get_nipype_datasource(hpc):
 
     # Get paths, depending on whether we're in HPC or not
-    hpc = False
     (ALL_DATA_FOLDER, SUBJECTS_FOLDER, TRACTOGRAPHY_OUTPUT_FOLDER, NIPYPE_OUTPUT_FOLDER, 
         DWI_MAIN_FOLDER, T1_MAIN_FOLDER, FMRI_MAIN_FOLDER, DSI_COMMAND, ATLAS_FOLDER, 
             MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH) = get_main_paths(hpc)
@@ -43,7 +42,6 @@ def get_nipype_datasource(hpc):
 def get_dmri_fmri_arguments(hpc):
 
     # Get paths, depending on whether we're in HPC or not
-    hpc = False
     (ALL_DATA_FOLDER, SUBJECTS_FOLDER, TRACTOGRAPHY_OUTPUT_FOLDER, NIPYPE_OUTPUT_FOLDER, 
         DWI_MAIN_FOLDER, T1_MAIN_FOLDER, FMRI_MAIN_FOLDER, DSI_COMMAND, ATLAS_FOLDER, 
             MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH) = get_main_paths(hpc)
