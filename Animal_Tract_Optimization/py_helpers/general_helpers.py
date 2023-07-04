@@ -41,6 +41,7 @@ def get_main_paths(hpc):
 
         else:
             BMINDS_DATA_FOLDER = os.path.realpath(os.path.join(os.getcwd(), "..", "Animal_Data", "Brain-MINDS"))
+            BMINDS_OUTPUTS_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "outputs"))
             BMINDS_DWI_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "DWI_files"))
             BMINDS_METADATA_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "meta_data"))
             BMINDS_INJECTIONS_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "processed_tracer_data"))
@@ -48,10 +49,12 @@ def get_main_paths(hpc):
             BMINDS_ZIPPED_DWI_FOLDER = os.path.realpath(os.path.join(BMINDS_DWI_FOLDER, "zipped_data"))
             BMINDS_UNZIPPED_DWI_FOLDER = os.path.realpath(os.path.join(BMINDS_DWI_FOLDER, "unzipped_data"))
 
+    # Create main MRTRIX folder
+    MAIN_MRTRIX_FOLDER = os.path.join(BMINDS_OUTPUTS_FOLDER, "MRTRIX")
 
     # Return folder names
-    return (BMINDS_DATA_FOLDER, BMINDS_METADATA_FOLDER, BMINDS_INJECTIONS_FOLDER, BMINDS_ATLAS_STPT_FOLDER,
-            BMINDS_ZIPPED_DWI_FOLDER, BMINDS_UNZIPPED_DWI_FOLDER)
+    return (BMINDS_DATA_FOLDER, BMINDS_OUTPUTS_FOLDER, BMINDS_METADATA_FOLDER, BMINDS_INJECTIONS_FOLDER, BMINDS_ATLAS_STPT_FOLDER,
+            BMINDS_ZIPPED_DWI_FOLDER, BMINDS_UNZIPPED_DWI_FOLDER, MAIN_MRTRIX_FOLDER)
        
 
 # Check that output folders with subfolders are in suitable shape
@@ -262,11 +265,11 @@ def get_streamline_type(file):
     
     # Return different things, depending on the name
     if 'sharp' in streamline_name:
-        return 'tracer_sharp'
+        return 'tracer_tracts_sharp'
     elif 'tracer' in streamline_name:
-        return 'tracer'
+        return 'tracer_tracts'
     elif 'track' in streamline_name:
-        return 'dwi'
+        return 'dwi_tracts'
     # If none of the above, return unknown error
     else:
         print("Unknown streamline file type for {}. Name is {}".format(file, streamline_name))
@@ -297,8 +300,8 @@ def get_injection_type(file):
         sys.exit('Exiting program')
 
 # Create a list that associates each subject with its T1 and DWI files
-def create_data_list(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_FILES, BMINDS_STREAMLINE_FILES, BMINDS_INJECTION_FILES):
-    DATA_LISTS = {}
+def create_data_dict(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_FILES, BMINDS_STREAMLINE_FILES, BMINDS_INJECTION_FILES):
+    DATA_LISTS = []
     DWI_LIST = []
     STREAMLINE_LIST = {}
     INJECTION_LIST = {}
@@ -348,28 +351,166 @@ def create_data_list(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_F
             print("No injection files found for {}".format(region_ID))
             continue
         # Append the subject name, dwi, bval, bvec, streamline and injection to the list
-        DATA_LISTS[region_ID] = {'dwi_file': dwi[1], 'bval_path': dwi[2], 'bvec_path': dwi[3], 
-                                 'streamline_files': streamline_files, 'injection_files': injection_files}
+        DATA_LISTS.append({'region_ID': region_ID, 'dwi_file': dwi[1], 'bval_path': dwi[2], 'bvec_path': dwi[3], 
+                                'streamline_files': streamline_files, 'injection_files': injection_files})
             
     return DATA_LISTS
 
+# Create a list that associates each subject with its T1 and DWI files
+def create_data_list(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_FILES, BMINDS_STREAMLINE_FILES, 
+                     BMINDS_INJECTION_FILES, BMINDS_ATLAS_FILE, BMINDS_STPT_FILE):
+    DATA_LISTS = []
+    DWI_LIST = []
+    STREAMLINE_LIST = []
+    INJECTION_LIST = []
 
-# # Function to get the streamline filename
-# def extract_streamline_region(file):
-#     # Extract the filename
-#     if os.name == "nt":
-#         region_name = file.split("\\")[-3]
-#     else:
-#         region_name = file.split("/")[-3]
-#     # Return the filename
-#     return region_name
+    # For each DWI file
+    for dwi_file in BMINDS_UNZIPPED_DWI_FILES:
+        # Get the region ID
+        region_ID = extract_region_ID(dwi_file)
 
-# # Function to get the injection filename
-# def extract_injection_region(file):
-#     # Extract the filename
-#     if os.name == "nt":
-#         region_name = file.split("\\")[-3]
-#     else:
-#         region_name = file.split("/")[-3]
-#     # Return the filename
-#     return region_name
+        # Get the bval and bvec files
+        bval_path = extract_correct_bval(dwi_file, BMINDS_BVAL_FILES)
+        bvec_path = extract_correct_bvec(dwi_file, BMINDS_BVEC_FILES)
+
+        # Append to a DWI list
+        DWI_LIST.append([region_ID, dwi_file, bval_path, bvec_path])
+
+    # For each streamline file
+    for streamline_file in BMINDS_STREAMLINE_FILES:
+        # Get the region ID
+        region_ID = extract_region_ID(streamline_file)
+        # Get the type of streamline file it is
+        streamline_type = get_streamline_type(streamline_file)
+        # Append all the data to the dictionary
+        STREAMLINE_LIST.append([region_ID, streamline_type, streamline_file])
+
+    # For each injection file
+    for injection_file in BMINDS_INJECTION_FILES:
+        # Ignore the ones with small in the filename
+        if "small" in injection_file:
+            continue
+        # Get the region ID
+        region_ID = extract_region_ID(injection_file)
+        # Get the type of injection file it is
+        injection_type = get_injection_type(injection_file)
+        # Append all the data to the dictionary
+        INJECTION_LIST.append([region_ID, injection_type, injection_file])
+
+    # Join the two lists based on common subject name
+    for dwi in DWI_LIST:
+        # Get the region, or common element ID
+        region_ID = dwi[0]
+        # Based on this name, get every streamline and injection that has the same region ID
+        dwi_files = [[dwi[1], dwi[2], dwi[3]]]
+        streamline_files = [[streamline_file[1], streamline_file[2]] for streamline_file in STREAMLINE_LIST if streamline_file[0] == region_ID]
+        injection_files = [[injection_file[1], injection_file[2]] for injection_file in INJECTION_LIST if injection_file[0] == region_ID]
+
+        # Add the atlas and stpt files
+        atlas_stpt = [BMINDS_ATLAS_FILE[0], BMINDS_STPT_FILE[0]]
+
+        # Check that streamline and injection files are not empty
+        if not streamline_files:
+            print("No streamline files found for {}".format(region_ID))
+            continue
+        if not injection_files:
+            print("No injection files found for {}".format(region_ID))
+            continue
+        # Append the subject name, dwi, bval, bvec, streamline and injection to the list
+        DATA_LISTS.append([region_ID, dwi_files[0], streamline_files, injection_files, atlas_stpt])
+            
+    return DATA_LISTS
+
+# Function to get the selected items from a list
+def extract_from_input_list(GENERAL_FILES, ITEMS_NEEDED, list_type):
+    
+    # Create dictionary that defines what to get
+    items_to_get = {}
+
+    # Check whether we're passing in a list or a string
+    if isinstance(ITEMS_NEEDED, str):
+        ITEMS_NEEDED = [ITEMS_NEEDED]
+
+    # Extract things differently, depending on the list type being passed
+    if list_type == "dwi":
+        # Define indices
+        DWI_PATH = 0
+        BVAL_PATH = 1
+        BVEC_PATH = 2
+
+        # For every item in items, get the item
+        for item in ITEMS_NEEDED:
+            if item == "dwi":
+                items_to_get["dwi"] = GENERAL_FILES[DWI_PATH]
+            elif item == "bval":
+                items_to_get["bval"] = GENERAL_FILES[BVAL_PATH]
+            elif item == "bvec":
+                items_to_get["bvec"] = GENERAL_FILES[BVEC_PATH]
+            else:
+                print("Item {} of DWI not found".format(item))
+                sys.exit('Exiting program')
+    
+    # Slightly different with streamlines - here we have a list of lists, and
+    # we're not necessarily sure in what order it appends the files
+    elif list_type == "streamline":
+        # Define indices
+        STREAMLINE_TYPE = 0
+        STREAMLINE_PATH = 1
+
+        # For every item in items, get the item
+        for item in ITEMS_NEEDED:
+            # Find the streamline file that has the type we want
+            if item == "tracer_tracts_sharp":
+                items_to_get["tracer_tracts_sharp"] = [streamline_list[STREAMLINE_PATH] for streamline_list in GENERAL_FILES if streamline_list[STREAMLINE_TYPE] == "tracer_tracts_sharp"]
+            elif item == "dwi_tracts":
+                items_to_get["dwi_tracts"] = [streamline_list[STREAMLINE_PATH] for streamline_list in GENERAL_FILES if streamline_list[STREAMLINE_TYPE] == "dwi_tracts"]
+            elif item == "tracer_tracts":
+                items_to_get["tracer_tracts"] = [streamline_list[STREAMLINE_PATH] for streamline_list in GENERAL_FILES if streamline_list[STREAMLINE_TYPE] == "tracer_tracts"]
+            else:
+                print("Item {} of streamlines not found".format(item))
+                sys.exit('Exiting program')
+    
+    # The same as above is done for injections
+    elif list_type == "injection":
+        # Define indices
+        INJECTION_TYPE = 0
+        INJECTION_PATH = 1
+
+        # For every item in items, get the item
+        for item in ITEMS_NEEDED:
+            # Find the injection file that has the type we want
+            if item == "tracer_signal_normalized":
+                items_to_get["tracer_signal_normalized"] = [injection_list[INJECTION_PATH] for injection_list in GENERAL_FILES if injection_list[INJECTION_TYPE] == "tracer_signal_normalized"]
+            elif item == "tracer_positive_voxels":
+                items_to_get["tracer_positive_voxels"] = [injection_list[INJECTION_PATH] for injection_list in GENERAL_FILES if injection_list[INJECTION_TYPE] == "tracer_positive_voxels"]
+            elif item == "cell_density":
+                items_to_get["cell_density"] = [injection_list[INJECTION_PATH] for injection_list in GENERAL_FILES if injection_list[INJECTION_TYPE] == "cell_density"]
+            elif item == "streamline_density":
+                items_to_get["streamline_density"] = [injection_list[INJECTION_PATH] for injection_list in GENERAL_FILES if injection_list[INJECTION_TYPE] == "streamline_density"]
+            elif item == "tracer_signal":
+                items_to_get["tracer_signal"] = [injection_list[INJECTION_PATH] for injection_list in GENERAL_FILES if injection_list[INJECTION_TYPE] == "tracer_signal"]
+            else:
+                print("Item {} of injections not found".format(item))
+                sys.exit('Exiting program')
+    
+    # For atlas and STPT, it's just the index
+    elif list_type == "atlas_stpt":
+        ATLAS_PATH = 0
+        STPT_PATH = 1
+
+        # For every item in items, get the item
+        for item in ITEMS_NEEDED:
+            if item == "atlas":
+                items_to_get["atlas"] = GENERAL_FILES[ATLAS_PATH]
+            elif item == "stpt":
+                items_to_get["stpt"] = GENERAL_FILES[STPT_PATH]
+            else:
+                print("Item {} of atlas and STPT not found".format(item))
+                sys.exit('Exiting program')
+    
+    # If not any of the above, exit the program
+    else:
+        print("List type {} not found".format(list_type))
+        sys.exit('Exiting program')
+            
+    return items_to_get
