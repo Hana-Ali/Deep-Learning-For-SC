@@ -125,7 +125,68 @@ def parallel_process(SUBJECT_FILES, ATLAS_CHOSEN, MAIN_STUDIO_PATH, MAIN_MRTRIX_
 def main():
     # Get paths, depending on whether we're in HPC or not
     hpc = False
-    mapping_inputs = get_dmri_fmri_arguments(hpc)
+    (ALL_DATA_FOLDER, SUBJECTS_FOLDER, TRACTOGRAPHY_OUTPUT_FOLDER, NIPYPE_OUTPUT_FOLDER, 
+        DWI_MAIN_FOLDER, T1_MAIN_FOLDER, FMRI_MAIN_FOLDER, DSI_COMMAND, ATLAS_FOLDER, 
+            MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH) = get_main_paths(hpc)
+
+    # Check if input folders - if not, exit program
+    check_input_folders(DWI_MAIN_FOLDER, "DWI")
+    check_input_folders(T1_MAIN_FOLDER, "T1")
+    check_input_folders(FMRI_MAIN_FOLDER, "fMRI")
+    check_input_folders(ATLAS_FOLDER, "Atlas")
+
+    # If output folderes don't exist, create them
+    check_output_folders_with_subfolders(TRACTOGRAPHY_OUTPUT_FOLDER, "Tractography output")
+    check_output_folders(MAIN_STUDIO_PATH, "Studio", wipe=True)
+    check_output_folders(MAIN_MRTRIX_PATH, "MRtrix", wipe=True)
+    check_output_folders(MAIN_FSL_PATH, "FSL", wipe=True)
+        
+    # --------------- Get DWI, BVAL, BVEC, T1, fMRI from subdirectories --------------- #
+    DWI_INPUT_FILES = glob_files(DWI_MAIN_FOLDER, "nii.gz")
+    DWI_JSON_HEADERS = glob_files(DWI_MAIN_FOLDER, "json")
+    B_VAL_FILES = glob_files(DWI_MAIN_FOLDER, "bval")
+    B_VEC_FILES = glob_files(DWI_MAIN_FOLDER, "bvec")
+    T1_INPUT_FILES = glob_files(T1_MAIN_FOLDER, "nii")
+    FMRI_INPUT_FILES = glob_files(FMRI_MAIN_FOLDER, "mat")
+    # There may be multiple formats for the atlas, so we get both
+    ATLAS_FILES_GZ = glob_files(ATLAS_FOLDER, "nii.gz")
+    ATLAS_FILES_NII = glob_files(ATLAS_FOLDER, "nii")
+    ATLAS_FILES = ATLAS_FILES_GZ + ATLAS_FILES_NII
+    
+    # Clean up T1 template files
+    T1_INPUT_FILES = list(filter(lambda x: not re.search('Template', x), T1_INPUT_FILES))
+    
+    # If no files are found - exit the program
+    check_globbed_files(DWI_INPUT_FILES, "DWI")
+    check_globbed_files(DWI_JSON_HEADERS, "JSON")
+    check_globbed_files(B_VAL_FILES, "BVAL")
+    check_globbed_files(B_VEC_FILES, "BVEC")
+    check_globbed_files(T1_INPUT_FILES, "T1")
+    check_globbed_files(FMRI_INPUT_FILES, "fMRI")
+    check_globbed_files(ATLAS_FILES, "Atlas")
+
+    # --------------- Create list of all data for each subject and filter --------------- #
+    SUBJECT_LISTS = create_subject_list(DWI_INPUT_FILES, DWI_JSON_HEADERS, B_VAL_FILES, 
+                                        B_VEC_FILES, T1_INPUT_FILES, FMRI_INPUT_FILES)
+    # Depending on HPC, the filter CSV file is in a different location
+    if hpc:
+        FILTERED_SUBJECT_LIST = filter_subjects_list(SUBJECT_LISTS, ALL_DATA_FOLDER)
+    else:
+        FILTERED_SUBJECT_LIST = filter_subjects_list(SUBJECT_LISTS, SUBJECTS_FOLDER)
+
+    # --------------- Get the correct atlas depending on parcellated fMRI --------------- #
+    ATLAS_CHOSEN = get_atlas_choice(FILTERED_SUBJECT_LIST, ATLAS_FILES)
+
+    # Use mapping inputs
+    for subject in FILTERED_SUBJECT_LIST:
+        parallel_process(subject, ATLAS_CHOSEN, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH, 
+                        DSI_COMMAND)
+
+    # --------------- Defining inputs for mapping parallel --------------- #
+    # mapping_inputs = list(zip(FILTERED_SUBJECT_LIST, [ATLAS_CHOSEN]*len(FILTERED_SUBJECT_LIST), 
+    #                           [MAIN_STUDIO_PATH]*len(FILTERED_SUBJECT_LIST), [MAIN_MRTRIX_PATH]*len(FILTERED_SUBJECT_LIST), 
+    #                           [MAIN_FSL_PATH]*len(FILTERED_SUBJECT_LIST), [DSI_COMMAND]*len(FILTERED_SUBJECT_LIST)))
+
 
     # Use the mapping inputs with starmap to run the parallel processes
     # with mp.Pool() as pool:
