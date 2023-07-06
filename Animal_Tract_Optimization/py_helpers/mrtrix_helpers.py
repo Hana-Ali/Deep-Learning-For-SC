@@ -252,7 +252,7 @@ def define_mrtrix_probtrack_commands(ARGS):
     
     # Probabilistic tractography command
     PROB_TRACT_CMD = "tckgen {wmfod_norm}.mif {output}.tck -algorithm iFOD2 -seed_image {mask}.nii -mask {mask}.nii \
-        -grad {bvec} {bval} -select 300000 -force".format(wmfod=WM_FOD_NORM_PATH, output=TRACT_TCK_PATH, mask=MASK_NII_PATH,
+        -grad {bvec} {bval} -select 300000 -force".format(wmfod_norm=WM_FOD_NORM_PATH, output=TRACT_TCK_PATH, mask=MASK_NII_PATH,
                                                             bvec=DWI_NEEDED_PATHS["bvec"], bval=DWI_NEEDED_PATHS["bval"])
     
     # Return the commands
@@ -302,6 +302,14 @@ def pre_tractography_commands(ARGS):
     (DWI_B0_CMD, DWI_B0_NII_CMD, REGISTER_ATLAS_DWI_CMD, TRANSFORMATION_ATLAS_DWI_CMD,
         ATLAS_MIF_CMD, FINAL_ATLAS_TRANSFORM_CMD) = define_mrtrix_registration_commands(REG_ARGS)
 
+    # Define the probabilistic tractography commands
+    PROB_ARGS = [REGION_ID, DWI_FILES, ATLAS_STPT]
+    (PROB_TRACT_CMD) = define_mrtrix_probtrack_commands(PROB_ARGS)
+
+    # Define the connectome commands
+    CONNECTOME_ARGS = [REGION_ID, ATLAS_STPT]
+    (CONNECTIVITY_PROB_CMD) = define_mrtrix_connectome_commands(CONNECTOME_ARGS)
+
     # Create commands array
     MRTRIX_COMMANDS = [(MIF_CMD, "Convert DWI nii -> mif"), (MASK_CMD, "Create DWI brain mask"),
                         (MASK_NII_CMD, "Convert DWI brain mask mif -> nii"), 
@@ -312,7 +320,8 @@ def pre_tractography_commands(ARGS):
                         (DWI_B0_CMD, "Extracting mean B0 and transforming to NII"), (DWI_B0_NII_CMD, "DWI B0 mif -> NII"),
                         (REGISTER_ATLAS_DWI_CMD, "Begin registering atlas to DWI space"),
                         (TRANSFORMATION_ATLAS_DWI_CMD, "Initial transformation of atlas to DWI space"),
-                        (ATLAS_MIF_CMD, "Convert atlas nii -> mif"), (FINAL_ATLAS_TRANSFORM_CMD, "Final transformation of atlas to DWI space")]
+                        (ATLAS_MIF_CMD, "Convert atlas nii -> mif"), (FINAL_ATLAS_TRANSFORM_CMD, "Final transformation of atlas to DWI space"),
+                        (PROB_TRACT_CMD, "Probabilistic tractography"), (CONNECTIVITY_PROB_CMD, "Creating connectivity matrix - probabilistic")]
     
     # Return the commands array
     return MRTRIX_COMMANDS

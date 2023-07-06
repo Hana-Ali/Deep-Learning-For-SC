@@ -9,7 +9,7 @@ def get_fsl_paths(NEEDED_FILE_PATHS, MAIN_FSL_PATH):
 
     # Creating folder for each subject in FSL folder
     SUBJECT_FOLDER_NAME = os.path.join(MAIN_FSL_PATH, filename)
-    check_output_folders(SUBJECT_FOLDER_NAME, "FSL subject folder", wipe=True)
+    check_output_folders(SUBJECT_FOLDER_NAME, "FSL subject folder", wipe=False)
     
     # Define the path for skull stripped T1
     SKULL_STRIP_PATH = os.path.join(SUBJECT_FOLDER_NAME, "_skull_strip")
@@ -63,7 +63,7 @@ def get_mrtrix_clean_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH):
     
     # Creating folder for cleaning in MRTRIX folder. WIPE since this is the only function that uses it
     CLEANING_FOLDER_NAME = os.path.join(SUBJECT_FOLDER_NAME, "cleaning")
-    check_output_folders(CLEANING_FOLDER_NAME, "MRtrix cleaning folder", wipe=True)
+    check_output_folders(CLEANING_FOLDER_NAME, "MRtrix cleaning folder", wipe=False)
 
     # DWI nii -> mif filepath
     INPUT_MIF_PATH = os.path.join(CLEANING_FOLDER_NAME, "{}_clean_input".format(dwi_filename))
@@ -145,9 +145,9 @@ def get_dsi_studio_paths(NEEDED_FILE_PATHS, MAIN_STUDIO_PATH):
     STUDIO_SRC_FOLDER = os.path.join(SUBJECT_FOLDER_NAME, "src")
     STUDIO_DTI_FOLDER = os.path.join(SUBJECT_FOLDER_NAME, "dti")
     STUDIO_QSDR_FOLDER = os.path.join(SUBJECT_FOLDER_NAME, "qsdr")
-    check_output_folders(STUDIO_SRC_FOLDER, "DSI Studio src folder", wipe=True)
-    check_output_folders(STUDIO_DTI_FOLDER, "DSI Studio dti folder", wipe=True)
-    check_output_folders(STUDIO_QSDR_FOLDER, "DSI Studio qsdr folder", wipe=True)
+    check_output_folders(STUDIO_SRC_FOLDER, "DSI Studio src folder", wipe=False)
+    check_output_folders(STUDIO_DTI_FOLDER, "DSI Studio dti folder", wipe=False)
+    check_output_folders(STUDIO_QSDR_FOLDER, "DSI Studio qsdr folder", wipe=False)
 
     STUDIO_SRC_PATH = os.path.join(STUDIO_SRC_FOLDER, "{}_clean".format(dwi_filename))
     STUDIO_DTI_PATH = os.path.join(STUDIO_DTI_FOLDER, "{}_dti".format(dwi_filename))
@@ -160,12 +160,12 @@ def get_dsi_studio_paths(NEEDED_FILE_PATHS, MAIN_STUDIO_PATH):
     TRACT_LOG_FOLDER = os.path.join(SUBJECT_LOGS_FOLDER, "recon_to_tract")
     DTI_EXP_LOG_FOLDER = os.path.join(SUBJECT_LOGS_FOLDER, "dti_export")
     QSDR_EXP_LOG_FOLDER = os.path.join(SUBJECT_LOGS_FOLDER, "qsdr_export")
-    check_output_folders(SRC_LOG_FOLDER, "DSI Studio dwi to src logs folder", wipe=True)
-    check_output_folders(DTI_LOG_FOLDER, "DSI Studio src to dti logs folder", wipe=True)
-    check_output_folders(QSDR_LOG_FOLDER, "DSI Studio src to qsdr logs folder", wipe=True)
-    check_output_folders(TRACT_LOG_FOLDER, "DSI Studio recon to tract logs folder", wipe=True)
-    check_output_folders(DTI_EXP_LOG_FOLDER, "DSI Studio dti export logs folder", wipe=True)
-    check_output_folders(QSDR_EXP_LOG_FOLDER, "DSI Studio qsdr export logs folder", wipe=True)
+    check_output_folders(SRC_LOG_FOLDER, "DSI Studio dwi to src logs folder", wipe=False)
+    check_output_folders(DTI_LOG_FOLDER, "DSI Studio src to dti logs folder", wipe=False)
+    check_output_folders(QSDR_LOG_FOLDER, "DSI Studio src to qsdr logs folder", wipe=False)
+    check_output_folders(TRACT_LOG_FOLDER, "DSI Studio recon to tract logs folder", wipe=False)
+    check_output_folders(DTI_EXP_LOG_FOLDER, "DSI Studio dti export logs folder", wipe=False)
+    check_output_folders(QSDR_EXP_LOG_FOLDER, "DSI Studio qsdr export logs folder", wipe=False)
 
     SRC_LOG_PATH = os.path.join(SRC_LOG_FOLDER, "src_log_{}.txt".format(dwi_filename))
     DTI_LOG_PATH = os.path.join(DTI_LOG_FOLDER, "dti_log_{}.txt".format(dwi_filename))

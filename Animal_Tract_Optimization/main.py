@@ -148,7 +148,7 @@ def main():
     BMINDS_ATLAS_STPT_FILES = glob_files(BMINDS_ATLAS_STPT_FOLDER, "nii.gz") # Gets both the atlas and stpt files, need to separate
     
     # Get the atlas and stpt files - separate from the mix above
-    BMINDS_ATLAS_FILE = [file for file in BMINDS_ATLAS_STPT_FILES if "atlas_segmentation" in file]
+    BMINDS_ATLAS_FILE = [file for file in BMINDS_ATLAS_STPT_FILES if "cortical_atlas" in file]
     BMINDS_STPT_FILE = [file for file in BMINDS_ATLAS_STPT_FILES if "STPT_template" in file]
 
     # Check the globbed files
@@ -163,10 +163,13 @@ def main():
                                      BMINDS_STREAMLINE_FILES, BMINDS_INJECTION_FILES, BMINDS_ATLAS_FILE, 
                                      BMINDS_STPT_FILE)
  
-    # --------------- ACTUAL ALGORITHM TIME NOW THAT WE'VE EXTRACTED THE DATA --------------- #
+    # --------------- Preprocessing the data to get the right file formats --------------- #
     # Use the mapping inputs with starmap to run the parallel processes
-    with mp.Pool() as pool:
-        pool.starmap(parallel_process, ALL_DATA_LIST)
+    # with mp.Pool() as pool:
+    #     pool.starmap(parallel_process, ALL_DATA_LIST)
+
+    for (REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT) in ALL_DATA_LIST:
+        parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT)
 
 
 
