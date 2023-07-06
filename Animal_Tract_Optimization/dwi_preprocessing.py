@@ -4,7 +4,7 @@ import sys
 import numpy as np
 import nibabel as nib
 from py_helpers.general_helpers import *
-from py_helpers.mrtrix_helpers import *
+from py_helpers.SC_commands import *
 import multiprocessing as mp
 import subprocess
 
@@ -37,87 +37,6 @@ def parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, AT
     for (mrtrix_cmd, cmd_name) in MRTRIX_COMMANDS:
         print("Started {} - {}".format(cmd_name, REGION_ID))
         subprocess.run(mrtrix_cmd, shell=True, check=True)
-
-
-    # # Define the stripped paths indices
-    # STRIPPED_INDEX = 0
-    # STRIPPED_MASK_INDEX = 1
-    # STRIPPED_OVERLAY_INDEX = 2
-
-    # # Get the filename for this specific process
-    # dwi_filename = extract_dwi_filename(get_filename(SUBJECT_FILES, "filename")["filename"])
-    # t1_filename = extract_t1_filename(get_filename(SUBJECT_FILES, "t1")["t1"])
-
-    # # Ping beginning or process
-    # print("Started parallel process - {}".format(dwi_filename))
-    
-    # # --------------- BET/FSL T1 skull stripping command --------------- #
-    # # Define needed arguments array
-    # ARGS_BET = [
-    #     SUBJECT_FILES,
-    #     MAIN_FSL_PATH
-    # ]
-    # # Get the bet commands array and the stripped paths
-    # (BET_COMMANDS, STRIPPED_PATHS) = define_fsl_commands(ARGS_BET)
-
-    # # --------------- DSI STUDIO preprocessing commands --------------- #
-    # # Define needed arguments array
-    # ARGS_MRTRIX_CLEAN = [
-    #     SUBJECT_FILES,
-    #     MAIN_MRTRIX_PATH
-    # ]
-    # # Get the mrtrix commands array
-    # (MRTRIX_CLEAN_COMMANDS, CLEAN_DWI_PATH, CLEAN_BVAL_FILEPATH, 
-    #  CLEAN_BVEC_FILEPATH) = define_mrtrix_clean_commands(ARGS_MRTRIX_CLEAN)
-    
-    # # Define list of clean stuff
-    # CLEAN_FILES = [CLEAN_DWI_PATH, CLEAN_BVAL_FILEPATH, CLEAN_BVEC_FILEPATH]
-
-    # # --------------- DSI STUDIO reconstruction commands --------------- #
-    # # Define needed arguments array
-    # ARGS_STUDIO = [
-    #     SUBJECT_FILES,
-    #     CLEAN_FILES,
-    #     MAIN_STUDIO_PATH,
-    #     DSI_COMMAND,
-    #     ATLAS_CHOSEN
-    # ]
-    # # Get the studio commands array
-    # STUDIO_COMMANDS = define_studio_commands(ARGS_STUDIO)
-
-    # # # --------------- MRTRIX reconstruction commands --------------- #
-    # # Define needed arguments array
-    # ARGS_MRTRIX = [
-    #     SUBJECT_FILES,
-    #     CLEAN_FILES,
-    #     MAIN_MRTRIX_PATH,
-    #     STRIPPED_PATHS[STRIPPED_INDEX],
-    #     ATLAS_CHOSEN
-    # ]
-    # # Get the mrtrix commands array
-    # MRTRIX_COMMANDS = probabilistic_tractography(ARGS_MRTRIX)
-
-    # # --------------- Calling subprocesses commands --------------- #
-    # # Stripping T1
-    # for (bet_cmd, cmd_name) in BET_COMMANDS:
-    #     print("Started {} - {}".format(cmd_name, t1_filename))
-    #     subprocess.run(bet_cmd, shell=True)
-
-    # # Preprocessing and cleaning DWI
-    # for (mrtrix_cmd, cmd_name) in MRTRIX_CLEAN_COMMANDS:
-    #     print("Started {} - {}".format(cmd_name, dwi_filename))
-    #     subprocess.run(mrtrix_cmd, shell=True)
-
-    # # Deterministic tractography
-    # for (dsi_cmd, cmd_name) in STUDIO_COMMANDS:
-    #     print("Started {} - {}".format(cmd_name, dwi_filename))
-    #     subprocess.run(dsi_cmd, shell=True)
-
-    # # Probabilistic and global tractography
-    # for (mrtrix_cmd, cmd_name) in MRTRIX_COMMANDS:
-    #     print("Started {} - {}".format(cmd_name, dwi_filename))
-    #     subprocess.run(mrtrix_cmd, shell=True)
-    
 
 
 # Main function

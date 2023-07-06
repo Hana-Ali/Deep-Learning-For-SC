@@ -1,0 +1,123 @@
+import os
+import glob
+from .general_helpers import *
+from .SC_paths import *
+
+# ------------------------------------------------- CHECKING MISSING FILES AND CHECKPOINTS ------------------------------------------------- #
+
+# Function to check which files are missing, and where we should start the processing
+def check_all_mrtrix_missing_files(ARGS):
+    # Get the arguments
+    REGION_ID = ARGS[0]
+    ATLAS_STPT = ARGS[1]
+
+    # Extract the needed files
+    ATLAS_NEEDED = ["atlas"]
+    ATLAS = extract_from_input_list(ATLAS_STPT, ATLAS_NEEDED, "atlas_stpt")
+
+    # --------------------- GENERAL VARIABLES NEEDED
+    # Get the main MRTRIX folder paths
+    (REGION_MRTRIX_PATH, GENERAL_FOLDER_NAME, RESPONSE_FOLDER_NAME, FOD_FOLDER_NAME, 
+        FOD_NORM_FOLDER_NAME, ATLAS_REG_FOLDER_NAME, PROB_TRACKING_FOLDER_NAME, CONNECTIVITY_FOLDER_NAME) = main_mrtrix_folder_paths(REGION_ID)
+        
+    # --------------------- MRTRIX FOD CHECK
+    MRTRIX_FOD = check_missing_mrtrix_fod(REGION_ID, FOD_NORM_FOLDER_NAME)
+    
+    # --------------------- MRTRIX REGISTRATION CHECK
+    MRTRIX_REGISTRATION = check_missing_mrtrix_registration(REGION_ID, ATLAS, ATLAS_REG_FOLDER_NAME)
+    
+    # --------------------- MRTRIX PROBTRACK CHECK
+    MRTRIX_PROBTRACK = check_missing_mrtrix_probtrack(REGION_ID, PROB_TRACKING_FOLDER_NAME)
+    
+    # --------------------- MRTRIX CONNECTOME CHECK
+    MRTRIX_CONNECTOME = check_missing_mrtrix_connectome(REGION_ID, CONNECTIVITY_FOLDER_NAME)
+
+    # Return the variables
+    return (MRTRIX_FOD, MRTRIX_REGISTRATION, MRTRIX_PROBTRACK, MRTRIX_CONNECTOME)
+    
+# Function to check missing MRtrix FOD processing
+def check_missing_mrtrix_fod(REGION_ID, FOD_NORM_FOLDER_NAME):
+    # Define variable that stores whether or not we should do MRtrix FOD processing
+    MRTRIX_FOD = True
+    # Get the MRtrix FOD paths
+    (RESPONSE_WM_PATH, RESPONSE_GM_PATH, RESPONSE_CSF_PATH, RESPONSE_VOXEL_PATH,
+                WM_FOD_PATH, GM_FOD_PATH, CSF_FOD_PATH, VF_FOD_PATH, WM_FOD_NORM_PATH, 
+                    GM_FOD_NORM_PATH, CSF_FOD_NORM_PATH) = get_mrtrix_fod_paths(REGION_ID)
+    # Grab all the mif files
+    MRTRIX_FOD_MIF_FILES = glob.glob(FOD_NORM_FOLDER_NAME, "mif")
+    # Check that we have all the files we need
+    if WM_FOD_NORM_PATH in MRTRIX_FOD_MIF_FILES and GM_FOD_NORM_PATH in MRTRIX_FOD_MIF_FILES and CSF_FOD_NORM_PATH in MRTRIX_FOD_MIF_FILES:
+        print("--- MRtrix FOD files found. Skipping MRtrix FOD processing.")
+        MRTRIX_FOD = False
+
+    # If we don't have all the files we need, then we clean the folder and start from scratch
+    if MRTRIX_FOD:
+        print("--- MRtrix FOD files not found. Cleaning MRtrix FOD folder.")
+        check_output_folders(FOD_NORM_FOLDER_NAME, "MRtrix FOD folder", wipe=True)
+    
+    # Return the variable
+    return MRTRIX_FOD
+
+# Function to check missing MRtrix registration processing
+def check_missing_mrtrix_registration(REGION_ID, ATLAS, ATLAS_REG_FOLDER_NAME):
+    # Define variable that stores whether or not we should do MRtrix registration processing
+    MRTRIX_REGISTRATION = True
+    # Get the MRtrix registration paths
+    (DWI_B0_PATH, DWI_B0_NII, ATLAS_DWI_MAP_MAT, ATLAS_DWI_CONVERT_INV, ATLAS_REG_PATH, 
+        ATLAS_MIF_PATH) = get_mrtrix_registration_paths(REGION_ID, ATLAS)
+    # Grab all the mif files in the T1 and atlas registration folders
+    MRTRIX_ATLAS_REG_MIF_FILES = glob.glob(ATLAS_REG_FOLDER_NAME, "mif")
+    # Check that we have all the files we need
+    if ATLAS_REG_PATH in MRTRIX_ATLAS_REG_MIF_FILES:
+        print("--- MRtrix registration files found. Skipping MRtrix registration processing.")
+        MRTRIX_REGISTRATION = False
+    
+    # If we don't have all the files we need, then we clean the folder and start from scratch
+    if MRTRIX_REGISTRATION:
+        print("--- MRtrix registration files not found. Cleaning MRtrix registration folder.")
+        check_output_folders(ATLAS_REG_FOLDER_NAME, "MRtrix atlas registration folder", wipe=True)
+
+    # Return the variable
+    return MRTRIX_REGISTRATION
+
+# Function to check missing MRtrix probabilistic tracking processing
+def check_missing_mrtrix_probtrack(REGION_ID, PROB_TRACKING_FOLDER_NAME):
+    # Define variable that stores whether or not we should do MRtrix probabilistic tracking processing
+    MRTRIX_PROBTRACK = True
+    # Get the MRtrix probabilistic tracking paths
+    (GM_WM_SEED_PATH, TRACT_TCK_PATH) = get_mrtrix_probtrack_paths(REGION_ID)
+    # Grab all the tck files
+    MRTRIX_PROBTRACK_TCK_FILES = glob.glob(PROB_TRACKING_FOLDER_NAME, "tck")
+    # Check that we have all the files we need
+    if TRACT_TCK_PATH in MRTRIX_PROBTRACK_TCK_FILES:
+        print("--- MRtrix probabilistic tracking files found. Skipping MRtrix probabilistic tracking processing.")
+        MRTRIX_PROBTRACK = False
+
+    # If we don't have all the files we need, then we clean the folder and start from scratch
+    if MRTRIX_PROBTRACK:
+        print("--- MRtrix probabilistic tracking files not found. Cleaning MRtrix probabilistic tracking folder.")
+        check_output_folders(PROB_TRACKING_FOLDER_NAME, "MRtrix probabilistic tracking folder", wipe=True)
+
+    # Return the variable
+    return MRTRIX_PROBTRACK
+
+# Function to check missing MRtrix connectome processing
+def check_missing_mrtrix_connectome(REGION_ID, CONNECTIVITY_FOLDER_NAME):
+    # Define variable that stores whether or not we should do MRtrix connectome processing
+    MRTRIX_CONNECTOME = True
+    # Get the MRtrix connectome paths
+    (CONNECTIVITY_PROB_PATH) = get_mrtrix_connectome_paths(REGION_ID)
+    # Grab all the csv files
+    MRTRIX_CONNECTOME_CSV_FILES = glob.glob(CONNECTIVITY_FOLDER_NAME, "csv")
+    # Check that we have all the files we need
+    if CONNECTIVITY_PROB_PATH in MRTRIX_CONNECTOME_CSV_FILES:
+        print("--- MRtrix connectome files found. Skipping MRtrix connectome processing.")
+        MRTRIX_CONNECTOME = False
+
+    # If we don't have all the files we need, then we clean the folder and start from scratch
+    if MRTRIX_CONNECTOME:
+        print("--- MRtrix connectome files not found. Cleaning MRtrix connectome folder.")
+        check_output_folders(CONNECTIVITY_FOLDER_NAME, "MRtrix connectome folder", wipe=True)
+
+    # Return the variable
+    return MRTRIX_CONNECTOME
