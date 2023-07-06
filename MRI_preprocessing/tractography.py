@@ -5,7 +5,9 @@ This Python file contains the main pipeline used for tractography
 # Import libraries
 import multiprocessing as mp
 from py_helpers.general_helpers import *
-from py_helpers.sc_functions import *
+from py_helpers.SC_checkpoints import *
+from py_helpers.SC_commands import *
+from py_helpers.SC_paths import *
 import regex as re
 import subprocess
 import os
@@ -13,7 +15,7 @@ import os
 # -------------------------------------------------- Functions -------------------------------------------------- #
 
 # CHECK HOW TO DO THIS IN PARALLEL - STARMAP OR IMAP
-def parallel_process(SUBJECT_FILES, ATLAS_CHOSEN, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH, 
+def parallel_process(SUBJECT_FILES, ATLAS, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH, 
                         DSI_COMMAND):
 
     # Define the stripped paths indices
@@ -57,67 +59,61 @@ def parallel_process(SUBJECT_FILES, ATLAS_CHOSEN, MAIN_STUDIO_PATH, MAIN_MRTRIX_
         CLEAN_FILES,
         MAIN_STUDIO_PATH,
         DSI_COMMAND,
-        ATLAS_CHOSEN
+        ATLAS
     ]
     # Get the studio commands array
     STUDIO_COMMANDS = define_studio_commands(ARGS_STUDIO)
 
-    # # --------------- MRTRIX reconstruction commands --------------- #
+    # --------------- MRTRIX reconstruction commands --------------- #
     # Define needed arguments array
     ARGS_MRTRIX = [
         SUBJECT_FILES,
         CLEAN_FILES,
         MAIN_MRTRIX_PATH,
         STRIPPED_PATHS[STRIPPED_INDEX],
-        ATLAS_CHOSEN
+        ATLAS
     ]
     # Get the mrtrix commands array
     MRTRIX_COMMANDS = probabilistic_tractography(ARGS_MRTRIX)
 
+    # --------------- Check whether or not we need to do the processing --------------- #
+    # Extract some necessary things
+    FILES_NEEDED = ["filename"]
+    NEEDED_FILE_PATHS = get_filename(SUBJECT_FILES, FILES_NEEDED)
+
+    # FSL Checking
+    FSL_PROCESSING = check_missing_fsl(MAIN_FSL_PATH, dwi_filename)
+
+    # MRTRIX Cleaning Checking
+    MRTRIX_CLEANING = check_missing_mrtrix_cleaning(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
+
+    # DSI STUDIO Checking
+    STUDIO_PROCESSING = check_missing_dsi_studio(NEEDED_FILE_PATHS, MAIN_STUDIO_PATH, dwi_filename)
+
     # --------------- Calling subprocesses commands --------------- #
-    # Stripping T1
-    for (bet_cmd, cmd_name) in BET_COMMANDS:
-        print("Started {} - {}".format(cmd_name, t1_filename))
-        subprocess.run(bet_cmd, shell=True)
+    # If we need to do the processing, then we call the subprocesses
+    if FSL_PROCESSING:
+        # Stripping T1
+        for (bet_cmd, cmd_name) in BET_COMMANDS:
+            print("Started {} - {}".format(cmd_name, t1_filename))
+            subprocess.run(bet_cmd, shell=True)
 
-    # Preprocessing and cleaning DWI
-    for (mrtrix_cmd, cmd_name) in MRTRIX_CLEAN_COMMANDS:
-        print("Started {} - {}".format(cmd_name, dwi_filename))
-        subprocess.run(mrtrix_cmd, shell=True)
+    if MRTRIX_CLEANING:
+        # Preprocessing and cleaning DWI
+        for (mrtrix_cmd, cmd_name) in MRTRIX_CLEAN_COMMANDS:
+            print("Started {} - {}".format(cmd_name, dwi_filename))
+            subprocess.run(mrtrix_cmd, shell=True)
 
-    # Deterministic tractography
-    for (dsi_cmd, cmd_name) in STUDIO_COMMANDS:
-        print("Started {} - {}".format(cmd_name, dwi_filename))
-        subprocess.run(dsi_cmd, shell=True)
+    if STUDIO_PROCESSING:
+        # Deterministic tractography
+        for (dsi_cmd, cmd_name) in STUDIO_COMMANDS:
+            print("Started {} - {}".format(cmd_name, dwi_filename))
+            subprocess.run(dsi_cmd, shell=True)
 
     # Probabilistic and global tractography
     for (mrtrix_cmd, cmd_name) in MRTRIX_COMMANDS:
         print("Started {} - {}".format(cmd_name, dwi_filename))
         subprocess.run(mrtrix_cmd, shell=True)
-    
-
-    #################################
-    # SHOULD ALSO HAVE
-
-    # SET https://github.com/StongeEtienne/set-nf
-    # --> Needs surface
-
-    # GESTA - DEEP AE https://github.com/scil-vital/tractolearn
-    # --> Not sure how to run, emailed author
-
-    # TRACK-TO-LEARN - DEEP RL https://github.com/scil-vital/TrackToLearn/tree/main
-    # --> Needs fODFs, seeding mask (normal mask whole brain mask dwi2mask or bet BET IN T1 GIVES MASK N SKULL STRIP
-    # THEN DWI TO MASK THEN COMPUTE IOU OF BET MASK AND B0 MASK THEN KNOW EVERYTHIN MATCH), and WM mask (visually
-    # look at wmfod to see if it makes sense as a mask)
-    # Agents used for tracking are constrained by their training regime. For example, the agents provided in 
-    # `example_models` were trained on a volume with a resolution of 2mm iso voxels and a step size of 0.75mm 
-    # using fODFs of order 6, `descoteaux07` basis. When tracking on arbitrary data, the step-size and fODF 
-    # order and basis will be adjusted accordingly automatically. **However**, if using fODFs in the `tournier07` 
-    # (coming from MRtrix, for example), you will need to set the `--sh_basis` argument accordingly.
-
-    # CNN-TRANSFORMER - ALSO ML
-    # --> Don't have code, emailed author
-    
 
 
 # -------------------------------------------------- Folder Paths and Data Checking -------------------------------------------------- #
@@ -136,7 +132,7 @@ def main():
     check_input_folders(ATLAS_FOLDER, "Atlas")
 
     # If output folderes don't exist, create them
-    check_output_folders(TRACTOGRAPHY_OUTPUT_FOLDER, "Tractography output", wipe=True)
+    check_output_folders(TRACTOGRAPHY_OUTPUT_FOLDER, "Tractography output", wipe=False)
     check_output_folders(MAIN_STUDIO_PATH, "Studio", wipe=False)
     check_output_folders(MAIN_MRTRIX_PATH, "MRtrix", wipe=False)
     check_output_folders(MAIN_FSL_PATH, "FSL", wipe=False)
@@ -182,18 +178,18 @@ def main():
     
     # --------------- Mapping subject inputs to the HPC job --------------- #
     if hpc:
-        # # Get the current subject based on the command-line argument
-        # subject_idx = int(sys.argv[1])
-        # # Get the index of the subject in the filtered list
-        # subject = FILTERED_SUBJECT_LIST[subject_idx]
-        # # Call the parallel process function on this subject
-        # parallel_process(subject, ATLAS_CHOSEN, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH,
-        #                     DSI_COMMAND)
+        # Get the current subject based on the command-line argument
+        subject_idx = int(sys.argv[1])
+        # Get the index of the subject in the filtered list
+        subject = FILTERED_SUBJECT_LIST[subject_idx]
+        # Call the parallel process function on this subject
+        parallel_process(subject, ATLAS_CHOSEN, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH,
+                            DSI_COMMAND)
         # for subject in FILTERED_SUBJECT_LIST:
         #     parallel_process(subject, ATLAS_CHOSEN, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH,
         #                         DSI_COMMAND)
-        parallel_process(FILTERED_SUBJECT_LIST[0], ATLAS_CHOSEN, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH,
-                            DSI_COMMAND)
+        # parallel_process(FILTERED_SUBJECT_LIST[0], ATLAS_CHOSEN, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH,
+                            # DSI_COMMAND)
     else:
         # Get the mapping as a list for multiprocessing to work
         mapping_inputs = list(zip(FILTERED_SUBJECT_LIST, [ATLAS_CHOSEN]*len(FILTERED_SUBJECT_LIST), 
