@@ -17,6 +17,8 @@ def parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, AT
     print("INJECTION FILES: {}".format(INJECTION_FILES))
     print("ATLAS/STPT FILES: {}".format(ATLAS_STPT))
 
+    # --------------- Creating NiFTi collection commands --------------- #
+
     # --------------- MRTRIX reconstruction commands --------------- #
     # Define needed arguments array
     ARGS_MRTRIX = [
@@ -26,6 +28,8 @@ def parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, AT
     ]
     # Get the mrtrix commands array
     MRTRIX_COMMANDS = pre_tractography_commands(ARGS_MRTRIX)
+
+    # --------------- Injection matrix creation commands --------------- #
 
     # --------------- Calling subprocesses commands --------------- #
    
@@ -121,8 +125,9 @@ def main():
 
     # --------------- Get main folder paths, check inputs/outputs, unzip necessary --------------- #
     # Get the folder paths
+    hpc = False
     (BMINDS_DATA_FOLDER, BMINDS_OUTPUTS_FOLDER, BMINDS_METADATA_FOLDER, BMINDS_INJECTIONS_FOLDER, BMINDS_ATLAS_STPT_FOLDER,
-        BMINDS_ZIPPED_DWI_FOLDER, BMINDS_UNZIPPED_DWI_FOLDER, MAIN_MRTRIX_FOLDER) = get_main_paths(hpc=False)
+        BMINDS_ZIPPED_DWI_FOLDER, BMINDS_UNZIPPED_DWI_FOLDER, MAIN_MRTRIX_FOLDER) = get_main_paths(hpc)
     
     # Check the input folders
     check_input_folders(BMINDS_DATA_FOLDER, "BMINDS_DATA_FOLDER")
@@ -162,16 +167,24 @@ def main():
     ALL_DATA_LIST = create_data_list(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_FILES, 
                                      BMINDS_STREAMLINE_FILES, BMINDS_INJECTION_FILES, BMINDS_ATLAS_FILE, 
                                      BMINDS_STPT_FILE)
- 
+    
+    print("ALL_DATA_LIST: {}".format(ALL_DATA_LIST))
+     
     # --------------- Preprocessing the data to get the right file formats --------------- #
-    # Use the mapping inputs with starmap to run the parallel processes
-    # with mp.Pool() as pool:
-    #     pool.starmap(parallel_process, ALL_DATA_LIST)
-
-    for (REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT) in ALL_DATA_LIST:
-        parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT)
-
-
+    # if hpc:
+    #     # Get the current region based on the command-line
+    #     region_idx = int(sys.argv[1])
+    #     # Get the data of the indexed region in the list
+    #     (REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT) = ALL_DATA_LIST[region_idx]
+    #     # Call the parallel process function on this region
+    #     parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT)
+    # else:
+    #     # Call the parallel process function on all regions - serially
+    #     for region_idx in range(len(ALL_DATA_LIST)):
+    #         # Get the region data
+    #         (REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT) = ALL_DATA_LIST[region_idx]
+    #         # Call the parallel process function on this region
+    #         parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT)
 
 
 if __name__ == '__main__':

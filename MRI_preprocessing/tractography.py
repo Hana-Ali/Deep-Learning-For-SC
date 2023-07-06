@@ -182,12 +182,17 @@ def main():
     
     # --------------- Mapping subject inputs to the HPC job --------------- #
     if hpc:
-        # Get the current subject based on the command-line argument
-        subject_idx = int(sys.argv[1])
-        # Get the index of the subject in the filtered list
-        subject = FILTERED_SUBJECT_LIST[subject_idx]
-        # Call the parallel process function on this subject
-        parallel_process(subject, ATLAS_CHOSEN, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH,
+        # # Get the current subject based on the command-line argument
+        # subject_idx = int(sys.argv[1])
+        # # Get the index of the subject in the filtered list
+        # subject = FILTERED_SUBJECT_LIST[subject_idx]
+        # # Call the parallel process function on this subject
+        # parallel_process(subject, ATLAS_CHOSEN, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH,
+        #                     DSI_COMMAND)
+        # for subject in FILTERED_SUBJECT_LIST:
+        #     parallel_process(subject, ATLAS_CHOSEN, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH,
+        #                         DSI_COMMAND)
+        parallel_process(FILTERED_SUBJECT_LIST[0], ATLAS_CHOSEN, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH,
                             DSI_COMMAND)
     else:
         # Get the mapping as a list for multiprocessing to work

@@ -5,6 +5,8 @@ import shutil
 import gzip
 import tarfile
 import magic
+import subprocess
+import nibabel as nib
 
 # Get the main paths
 def get_main_paths(hpc):
@@ -120,14 +122,19 @@ def unzip_dwi_stage_1(ANIMAL_DWI_FILES, UNZIPPED_DWI_PATH):
 
             # Create directory
             directory_to_extract_to = os.path.join(UNZIPPED_DWI_PATH, region_name)
-            check_output_folders(directory_to_extract_to, region_name)
+            check_output_folders(directory_to_extract_to, region_name, wipe=False)
             
             # Add file name to directory
             file_in_directory = os.path.join(directory_to_extract_to, file_name)
-
+            # If the file already exists, no need to unzip
+            if os.path.exists(file_in_directory):
+                print("File {} already exists. Continuing...".format(file_in_directory))
+                continue
             # Unzip the file
-            with open(file_in_directory, 'wb') as f_out:
-                shutil.copyfileobj(f_in, f_out)
+            else:
+                print("File {} does not exist. Unzipping...".format(file_in_directory))
+                with open(file_in_directory, 'wb') as f_out:
+                    shutil.copyfileobj(f_in, f_out)
 
 # Second unzipping of all DWI files
 def unzip_dwi_stage_2(UNZIPPED_DWI_FILES, UNZIPPED_DWI_PATH): 
@@ -219,6 +226,7 @@ def extract_region_ID(file):
 
 # Function to extract the BVAL filename
 def extract_correct_bval(dwi_file, BMINDS_BVAL_FILES):
+
     # Extract the correct number for the bval
     if os.name == "nt":
         bval_name = dwi_file.split("\\")[-1]
@@ -300,63 +308,6 @@ def get_injection_type(file):
         sys.exit('Exiting program')
 
 # Create a list that associates each subject with its T1 and DWI files
-def create_data_dict(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_FILES, BMINDS_STREAMLINE_FILES, BMINDS_INJECTION_FILES):
-    DATA_LISTS = []
-    DWI_LIST = []
-    STREAMLINE_LIST = {}
-    INJECTION_LIST = {}
-
-    # For each DWI file
-    for dwi_file in BMINDS_UNZIPPED_DWI_FILES:
-        # Get the region ID
-        region_ID = extract_region_ID(dwi_file)
-
-        # Get the bval and bvec files
-        bval_path = extract_correct_bval(dwi_file, BMINDS_BVAL_FILES)
-        bvec_path = extract_correct_bvec(dwi_file, BMINDS_BVEC_FILES)
-
-        # Append to a DWI list
-        DWI_LIST.append([region_ID, dwi_file, bval_path, bvec_path])
-
-    # For each streamline file
-    for streamline_file in BMINDS_STREAMLINE_FILES:
-        # Get the region ID
-        region_ID = extract_region_ID(streamline_file)
-        # Get the type of streamline file it is
-        streamline_type = get_streamline_type(streamline_file)
-        # Append all the data to the dictionary
-        STREAMLINE_LIST[region_ID] = STREAMLINE_LIST.get(region_ID, {}) | {streamline_type: streamline_file}
-
-    # For each injection file
-    for injection_file in BMINDS_INJECTION_FILES:
-        # Get the region ID
-        region_ID = extract_region_ID(injection_file)
-        # Get the type of injection file it is
-        injection_type = get_injection_type(injection_file)
-        # Append all the data to the dictionary
-        INJECTION_LIST[region_ID] = INJECTION_LIST.get(region_ID, {}) | {injection_type: injection_file}
-
-    # Join the two lists based on common subject name
-    for dwi in DWI_LIST:
-        # Get the region, or common element ID
-        region_ID = dwi[0]
-        # Based on this name, get every streamline and injection that has the same region ID
-        streamline_files = STREAMLINE_LIST[region_ID]
-        injection_files = INJECTION_LIST[region_ID]
-        # Check that streamline and injection files are not empty
-        if not streamline_files:
-            print("No streamline files found for {}".format(region_ID))
-            continue
-        if not injection_files:
-            print("No injection files found for {}".format(region_ID))
-            continue
-        # Append the subject name, dwi, bval, bvec, streamline and injection to the list
-        DATA_LISTS.append({'region_ID': region_ID, 'dwi_file': dwi[1], 'bval_path': dwi[2], 'bvec_path': dwi[3], 
-                                'streamline_files': streamline_files, 'injection_files': injection_files})
-            
-    return DATA_LISTS
-
-# Create a list that associates each subject with its T1 and DWI files
 def create_data_list(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_FILES, BMINDS_STREAMLINE_FILES, 
                      BMINDS_INJECTION_FILES, BMINDS_ATLAS_FILE, BMINDS_STPT_FILE):
     DATA_LISTS = []
@@ -366,6 +317,11 @@ def create_data_list(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_F
 
     # For each DWI file
     for dwi_file in BMINDS_UNZIPPED_DWI_FILES:
+
+        # Check that it's not a concat file - skip if it is
+        if "concat" in dwi_file:
+            continue
+
         # Get the region ID
         region_ID = extract_region_ID(dwi_file)
 
@@ -396,18 +352,26 @@ def create_data_list(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_F
         injection_type = get_injection_type(injection_file)
         # Append all the data to the dictionary
         INJECTION_LIST.append([region_ID, injection_type, injection_file])
+        
+    # Join all DWIs with the same region name but different bvals and bvecs using mrtrix
+    CONCATENATED_DWI_LIST = join_dwi_diff_bvals_bvecs(DWI_LIST)   
 
     # Join the two lists based on common subject name
-    for dwi in DWI_LIST:
+    for dwi_list in CONCATENATED_DWI_LIST:
+        print("DWI_LIST: {}".format(dwi_list))
         # Get the region, or common element ID
-        region_ID = dwi[0]
+        if os.name == "nt":
+            region_ID = dwi_list[0].split("\\")[-3]
+        else:
+            region_ID = dwi_list[0].split("/")[-3]
+            print("region_ID: {}".format(region_ID))
         # Based on this name, get every streamline and injection that has the same region ID
-        dwi_files = [[dwi[1], dwi[2], dwi[3]]]
         streamline_files = [[streamline_file[1], streamline_file[2]] for streamline_file in STREAMLINE_LIST if streamline_file[0] == region_ID]
         injection_files = [[injection_file[1], injection_file[2]] for injection_file in INJECTION_LIST if injection_file[0] == region_ID]
-
         # Add the atlas and stpt files
         atlas_stpt = [BMINDS_ATLAS_FILE[0], BMINDS_STPT_FILE[0]]
+        # Extract the dwi, bval and bvec files
+        dwi_data = [dwi_list[0], dwi_list[1], dwi_list[2]]
 
         # Check that streamline and injection files are not empty
         if not streamline_files:
@@ -417,9 +381,126 @@ def create_data_list(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_F
             print("No injection files found for {}".format(region_ID))
             continue
         # Append the subject name, dwi, bval, bvec, streamline and injection to the list
-        DATA_LISTS.append([region_ID, dwi_files[0], streamline_files, injection_files, atlas_stpt])
+        DATA_LISTS.append([region_ID, dwi_data, streamline_files, injection_files, atlas_stpt])
             
-    return DATA_LISTS
+    return DATA_LISTS     
+        
+# Join different bval and bvec files for the same region
+def join_dwi_diff_bvals_bvecs(DWI_LIST):
+    # This stores which regions we've already done this for
+    SEEN_REGIONS = []
+    # This stores all the concat paths
+    ALL_CONCAT_PATHS = []
+    
+    # For each DWI file
+    for dwi in DWI_LIST:
+
+        # Get the region, or common element ID
+        region_ID = dwi[0]
+
+        # If we've already done this region, skip it
+        if region_ID in SEEN_REGIONS:
+            continue
+
+        # Add the region to the seen regions
+        SEEN_REGIONS.append(region_ID)
+
+        # This stores the MIF paths - resets with every new region
+        MIF_PATHS = []
+
+        # Create list of all DWIs, BVALs and BVECs for this same region
+        same_region_list = [dwi[1:] for dwi in DWI_LIST if dwi[0] == region_ID]
+
+        # Convert all to mif using the BVALs and BVECs
+        for region_item in same_region_list:
+            # Get the mif path
+            MIF_PATHS.append(convert_to_mif(region_item))
+
+        # Create string for what mifs to concatenate
+        mif_files_string = " ".join(MIF_PATHS)
+        # Get the concatenated path
+        CONCAT_PATH = concatenate_mif(MIF_PATHS, mif_files_string)
+
+        # Convert back to nii
+        (CONCAT_NII_PATH, CONCAT_BVALS_PATH, CONCAT_BVECS_PATH) = convert_to_nii(CONCAT_PATH)
+
+        # Add the concatenated path to the list
+        ALL_CONCAT_PATHS.append([CONCAT_NII_PATH, CONCAT_BVALS_PATH, CONCAT_BVECS_PATH])
+
+    # Return all the concatenated paths
+    return ALL_CONCAT_PATHS
+
+# Conversion to MIF
+def convert_to_mif(region_item):
+    # Create the MIF path
+    if os.name == "nt":
+        mif_name = region_item[0].split("\\")[-1].split(".")[0] + "_mif.mif"
+        MIF_PATH = os.path.join("\\".join(region_item[0].split("\\")[:-1]), mif_name)
+    else:
+        mif_name = region_item[0].split("/")[-1].split(".")[0] + "_mif.mif"
+        MIF_PATH = os.path.join("/".join(region_item[0].split("/")[:-1]), mif_name)
+    
+    # Check if the MIF path already exists
+    if os.path.exists(MIF_PATH):
+        print("MIF path {} already exists. Continuing...".format(MIF_PATH))
+        return MIF_PATH
+    
+    # If it doesn't exist, convert to mif
+    MIF_CMD = "mrconvert {input_nii} -fslgrad {bvec} {bval} {output}".format(input_nii=region_item[0], 
+                                                                        bval=region_item[1], 
+                                                                        bvec=region_item[2], 
+                                                                        output=MIF_PATH)
+    print("Running command: {}".format(MIF_CMD))
+    subprocess.run(MIF_CMD, shell=True)
+
+    # Return the mif path
+    return MIF_PATH
+
+# Concatenate MIF
+def concatenate_mif(MIF_PATHS, mif_files_string):
+    # Define the output concatentated path
+    if os.name == "nt":
+        CONCAT_FOLDER = os.path.join("\\".join(MIF_PATHS[0].split("\\")[:-2]), "Concatenated_Data")
+        check_output_folders(CONCAT_FOLDER, "CONCAT_FOLDER", wipe=False)
+        CONCAT_PATH = os.path.join(CONCAT_FOLDER, "DWI_concatenated.mif")
+    else:
+        CONCAT_FOLDER = os.path.join("/".join(MIF_PATHS[0].split("/")[:-2]), "Concatenated_Data")
+        check_output_folders(CONCAT_FOLDER, "CONCAT_FOLDER", wipe=False)
+        CONCAT_PATH = os.path.join(CONCAT_FOLDER, "DWI_concatenated.mif")
+    
+    # Check if the concatenated path already exists
+    if os.path.exists(CONCAT_PATH):
+        print("Concatenated path {} already exists. Continuing...".format(CONCAT_PATH))
+        return CONCAT_PATH
+    
+    # Concatenate mifs command
+    CONCAT_CMD = "mrcat {inputs} {output}".format(inputs=mif_files_string, output=CONCAT_PATH)
+    print("Running command: {}".format(CONCAT_CMD))
+    subprocess.run(CONCAT_CMD, shell=True)
+
+    # Return the concatenated path
+    return CONCAT_PATH
+
+# Function to convert to nii from MIF
+def convert_to_nii(MIF_PATH):
+    # Define the output nii, bvals and bvecs path
+    NII_PATH = MIF_PATH.replace(".mif", ".nii")
+    BVALS_PATH = MIF_PATH.replace(".mif", ".bvals")
+    BVECS_PATH = MIF_PATH.replace(".mif", ".bvecs")
+
+    # Check if it already exists - if it does, return it
+    if os.path.exists(NII_PATH):
+        print("NII path {} already exists. Continuing...".format(NII_PATH))
+        return (NII_PATH, BVALS_PATH, BVECS_PATH)
+
+    # Define the conversion command
+    CONVERT_BACK_CMD = "mrconvert {input_mif} {output_nii} -export_grad_fsl {bvecs_path} {bvals_path}".format(
+                        input_mif=MIF_PATH, output_nii=NII_PATH, bvecs_path=BVECS_PATH, bvals_path=BVALS_PATH)
+    print("Running command: {}".format(CONVERT_BACK_CMD))    
+    subprocess.run(CONVERT_BACK_CMD, shell=True)
+
+    # Return the nii path
+    return (NII_PATH, BVALS_PATH, BVECS_PATH)
 
 # Function to get the selected items from a list
 def extract_from_input_list(GENERAL_FILES, ITEMS_NEEDED, list_type):

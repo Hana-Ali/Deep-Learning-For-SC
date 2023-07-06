@@ -327,3 +327,60 @@ def pre_tractography_commands(ARGS):
     
     # Return the commands array
     return MRTRIX_COMMANDS
+
+# Define command to make the injection matrix
+def def_injection_matrix_command(ARGS):
+    # Extract arguments needed to define paths
+    REGION_ID = ARGS[0]
+    DWI_FILES = ARGS[1]
+    STREAMLINE_FILES = ARGS[2]
+    INJECTION_FILES = ARGS[3]
+    ATLAS_STPT = ARGS[2]
+
+
+    # Get the probabilistic tractography results path
+    (GMWM_SEED_PATH, TRACT_TCK_PATH) = get_mrtrix_probtrack_paths(REGION_ID)
+
+
+# # Define MRTRIX commands
+# def probabilistic_tractography(ARGS):
+#     # Extract arguments needed to define paths
+#     REGION_ID = ARGS[0]
+#     DWI_FILES = ARGS[1]
+#     ATLAS_STPT = ARGS[2]
+
+#     # Define the FOD commands
+#     FOD_ARGS = [REGION_ID, DWI_FILES]
+#     (MIF_CMD, MASK_CMD, MASK_NII_CMD, RESPONSE_EST_CMD, VIEW_RESPONSE_CMD, MULTISHELL_CSD_CMD, COMBINE_FODS_CMD,
+#         VIEW_COMBINED_FODS_CMD, NORMALIZE_FODS_CMD, VIEW_NORMALIZED_FODS_CMD) = define_mrtrix_fod_commands(FOD_ARGS)
+    
+#     # Define the registration commands
+#     REG_ARGS = [REGION_ID, ATLAS_STPT]
+#     (DWI_B0_CMD, DWI_B0_NII_CMD, REGISTER_ATLAS_DWI_CMD, TRANSFORMATION_ATLAS_DWI_CMD,
+#         ATLAS_MIF_CMD, FINAL_ATLAS_TRANSFORM_CMD) = define_mrtrix_registration_commands(REG_ARGS)
+    
+#     # Define the probabilistic tracking commands
+#     PROB_ARGS = [REGION_ID, DWI_FILES, ATLAS_STPT]
+#     (PROB_TRACT_CMD) = define_mrtrix_probtrack_commands(PROB_ARGS)
+
+#     # Define the connectome commands
+#     CONNECTOME_ARGS = [REGION_ID, ATLAS_STPT]
+#     (CONNECTIVITY_PROB_CMD) = define_mrtrix_connectome_commands(CONNECTOME_ARGS)
+
+
+#     # Create commands array
+#     MRTRIX_COMMANDS = [(MIF_CMD, "Convert DWI nii -> mif"), (MASK_CMD, "Create DWI brain mask"),
+#                         (MASK_NII_CMD, "Convert DWI brain mask mif -> nii"), 
+#                         (RESPONSE_EST_CMD, "Estimate response function of WM, GM, CSF from DWI"),
+#                         (MULTISHELL_CSD_CMD, "Spherical deconvolution to estimate fODs"),
+#                         (COMBINE_FODS_CMD, "Combining fODs into a VF"),
+#                         (NORMALIZE_FODS_CMD, "Normalizing fODs"),
+#                         (DWI_B0_CMD, "Extracting mean B0 and transforming to NII"), (DWI_B0_NII_CMD, "DWI B0 mif -> NII"),
+#                         (REGISTER_ATLAS_DWI_CMD, "Begin registering atlas to DWI space"),
+#                         (TRANSFORMATION_ATLAS_DWI_CMD, "Initial transformation of atlas to DWI space"),
+#                         (ATLAS_MIF_CMD, "Convert atlas nii -> mif"), (FINAL_ATLAS_TRANSFORM_CMD, "Final transformation of atlas to DWI space"),
+#                         (PROB_TRACT_CMD, "Probabilistic tractography"), 
+#                         (CONNECTIVITY_PROB_CMD, "Creating connectivity matrix - probabilistic")]
+
+#     # Return the commands array
+#     return MRTRIX_COMMANDS
