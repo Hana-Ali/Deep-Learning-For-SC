@@ -136,10 +136,10 @@ def main():
     check_input_folders(ATLAS_FOLDER, "Atlas")
 
     # If output folderes don't exist, create them
-    check_output_folders_with_subfolders(TRACTOGRAPHY_OUTPUT_FOLDER, "Tractography output")
-    check_output_folders(MAIN_STUDIO_PATH, "Studio", wipe=True)
-    check_output_folders(MAIN_MRTRIX_PATH, "MRtrix", wipe=True)
-    check_output_folders(MAIN_FSL_PATH, "FSL", wipe=True)
+    check_output_folders(TRACTOGRAPHY_OUTPUT_FOLDER, "Tractography output", wipe=True)
+    check_output_folders(MAIN_STUDIO_PATH, "Studio", wipe=False)
+    check_output_folders(MAIN_MRTRIX_PATH, "MRtrix", wipe=False)
+    check_output_folders(MAIN_FSL_PATH, "FSL", wipe=False)
         
     # --------------- Get DWI, BVAL, BVEC, T1, fMRI from subdirectories --------------- #
     DWI_INPUT_FILES = glob_files(DWI_MAIN_FOLDER, "nii.gz")

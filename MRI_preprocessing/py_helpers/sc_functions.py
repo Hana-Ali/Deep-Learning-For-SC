@@ -136,10 +136,10 @@ def get_dsi_studio_paths(NEEDED_FILE_PATHS, MAIN_STUDIO_PATH):
 
     # Creating folder for each subject in DSI_STUDIO folder. CAN WIPE as this is the only function that uses it
     SUBJECT_FOLDER_NAME = os.path.join(MAIN_STUDIO_PATH, dwi_filename)
-    check_output_folders_with_subfolders(SUBJECT_FOLDER_NAME, "DSI Studio subject folder")
+    check_output_folders(SUBJECT_FOLDER_NAME, "DSI Studio subject folder", wipe=False)
     # Creating logs folder for each subject. CAN WIPE as this is the only function that uses it
     SUBJECT_LOGS_FOLDER = os.path.join(SUBJECT_FOLDER_NAME, "logs")
-    check_output_folders_with_subfolders(SUBJECT_LOGS_FOLDER, "DSI Studio logs folder")
+    check_output_folders(SUBJECT_LOGS_FOLDER, "DSI Studio logs folder", wipe=False)
 
     # Create folders and file paths for eachcommand
     STUDIO_SRC_FOLDER = os.path.join(SUBJECT_FOLDER_NAME, "src")

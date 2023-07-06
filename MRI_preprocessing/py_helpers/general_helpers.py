@@ -167,24 +167,6 @@ def check_input_folders(folder, name):
     else:
         print("--- {} folder found. Continuing...".format(name))
 
-# Check that output folders with subfolders are in suitable shape
-def check_output_folders_with_subfolders(folder, name):
-    if not os.path.exists(folder):
-        print("--- {} folder not found. Created folder: {}".format(name, folder))
-        os.makedirs(folder)
-    # If it has content, delete it
-    else:
-        print("--- {} folder found. Continuing...".format(name))
-        if len(os.listdir(folder)) != 0:
-            print("{} folder has content. Deleting content...".format(name))
-            # Since this can have both folders and files, we need to check if it's a file or folder to remove
-            for filename in os.listdir(folder):
-                file_path = os.path.join(folder, filename)
-                if os.path.isfile(file_path) or os.path.islink(file_path):
-                    os.unlink(file_path)
-                elif os.path.isdir(file_path):
-                    shutil.rmtree(file_path)
-
 # Check that output folders are in suitable shape
 def check_output_folders(folder, name, wipe=True):
     if not os.path.exists(folder):
@@ -195,10 +177,16 @@ def check_output_folders(folder, name, wipe=True):
         # If it has content, delete it
         if wipe:
             print("--- {} folder found. Wiping...".format(name))
+            # If the folder has content, delete it
             if len(os.listdir(folder)) != 0:
                 print("{} folder has content. Deleting content...".format(name))
-                for file in glob.glob(os.path.join(folder, "*")):
-                    os.remove(file)
+                # Since this can have both folders and files, we need to check if it's a file or folder to remove
+                for filename in os.listdir(folder):
+                    file_path = os.path.join(folder, filename)
+                    if os.path.isfile(file_path) or os.path.islink(file_path):
+                        os.unlink(file_path)
+                    elif os.path.isdir(file_path):
+                        shutil.rmtree(file_path)
                 print("Content deleted. Continuing...")
         else:
             print("--- {} folder found. Continuing without wipe...".format(name))
