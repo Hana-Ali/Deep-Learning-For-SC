@@ -177,10 +177,14 @@ def main():
     # --------------- Get the correct atlas depending on parcellated fMRI --------------- #
     ATLAS_CHOSEN = get_atlas_choice(FILTERED_SUBJECT_LIST, ATLAS_FILES)
 
+
+    print('Number of subjects: {}'.format(len(FILTERED_SUBJECT_LIST)))
     # Use mapping inputs
-    for subject in FILTERED_SUBJECT_LIST:
-        parallel_process(subject, ATLAS_CHOSEN, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH, 
-                        DSI_COMMAND)
+
+    # subject_ID = open(sys.argv[1], 'r')
+    # for subject in FILTERED_SUBJECT_LIST:
+    #     parallel_process(subject, ATLAS_CHOSEN, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH, 
+    #                     DSI_COMMAND)
 
     # --------------- Defining inputs for mapping parallel --------------- #
     # mapping_inputs = list(zip(FILTERED_SUBJECT_LIST, [ATLAS_CHOSEN]*len(FILTERED_SUBJECT_LIST), 
