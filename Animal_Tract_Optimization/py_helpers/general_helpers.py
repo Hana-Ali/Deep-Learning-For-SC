@@ -12,18 +12,14 @@ import nibabel as nib
 def get_main_paths(hpc):
     # Depending on whether we're in HPC or not, paths change
     if hpc == True:
-        ALL_DATA_FOLDER = "/rds/general/user/hsa22/home/dissertation"
-        SUBJECTS_FOLDER = "" # Empty in the case of HPC
-        TRACTOGRAPHY_OUTPUT_FOLDER = os.path.join(ALL_DATA_FOLDER, "output_data")
-        NIPYPE_OUTPUT_FOLDER = os.path.join(ALL_DATA_FOLDER, "nipype_outputs")
-        FMRI_MAIN_FOLDER = os.path.join(ALL_DATA_FOLDER, "camcan_parcellated_acompcor/schaefer232/fmri700/rest")
-        ATLAS_FOLDER = os.path.join(ALL_DATA_FOLDER, "atlas")
-
-        PEDRO_MAIN_FOLDER = "/rds/general/user/pam213/home/Data/CAMCAN/"
-        DWI_MAIN_FOLDER = os.path.join(PEDRO_MAIN_FOLDER, "dwi")
-        T1_MAIN_FOLDER = os.path.join(PEDRO_MAIN_FOLDER, "aamod_dartel_norm_write_00001")
-        
-        DSI_COMMAND = "singularity exec dsistudio_latest.sif dsi_studio"
+        BMINDS_DATA_FOLDER = "/rds/general/user/hsa22/home/Brain_MINDS"
+        BMINDS_OUTPUTS_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "processed_dMRI"))
+        BMINDS_ATLAS_STPT_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "BMCR_STPT_template"))
+        BMINDS_CORE_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "BMCR_core_data"))
+        BMINDS_DWI_FOLDER = os.path.realpath(os.path.join(BMINDS_CORE_FOLDER, "dMRI_raw"))
+        BMINDS_METADATA_FOLDER = os.path.realpath(os.path.join(BMINDS_CORE_FOLDER, "meta_data"))
+        BMINDS_INJECTIONS_FOLDER = os.path.realpath(os.path.join(BMINDS_CORE_FOLDER, "processed_tracer_data"))
+        BMINDS_UNZIPPED_DWI_FOLDER = os.path.realpath(os.path.join(BMINDS_OUTPUTS_FOLDER, "dMRI_unzipped"))
 
     else:
         # Define paths based on whether we're Windows or Linux
@@ -43,20 +39,20 @@ def get_main_paths(hpc):
 
         else:
             BMINDS_DATA_FOLDER = os.path.realpath(os.path.join(os.getcwd(), "..", "Animal_Data", "Brain-MINDS"))
-            BMINDS_OUTPUTS_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "outputs"))
-            BMINDS_DWI_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "DWI_files"))
-            BMINDS_METADATA_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "meta_data"))
-            BMINDS_INJECTIONS_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "processed_tracer_data"))
-            BMINDS_ATLAS_STPT_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "atlas_stpt_template"))
-            BMINDS_ZIPPED_DWI_FOLDER = os.path.realpath(os.path.join(BMINDS_DWI_FOLDER, "zipped_data"))
-            BMINDS_UNZIPPED_DWI_FOLDER = os.path.realpath(os.path.join(BMINDS_DWI_FOLDER, "unzipped_data"))
+            BMINDS_OUTPUTS_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "processed_dMRI"))
+            BMINDS_ATLAS_STPT_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "BMCR_STPT_template"))
+            BMINDS_CORE_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "BMCR_core_data"))
+            BMINDS_DWI_FOLDER = os.path.realpath(os.path.join(BMINDS_CORE_FOLDER, "dMRI_raw"))
+            BMINDS_METADATA_FOLDER = os.path.realpath(os.path.join(BMINDS_CORE_FOLDER, "meta_data"))
+            BMINDS_INJECTIONS_FOLDER = os.path.realpath(os.path.join(BMINDS_CORE_FOLDER, "processed_tracer_data"))
+            BMINDS_UNZIPPED_DWI_FOLDER = os.path.realpath(os.path.join(BMINDS_OUTPUTS_FOLDER, "dMRI_unzipped"))
 
     # Create main MRTRIX folder
     MAIN_MRTRIX_FOLDER = os.path.join(BMINDS_OUTPUTS_FOLDER, "MRTRIX")
 
     # Return folder names
-    return (BMINDS_DATA_FOLDER, BMINDS_OUTPUTS_FOLDER, BMINDS_METADATA_FOLDER, BMINDS_INJECTIONS_FOLDER, BMINDS_ATLAS_STPT_FOLDER,
-            BMINDS_ZIPPED_DWI_FOLDER, BMINDS_UNZIPPED_DWI_FOLDER, MAIN_MRTRIX_FOLDER)
+    return (BMINDS_DATA_FOLDER, BMINDS_OUTPUTS_FOLDER, BMINDS_ATLAS_STPT_FOLDER, BMINDS_CORE_FOLDER, BMINDS_DWI_FOLDER,
+            BMINDS_METADATA_FOLDER, BMINDS_INJECTIONS_FOLDER, BMINDS_UNZIPPED_DWI_FOLDER, MAIN_MRTRIX_FOLDER)
        
 
 # Check that output folders with subfolders are in suitable shape
@@ -156,6 +152,8 @@ def unzip_dwi_stage_2(UNZIPPED_DWI_FILES, UNZIPPED_DWI_PATH):
 
         # Add file name to directory
         file_in_directory = os.path.join(directory_to_extract_to, file_name)
+        print("File in directory: {}".format(file_in_directory))
+        print("File we're unzipping: {}".format(file))
 
         # Print the file type
         print(magic.from_file(file))
@@ -203,8 +201,6 @@ def check_unzipping(BMINDS_DWI_FOLDER, BMINDS_UNZIPPED_DWI_FOLDER):
         # Get the missing files we need to unzip
         TO_UNZIP_DWI_FILES = [file for file in BMINDS_DWI_FILES if file.split("/")[-2] not in UNZIPPED_DWI_FOLDER_NAMES]
 
-        print("BMINDS_DWI_FILES: {}".format(BMINDS_DWI_FILES))
-        print("BMINDS_UNZIPPED_DWI_FILES: {}".format(BMINDS_UNZIPPED_DWI_FILES))
         print("Unzipping {} files".format(len(TO_UNZIP_DWI_FILES)))
         print("Unzipping {} files".format(TO_UNZIP_DWI_FILES))
 

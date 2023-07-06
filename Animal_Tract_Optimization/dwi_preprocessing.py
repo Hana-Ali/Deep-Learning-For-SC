@@ -126,28 +126,29 @@ def main():
     # --------------- Get main folder paths, check inputs/outputs, unzip necessary --------------- #
     # Get the folder paths
     hpc = False
-    (BMINDS_DATA_FOLDER, BMINDS_OUTPUTS_FOLDER, BMINDS_METADATA_FOLDER, BMINDS_INJECTIONS_FOLDER, BMINDS_ATLAS_STPT_FOLDER,
-        BMINDS_ZIPPED_DWI_FOLDER, BMINDS_UNZIPPED_DWI_FOLDER, MAIN_MRTRIX_FOLDER) = get_main_paths(hpc)
+    (BMINDS_DATA_FOLDER, BMINDS_OUTPUTS_FOLDER, BMINDS_ATLAS_STPT_FOLDER, BMINDS_CORE_FOLDER, BMINDS_DWI_FOLDER,
+        BMINDS_METADATA_FOLDER, BMINDS_INJECTIONS_FOLDER, BMINDS_UNZIPPED_DWI_FOLDER, MAIN_MRTRIX_FOLDER) = get_main_paths(hpc)
     
     # Check the input folders
     check_input_folders(BMINDS_DATA_FOLDER, "BMINDS_DATA_FOLDER")
+    check_input_folders(BMINDS_ATLAS_STPT_FOLDER, "BMINDS_ATLAS_STPT_FOLDER")
+    check_input_folders(BMINDS_CORE_FOLDER, "BMINDS_CORE_FOLDER")
+    check_input_folders(BMINDS_DWI_FOLDER, "BMINDS_DWI_FOLDER")
     check_input_folders(BMINDS_METADATA_FOLDER, "BMINDS_METADATA_FOLDER")
     check_input_folders(BMINDS_INJECTIONS_FOLDER, "BMINDS_INJECTIONS_FOLDER")
-    check_input_folders(BMINDS_ATLAS_STPT_FOLDER, "BMINDS_ATLAS_STPT_FOLDER")
-    check_input_folders(BMINDS_ZIPPED_DWI_FOLDER, "BMINDS_ZIPPED_DWI_FOLDER")
 
     # Check the output folders
+    check_output_folders(BMINDS_OUTPUTS_FOLDER, "BMINDS_OUTPUTS_FOLDER", wipe=False)
     check_output_folders(BMINDS_UNZIPPED_DWI_FOLDER, "BMINDS_UNZIPPED_DWI_FOLDER", wipe=False)
-    check_output_folders(BMINDS_OUTPUTS_FOLDER, "BMINDS_OUTPUTS_FOLDER", wipe=True)
     check_output_folders(MAIN_MRTRIX_FOLDER, "MAIN_MRTRIX_FOLDER", wipe=True)
 
     # Unzip all input files
-    check_unzipping(BMINDS_ZIPPED_DWI_FOLDER, BMINDS_UNZIPPED_DWI_FOLDER)
+    check_unzipping(BMINDS_DWI_FOLDER, BMINDS_UNZIPPED_DWI_FOLDER)
 
     # --------------- Glob the DWI, bval, bvec and tract-tracing data --------------- #
     BMINDS_UNZIPPED_DWI_FILES = glob_files(BMINDS_UNZIPPED_DWI_FOLDER, "nii")
-    BMINDS_BVAL_FILES = glob_files(BMINDS_ZIPPED_DWI_FOLDER, "bval")
-    BMINDS_BVEC_FILES = glob_files(BMINDS_ZIPPED_DWI_FOLDER, "bvec")
+    BMINDS_BVAL_FILES = glob_files(BMINDS_DWI_FOLDER, "bval")
+    BMINDS_BVEC_FILES = glob_files(BMINDS_DWI_FOLDER, "bvec")
     BMINDS_STREAMLINE_FILES = glob_files(BMINDS_METADATA_FOLDER, "tck")
     BMINDS_INJECTION_FILES = glob_files(BMINDS_INJECTIONS_FOLDER, "nii.gz")
     BMINDS_ATLAS_STPT_FILES = glob_files(BMINDS_ATLAS_STPT_FOLDER, "nii.gz") # Gets both the atlas and stpt files, need to separate
