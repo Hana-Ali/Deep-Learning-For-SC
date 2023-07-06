@@ -177,25 +177,28 @@ def main():
     # --------------- Get the correct atlas depending on parcellated fMRI --------------- #
     ATLAS_CHOSEN = get_atlas_choice(FILTERED_SUBJECT_LIST, ATLAS_FILES)
 
+    # There are 584 subjects after filtering
+    # print('Number of subjects: {}'.format(len(FILTERED_SUBJECT_LIST)))
+    
+    # --------------- Mapping subject inputs to the HPC job --------------- #
+    if hpc:
+        # Get the current subject based on the command-line argument
+        subject_idx = int(sys.argv[1])
+        # Get the index of the subject in the filtered list
+        subject = FILTERED_SUBJECT_LIST[subject_idx]
+        # Call the parallel process function on this subject
+        parallel_process(subject, ATLAS_CHOSEN, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH,
+                            DSI_COMMAND)
+    else:
+        # Get the mapping as a list for multiprocessing to work
+        mapping_inputs = list(zip(FILTERED_SUBJECT_LIST, [ATLAS_CHOSEN]*len(FILTERED_SUBJECT_LIST), 
+                                [MAIN_STUDIO_PATH]*len(FILTERED_SUBJECT_LIST), [MAIN_MRTRIX_PATH]*len(FILTERED_SUBJECT_LIST), 
+                                [MAIN_FSL_PATH]*len(FILTERED_SUBJECT_LIST), [DSI_COMMAND]*len(FILTERED_SUBJECT_LIST)))
 
-    print('Number of subjects: {}'.format(len(FILTERED_SUBJECT_LIST)))
-    # Use mapping inputs
+        # Use the mapping inputs with starmap to run the parallel processes
+        with mp.Pool() as pool:
+            pool.starmap(parallel_process, list(mapping_inputs))
 
-    # subject_ID = open(sys.argv[1], 'r')
-    # for subject in FILTERED_SUBJECT_LIST:
-    #     parallel_process(subject, ATLAS_CHOSEN, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH, 
-    #                     DSI_COMMAND)
-
-    # --------------- Defining inputs for mapping parallel --------------- #
-    # mapping_inputs = list(zip(FILTERED_SUBJECT_LIST, [ATLAS_CHOSEN]*len(FILTERED_SUBJECT_LIST), 
-    #                           [MAIN_STUDIO_PATH]*len(FILTERED_SUBJECT_LIST), [MAIN_MRTRIX_PATH]*len(FILTERED_SUBJECT_LIST), 
-    #                           [MAIN_FSL_PATH]*len(FILTERED_SUBJECT_LIST), [DSI_COMMAND]*len(FILTERED_SUBJECT_LIST)))
-
-
-    # Use the mapping inputs with starmap to run the parallel processes
-    # with mp.Pool() as pool:
-    #     print("mapping")
-    #     pool.starmap(parallel_process, list(mapping_inputs))
 
 if __name__ == '__main__':
     mp.freeze_support()

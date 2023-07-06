@@ -111,7 +111,7 @@ def get_main_paths(hpc):
         SUBJECTS_FOLDER = "" # Empty in the case of HPC
         TRACTOGRAPHY_OUTPUT_FOLDER = os.path.join(ALL_DATA_FOLDER, "output_data")
         NIPYPE_OUTPUT_FOLDER = os.path.join(ALL_DATA_FOLDER, "nipype_outputs")
-        FMRI_MAIN_FOLDER = os.path.join(ALL_DATA_FOLDER, "camcan_parcellated_acompcor/schaefer232/fmri700/rest")
+        FMRI_MAIN_FOLDER = os.path.join(ALL_DATA_FOLDER, "camcan_parcellated_acompcor/jubrain/fmri700/rest")
         ATLAS_FOLDER = os.path.join(ALL_DATA_FOLDER, "atlas")
 
         PEDRO_MAIN_FOLDER = "/rds/general/user/pam213/home/Data/CAMCAN/"
