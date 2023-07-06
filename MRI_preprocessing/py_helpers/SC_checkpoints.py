@@ -8,8 +8,6 @@ from .SC_paths import *
 # Function to check which files are missing, and where we should start the processing
 def check_all_mrtrix_missing_files(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, ATLAS):
     # --------------------- GENERAL VARIABLES NEEDED
-    # Get what we need to define the paths
-    dwi_filename = NEEDED_FILE_PATHS["filename"]
     # Get the main MRTRIX folder paths
     (SUBJECT_FOLDER_NAME, RECON_FOLDER_NAME, RESPONSE_FOLDER_NAME, FOD_FOLDER_NAME, FOD_NORM_FOLDER_NAME,
         T1_REG_FOLDER_NAME, ATLAS_REG_FOLDER_NAME, PROB_TRACKING_FOLDER_NAME, GLOBAL_TRACKING_FOLDER_NAME,
