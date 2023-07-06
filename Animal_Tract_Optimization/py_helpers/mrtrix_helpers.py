@@ -42,15 +42,17 @@ def main_mrtrix_folder_paths(REGION_ID):
             FOD_NORM_FOLDER_NAME, ATLAS_REG_FOLDER_NAME, PROB_TRACKING_FOLDER_NAME, CONNECTIVITY_FOLDER_NAME)
 
 # Define MRtrix general paths
-def get_mrtrix_general_paths(REGION_ID):
+def get_mrtrix_general_paths(REGION_ID, DWI_FILES):
     
     # Get the folder names
     (REGION_MRTRIX_PATH, GENERAL_FOLDER_NAME, RESPONSE_FOLDER_NAME, FOD_FOLDER_NAME, 
         FOD_NORM_FOLDER_NAME, ATLAS_REG_FOLDER_NAME, PROB_TRACKING_FOLDER_NAME, 
         CONNECTIVITY_FOLDER_NAME) = main_mrtrix_folder_paths(REGION_ID)
+    # Get the input MIF path
+    NEEDED_FILES = ["dwi_mif"]
+    INPUT_MIF_PATH = extract_from_input_list(DWI_FILES, NEEDED_FILES, "dwi")["dwi_mif"].replace(".mif", "")
 
     # DWI nii -> mif + mask filepaths
-    INPUT_MIF_PATH = os.path.join(GENERAL_FOLDER_NAME, "{}_mif".format(REGION_ID))
     MASK_MIF_PATH = os.path.join(GENERAL_FOLDER_NAME, "{}_mask_mif".format(REGION_ID))
     MASK_NII_PATH = os.path.join(GENERAL_FOLDER_NAME, "{}_mask_nii".format(REGION_ID))
 
@@ -144,23 +146,14 @@ def define_mrtrix_fod_commands(ARGS):
     REGION_ID = ARGS[0]
     DWI_FILES = ARGS[1]
     
-    # Define what's needed for MRTRIX FOD and extract them from subject files
-    DWI_NEEDED = ["dwi", "bval", "bvec"]
-    DWI_NEEDED_PATHS = extract_from_input_list(DWI_FILES, DWI_NEEDED, "dwi")
-
     # Get the rest of the paths for the commands
-    (INPUT_MIF_PATH, MASK_MIF_PATH, MASK_NII_PATH) = get_mrtrix_general_paths(REGION_ID)
+    (INPUT_MIF_PATH, MASK_MIF_PATH, MASK_NII_PATH) = get_mrtrix_general_paths(REGION_ID, DWI_FILES)
     # Get the fod paths
     (RESPONSE_WM_PATH, RESPONSE_GM_PATH, RESPONSE_CSF_PATH, RESPONSE_VOXEL_PATH,
         WM_FOD_PATH, GM_FOD_PATH, CSF_FOD_PATH, VF_FOD_PATH, WM_FOD_NORM_PATH, GM_FOD_NORM_PATH, 
             CSF_FOD_NORM_PATH) = get_mrtrix_fod_paths(REGION_ID)
 
 
-    # DWI nii -> mif command
-    MIF_CMD = "mrconvert {input_nii} -fslgrad {bvec} {bval} {output}.mif".format(input_nii=DWI_NEEDED_PATHS["dwi"], 
-                                                                                bvec=DWI_NEEDED_PATHS["bvec"], 
-                                                                                bval=DWI_NEEDED_PATHS["bval"], 
-                                                                                output=INPUT_MIF_PATH)
     # DWI brain mask and conversion mif -> nii command
     MASK_CMD = "dwi2mask {input}.mif {output}.mif".format(input=INPUT_MIF_PATH, output=MASK_MIF_PATH)
     MASK_NII_CMD = "mrconvert {input}.mif {output}.nii".format(input=MASK_MIF_PATH, output=MASK_NII_PATH)
@@ -187,7 +180,7 @@ def define_mrtrix_fod_commands(ARGS):
                                                                                       wmfod_norm=WM_FOD_NORM_PATH)
     
     # Return the commands
-    return (MIF_CMD, MASK_CMD, MASK_NII_CMD, RESPONSE_EST_CMD, VIEW_RESPONSE_CMD, MULTISHELL_CSD_CMD, COMBINE_FODS_CMD,
+    return (MASK_CMD, MASK_NII_CMD, RESPONSE_EST_CMD, VIEW_RESPONSE_CMD, MULTISHELL_CSD_CMD, COMBINE_FODS_CMD,
                 VIEW_COMBINED_FODS_CMD, NORMALIZE_FODS_CMD, VIEW_NORMALIZED_FODS_CMD)
 
 # Define MRtrix Registration commands
@@ -195,14 +188,15 @@ def define_mrtrix_registration_commands(ARGS):
 
     # Extract arguments needed to define paths
     REGION_ID = ARGS[0]
-    ATLAS_STPT = ARGS[1]
+    DWI_FILES = ARGS[1]
+    ATLAS_STPT = ARGS[2]
     
     # Define what's needed for MRTRIX FOD and extract them from subject files
     ATLAS_NEEDED = ["atlas"]
     ATLAS_NEEDED_PATH = extract_from_input_list(ATLAS_STPT, ATLAS_NEEDED, "atlas_stpt")
 
     # Get the rest of the paths for the commands
-    (INPUT_MIF_PATH, MASK_MIF_PATH, MASK_NII_PATH) = get_mrtrix_general_paths(REGION_ID)
+    (INPUT_MIF_PATH, MASK_MIF_PATH, MASK_NII_PATH) = get_mrtrix_general_paths(REGION_ID, DWI_FILES)
     # Get the registration paths
     (DWI_B0_PATH, DWI_B0_NII, ATLAS_DWI_MAP_MAT, ATLAS_DWI_CONVERT_INV, 
      ATLAS_REG_PATH, ATLAS_MIF_PATH) = get_mrtrix_registration_paths(REGION_ID, ATLAS_NEEDED_PATH)
@@ -233,13 +227,13 @@ def define_mrtrix_probtrack_commands(ARGS):
     ATLAS_STPT = ARGS[2]
 
     # Define what's needed for MRTRIX FOD and extract them from subject files
-    DWI_NEEDED = ["dwi", "bval", "bvec"]
+    DWI_NEEDED = ["dwi_nii", "bval", "bvec"]
     DWI_NEEDED_PATHS = extract_from_input_list(DWI_FILES, DWI_NEEDED, "dwi")
     ATLAS_NEEDED = ["atlas"]
     ATLAS_NEEDED_PATH = extract_from_input_list(ATLAS_STPT, ATLAS_NEEDED, "atlas_stpt")
 
     # Get the general paths
-    (INPUT_MIF_PATH, MASK_MIF_PATH, MASK_NII_PATH) = get_mrtrix_general_paths(REGION_ID)
+    (INPUT_MIF_PATH, MASK_MIF_PATH, MASK_NII_PATH) = get_mrtrix_general_paths(REGION_ID, DWI_FILES)
     # Get the fod paths
     (RESPONSE_WM_PATH, RESPONSE_GM_PATH, RESPONSE_CSF_PATH, RESPONSE_VOXEL_PATH,
         WM_FOD_PATH, GM_FOD_PATH, CSF_FOD_PATH, VF_FOD_PATH, WM_FOD_NORM_PATH, GM_FOD_NORM_PATH, 
@@ -296,11 +290,11 @@ def pre_tractography_commands(ARGS):
 
     # Define the FOD commands
     FOD_ARGS = [REGION_ID, DWI_FILES]
-    (MIF_CMD, MASK_CMD, MASK_NII_CMD, RESPONSE_EST_CMD, VIEW_RESPONSE_CMD, MULTISHELL_CSD_CMD, COMBINE_FODS_CMD,
+    (MASK_CMD, MASK_NII_CMD, RESPONSE_EST_CMD, VIEW_RESPONSE_CMD, MULTISHELL_CSD_CMD, COMBINE_FODS_CMD,
         VIEW_COMBINED_FODS_CMD, NORMALIZE_FODS_CMD, VIEW_NORMALIZED_FODS_CMD) = define_mrtrix_fod_commands(FOD_ARGS)
     
     # Define the registration commands
-    REG_ARGS = [REGION_ID, ATLAS_STPT]
+    REG_ARGS = [REGION_ID, DWI_FILES, ATLAS_STPT]
     (DWI_B0_CMD, DWI_B0_NII_CMD, REGISTER_ATLAS_DWI_CMD, TRANSFORMATION_ATLAS_DWI_CMD,
         ATLAS_MIF_CMD, FINAL_ATLAS_TRANSFORM_CMD) = define_mrtrix_registration_commands(REG_ARGS)
 
@@ -313,7 +307,7 @@ def pre_tractography_commands(ARGS):
     (CONNECTIVITY_PROB_CMD) = define_mrtrix_connectome_commands(CONNECTOME_ARGS)
 
     # Create commands array
-    MRTRIX_COMMANDS = [(MIF_CMD, "Convert DWI nii -> mif"), (MASK_CMD, "Create DWI brain mask"),
+    MRTRIX_COMMANDS = [(MASK_CMD, "Create DWI brain mask"),
                         (MASK_NII_CMD, "Convert DWI brain mask mif -> nii"), 
                         (RESPONSE_EST_CMD, "Estimate response function of WM, GM, CSF from DWI"),
                         (MULTISHELL_CSD_CMD, "Spherical deconvolution to estimate fODs"),

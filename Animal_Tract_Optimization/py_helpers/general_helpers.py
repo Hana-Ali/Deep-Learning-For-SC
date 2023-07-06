@@ -358,20 +358,18 @@ def create_data_list(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_F
 
     # Join the two lists based on common subject name
     for dwi_list in CONCATENATED_DWI_LIST:
-        print("DWI_LIST: {}".format(dwi_list))
         # Get the region, or common element ID
         if os.name == "nt":
             region_ID = dwi_list[0].split("\\")[-3]
         else:
             region_ID = dwi_list[0].split("/")[-3]
-            print("region_ID: {}".format(region_ID))
         # Based on this name, get every streamline and injection that has the same region ID
         streamline_files = [[streamline_file[1], streamline_file[2]] for streamline_file in STREAMLINE_LIST if streamline_file[0] == region_ID]
         injection_files = [[injection_file[1], injection_file[2]] for injection_file in INJECTION_LIST if injection_file[0] == region_ID]
         # Add the atlas and stpt files
         atlas_stpt = [BMINDS_ATLAS_FILE[0], BMINDS_STPT_FILE[0]]
         # Extract the dwi, bval and bvec files
-        dwi_data = [dwi_list[0], dwi_list[1], dwi_list[2]]
+        dwi_data = [dwi_list[0], dwi_list[1], dwi_list[2], dwi_list[3]]
 
         # Check that streamline and injection files are not empty
         if not streamline_files:
@@ -419,13 +417,13 @@ def join_dwi_diff_bvals_bvecs(DWI_LIST):
         # Create string for what mifs to concatenate
         mif_files_string = " ".join(MIF_PATHS)
         # Get the concatenated path
-        CONCAT_PATH = concatenate_mif(MIF_PATHS, mif_files_string)
+        CONCAT_MIF_PATH = concatenate_mif(MIF_PATHS, mif_files_string)
 
         # Convert back to nii
-        (CONCAT_NII_PATH, CONCAT_BVALS_PATH, CONCAT_BVECS_PATH) = convert_to_nii(CONCAT_PATH)
+        (CONCAT_NII_PATH, CONCAT_BVALS_PATH, CONCAT_BVECS_PATH) = convert_to_nii(CONCAT_MIF_PATH)
 
         # Add the concatenated path to the list
-        ALL_CONCAT_PATHS.append([CONCAT_NII_PATH, CONCAT_BVALS_PATH, CONCAT_BVECS_PATH])
+        ALL_CONCAT_PATHS.append([CONCAT_NII_PATH, CONCAT_MIF_PATH, CONCAT_BVALS_PATH, CONCAT_BVECS_PATH])
 
     # Return all the concatenated paths
     return ALL_CONCAT_PATHS
@@ -515,14 +513,17 @@ def extract_from_input_list(GENERAL_FILES, ITEMS_NEEDED, list_type):
     # Extract things differently, depending on the list type being passed
     if list_type == "dwi":
         # Define indices
-        DWI_PATH = 0
-        BVAL_PATH = 1
-        BVEC_PATH = 2
+        DWI_PATH_NII = 0
+        DWI_PATH_MIF = 1
+        BVAL_PATH = 2
+        BVEC_PATH = 3
 
         # For every item in items, get the item
         for item in ITEMS_NEEDED:
-            if item == "dwi":
-                items_to_get["dwi"] = GENERAL_FILES[DWI_PATH]
+            if item == "dwi_nii":
+                items_to_get["dwi_nii"] = GENERAL_FILES[DWI_PATH_NII]
+            elif item == "dwi_mif":
+                items_to_get["dwi_mif"] = GENERAL_FILES[DWI_PATH_MIF]
             elif item == "bval":
                 items_to_get["bval"] = GENERAL_FILES[BVAL_PATH]
             elif item == "bvec":
