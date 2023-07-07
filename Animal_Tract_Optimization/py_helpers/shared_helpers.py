@@ -1,0 +1,312 @@
+import os
+import sys
+from .general_helpers import *
+import subprocess
+
+# Function to extract the DWI filename
+def extract_region_ID(file):
+    # Extract the filename
+    if os.name == "nt":
+        region_name = file.split("\\")[-3]
+    else:
+        region_name = file.split("/")[-3]
+    # Return the filename
+    return region_name
+
+
+# Function to extract the BVAL filename
+def extract_correct_bval(dwi_file, BMINDS_BVAL_FILES):
+
+    # Extract the correct number for the bval
+    if os.name == "nt":
+        bval_name = dwi_file.split("\\")[-1]
+    else:
+        bval_name = dwi_file.split("/")[-1].split(".")[0]
+    
+    # For all the bvals extracted
+    for bval_file in BMINDS_BVAL_FILES:
+        # If the bval file has the same name as the bval name (i.e. the number 1000, 3000, etc.)
+        if bval_name in bval_file:
+            # Return the bval filepath
+            return bval_file
+    
+    # If we don't find the bval file, exit the program
+    print("No bval file found for {}".format(dwi_file))
+    sys.exit('Exiting program')
+
+# Function to extract the BVEC filename
+def extract_correct_bvec(dwi_file, BMINDS_BVEC_FILES):
+    # Extract the correct number for the bval
+    if os.name == "nt":
+        bvec_name = dwi_file.split("\\")[-1]
+    else:
+        bvec_name = dwi_file.split("/")[-1].split(".")[0]
+    
+    # For all the bvecs extracted
+    for bvec_file in BMINDS_BVEC_FILES:
+        # If the bvec file has the same name as the bvec name (i.e. the number 1000, 3000, etc.)
+        if bvec_name in bvec_file:
+            # Return the bvec filepath
+            return bvec_file
+    
+    # If we don't find the bvec file, exit the program
+    print("No bvec file found for {}".format(dwi_file))
+    sys.exit('Exiting program')
+
+# Function to determine what type of streamline file it is (dwi, tract-tracing, etc)
+def get_streamline_type(file):
+    # Extract the filename
+    if os.name == "nt":
+        streamline_name = file.split("\\")[-1].split(".")[0]
+    else:
+        streamline_name = file.split("/")[-1].split(".")[0]
+    
+    # Return different things, depending on the name
+    if 'sharp' in streamline_name:
+        return 'tracer_tracts_sharp'
+    elif 'tracer' in streamline_name:
+        return 'tracer_tracts'
+    elif 'track' in streamline_name:
+        return 'dwi_tracts'
+    # If none of the above, return unknown error
+    else:
+        print("Unknown streamline file type for {}. Name is {}".format(file, streamline_name))
+        sys.exit('Exiting program')
+
+# Function to determine what type of injection file it is (density, etc)
+def get_injection_type(file):
+    # Extract the filename
+    if os.name == "nt":
+        injection_name = file.split("\\")[-1].split(".")[0]
+    else:
+        injection_name = file.split("/")[-1].split(".")[0]
+    
+    # Return different things, depending on the name
+    if 'cell_density' in injection_name:
+        return 'cell_density'
+    elif 'positive_voxels' in injection_name:
+        return 'tracer_positive_voxels'
+    elif 'signal_normalized' in injection_name:
+        return 'tracer_signal_normalized'
+    elif 'signal' in injection_name:
+        return 'tracer_signal'
+    elif 'density' in injection_name:
+        return 'streamline_density'
+    # If none of the above, return unknown error
+    else:
+        print("Unknown injection file type for {}. Name is {}".format(file, injection_name))
+        sys.exit('Exiting program')
+
+# Join different bval and bvec files for the same region
+def join_dwi_diff_bvals_bvecs(DWI_LIST):
+    # This stores which regions we've already done this for
+    SEEN_REGIONS = []
+    # This stores all the concat paths
+    ALL_CONCAT_PATHS = []
+    
+    # For each DWI file
+    for dwi in DWI_LIST:
+
+        # Get the region, or common element ID
+        region_ID = dwi[0]
+
+        # If we've already done this region, skip it
+        if region_ID in SEEN_REGIONS:
+            continue
+
+        # Add the region to the seen regions
+        SEEN_REGIONS.append(region_ID)
+
+        # This stores the MIF paths - resets with every new region
+        MIF_PATHS = []
+
+        # Create list of all DWIs, BVALs and BVECs for this same region
+        same_region_list = [dwi[1:] for dwi in DWI_LIST if dwi[0] == region_ID]
+
+        # Convert all to mif using the BVALs and BVECs
+        for region_item in same_region_list:
+            # Get the mif path
+            MIF_PATHS.append(convert_to_mif(region_item))
+
+        # Create string for what mifs to concatenate
+        mif_files_string = " ".join(MIF_PATHS)
+        # Get the concatenated path
+        CONCAT_MIF_PATH = concatenate_mif(MIF_PATHS, mif_files_string)
+
+        # Convert back to nii
+        (CONCAT_NII_PATH, CONCAT_BVALS_PATH, CONCAT_BVECS_PATH) = convert_to_nii(CONCAT_MIF_PATH)
+
+        # Add the concatenated path to the list
+        ALL_CONCAT_PATHS.append([CONCAT_NII_PATH, CONCAT_MIF_PATH, CONCAT_BVALS_PATH, CONCAT_BVECS_PATH])
+
+    # Return all the concatenated paths
+    return ALL_CONCAT_PATHS
+
+# Conversion to MIF
+def convert_to_mif(region_item):
+    # Create the MIF path
+    if os.name == "nt":
+        mif_name = region_item[0].split("\\")[-1].split(".")[0] + "_mif.mif"
+        MIF_PATH = os.path.join("\\".join(region_item[0].split("\\")[:-1]), mif_name)
+    else:
+        mif_name = region_item[0].split("/")[-1].split(".")[0] + "_mif.mif"
+        MIF_PATH = os.path.join("/".join(region_item[0].split("/")[:-1]), mif_name)
+    
+    # Check if the MIF path already exists
+    if os.path.exists(MIF_PATH):
+        print("MIF path {} already exists. Continuing...".format(MIF_PATH))
+        return MIF_PATH
+    
+    # If it doesn't exist, convert to mif
+    MIF_CMD = "mrconvert {input_nii} -fslgrad {bvec} {bval} {output}".format(input_nii=region_item[0], 
+                                                                        bval=region_item[1], 
+                                                                        bvec=region_item[2], 
+                                                                        output=MIF_PATH)
+    print("Running command: {}".format(MIF_CMD))
+    subprocess.run(MIF_CMD, shell=True)
+
+    # Return the mif path
+    return MIF_PATH
+
+# Concatenate MIF
+def concatenate_mif(MIF_PATHS, mif_files_string):
+    # Define the output concatentated path
+    if os.name == "nt":
+        CONCAT_FOLDER = os.path.join("\\".join(MIF_PATHS[0].split("\\")[:-2]), "Concatenated_Data")
+        check_output_folders(CONCAT_FOLDER, "CONCAT_FOLDER", wipe=False)
+        CONCAT_PATH = os.path.join(CONCAT_FOLDER, "DWI_concatenated.mif")
+    else:
+        CONCAT_FOLDER = os.path.join("/".join(MIF_PATHS[0].split("/")[:-2]), "Concatenated_Data")
+        check_output_folders(CONCAT_FOLDER, "CONCAT_FOLDER", wipe=False)
+        CONCAT_PATH = os.path.join(CONCAT_FOLDER, "DWI_concatenated.mif")
+    
+    # Check if the concatenated path already exists
+    if os.path.exists(CONCAT_PATH):
+        print("Concatenated path {} already exists. Continuing...".format(CONCAT_PATH))
+        return CONCAT_PATH
+    
+    # Concatenate mifs command
+    CONCAT_CMD = "mrcat {inputs} {output}".format(inputs=mif_files_string, output=CONCAT_PATH)
+    print("Running command: {}".format(CONCAT_CMD))
+    subprocess.run(CONCAT_CMD, shell=True)
+
+    # Return the concatenated path
+    return CONCAT_PATH
+
+# Function to convert to nii from MIF
+def convert_to_nii(MIF_PATH):
+    # Define the output nii, bvals and bvecs path
+    NII_PATH = MIF_PATH.replace(".mif", ".nii")
+    BVALS_PATH = MIF_PATH.replace(".mif", ".bvals")
+    BVECS_PATH = MIF_PATH.replace(".mif", ".bvecs")
+
+    # Check if it already exists - if it does, return it
+    if os.path.exists(NII_PATH):
+        print("NII path {} already exists. Continuing...".format(NII_PATH))
+        return (NII_PATH, BVALS_PATH, BVECS_PATH)
+
+    # Define the conversion command
+    CONVERT_BACK_CMD = "mrconvert {input_mif} {output_nii} -export_grad_fsl {bvecs_path} {bvals_path}".format(
+                        input_mif=MIF_PATH, output_nii=NII_PATH, bvecs_path=BVECS_PATH, bvals_path=BVALS_PATH)
+    print("Running command: {}".format(CONVERT_BACK_CMD))    
+    subprocess.run(CONVERT_BACK_CMD, shell=True)
+
+    # Return the nii path
+    return (NII_PATH, BVALS_PATH, BVECS_PATH)
+
+# Function to get the selected items from a list
+def extract_from_input_list(GENERAL_FILES, ITEMS_NEEDED, list_type):
+    
+    # Create dictionary that defines what to get
+    items_to_get = {}
+
+    # Check whether we're passing in a list or a string
+    if isinstance(ITEMS_NEEDED, str):
+        ITEMS_NEEDED = [ITEMS_NEEDED]
+
+    # Extract things differently, depending on the list type being passed
+    if list_type == "dwi":
+        # Define indices
+        DWI_PATH_NII = 0
+        DWI_PATH_MIF = 1
+        BVAL_PATH = 2
+        BVEC_PATH = 3
+
+        # For every item in items, get the item
+        for item in ITEMS_NEEDED:
+            if item == "dwi_nii":
+                items_to_get["dwi_nii"] = GENERAL_FILES[DWI_PATH_NII]
+            elif item == "dwi_mif":
+                items_to_get["dwi_mif"] = GENERAL_FILES[DWI_PATH_MIF]
+            elif item == "bval":
+                items_to_get["bval"] = GENERAL_FILES[BVAL_PATH]
+            elif item == "bvec":
+                items_to_get["bvec"] = GENERAL_FILES[BVEC_PATH]
+            else:
+                print("Item {} of DWI not found".format(item))
+                sys.exit('Exiting program')
+    
+    # Slightly different with streamlines - here we have a list of lists, and
+    # we're not necessarily sure in what order it appends the files
+    elif list_type == "streamline":
+        # Define indices
+        STREAMLINE_TYPE = 0
+        STREAMLINE_PATH = 1
+
+        # For every item in items, get the item
+        for item in ITEMS_NEEDED:
+            # Find the streamline file that has the type we want
+            if item == "tracer_tracts_sharp":
+                items_to_get["tracer_tracts_sharp"] = [streamline_list[STREAMLINE_PATH] for streamline_list in GENERAL_FILES if streamline_list[STREAMLINE_TYPE] == "tracer_tracts_sharp"]
+            elif item == "dwi_tracts":
+                items_to_get["dwi_tracts"] = [streamline_list[STREAMLINE_PATH] for streamline_list in GENERAL_FILES if streamline_list[STREAMLINE_TYPE] == "dwi_tracts"]
+            elif item == "tracer_tracts":
+                items_to_get["tracer_tracts"] = [streamline_list[STREAMLINE_PATH] for streamline_list in GENERAL_FILES if streamline_list[STREAMLINE_TYPE] == "tracer_tracts"]
+            else:
+                print("Item {} of streamlines not found".format(item))
+                sys.exit('Exiting program')
+    
+    # The same as above is done for injections
+    elif list_type == "injection":
+        # Define indices
+        INJECTION_TYPE = 0
+        INJECTION_PATH = 1
+
+        # For every item in items, get the item
+        for item in ITEMS_NEEDED:
+            # Find the injection file that has the type we want
+            if item == "tracer_signal_normalized":
+                items_to_get["tracer_signal_normalized"] = [injection_list[INJECTION_PATH] for injection_list in GENERAL_FILES if injection_list[INJECTION_TYPE] == "tracer_signal_normalized"]
+            elif item == "tracer_positive_voxels":
+                items_to_get["tracer_positive_voxels"] = [injection_list[INJECTION_PATH] for injection_list in GENERAL_FILES if injection_list[INJECTION_TYPE] == "tracer_positive_voxels"]
+            elif item == "cell_density":
+                items_to_get["cell_density"] = [injection_list[INJECTION_PATH] for injection_list in GENERAL_FILES if injection_list[INJECTION_TYPE] == "cell_density"]
+            elif item == "streamline_density":
+                items_to_get["streamline_density"] = [injection_list[INJECTION_PATH] for injection_list in GENERAL_FILES if injection_list[INJECTION_TYPE] == "streamline_density"]
+            elif item == "tracer_signal":
+                items_to_get["tracer_signal"] = [injection_list[INJECTION_PATH] for injection_list in GENERAL_FILES if injection_list[INJECTION_TYPE] == "tracer_signal"]
+            else:
+                print("Item {} of injections not found".format(item))
+                sys.exit('Exiting program')
+    
+    # For atlas and STPT, it's just the index
+    elif list_type == "atlas_stpt":
+        ATLAS_PATH = 0
+        STPT_PATH = 1
+
+        # For every item in items, get the item
+        for item in ITEMS_NEEDED:
+            if item == "atlas":
+                items_to_get["atlas"] = GENERAL_FILES[ATLAS_PATH]
+            elif item == "stpt":
+                items_to_get["stpt"] = GENERAL_FILES[STPT_PATH]
+            else:
+                print("Item {} of atlas and STPT not found".format(item))
+                sys.exit('Exiting program')
+    
+    # If not any of the above, exit the program
+    else:
+        print("List type {} not found".format(list_type))
+        sys.exit('Exiting program')
+            
+    return items_to_get

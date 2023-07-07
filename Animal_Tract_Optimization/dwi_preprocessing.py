@@ -4,7 +4,9 @@ import sys
 import numpy as np
 import nibabel as nib
 from py_helpers.general_helpers import *
-from py_helpers.SC_commands import *
+from py_helpers.shared_helpers import *
+from dwi_helpers.dwi_commands import *
+from dwi_helpers.dwi_general import *
 import multiprocessing as mp
 import subprocess
 
@@ -38,15 +40,15 @@ def parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, AT
         print("Started {} - {}".format(cmd_name, REGION_ID))
         subprocess.run(mrtrix_cmd, shell=True, check=True)
 
-
 # Main function
 def main():
 
     # --------------- Get main folder paths, check inputs/outputs, unzip necessary --------------- #
     # Get the folder paths
     hpc = False
-    (BMINDS_DATA_FOLDER, BMINDS_OUTPUTS_FOLDER, BMINDS_ATLAS_STPT_FOLDER, BMINDS_CORE_FOLDER, BMINDS_DWI_FOLDER,
-        BMINDS_METADATA_FOLDER, BMINDS_INJECTIONS_FOLDER, BMINDS_UNZIPPED_DWI_FOLDER, MAIN_MRTRIX_FOLDER) = get_main_paths(hpc)
+    (BMINDS_DATA_FOLDER, BMINDS_OUTPUTS_DMRI_FOLDER, BMINDS_OUTPUTS_INJECTIONS_FOLDER, BMINDS_ATLAS_STPT_FOLDER, 
+            BMINDS_CORE_FOLDER, BMINDS_DWI_FOLDER, BMINDS_METADATA_FOLDER, BMINDS_INJECTIONS_FOLDER, BMINDS_UNZIPPED_DWI_FOLDER, 
+                MAIN_MRTRIX_FOLDER_DMRI, MAIN_MRTRIX_FOLDER_INJECTIONS) = get_main_paths(hpc)
     
     # Check the input folders
     check_input_folders(BMINDS_DATA_FOLDER, "BMINDS_DATA_FOLDER")
@@ -57,9 +59,9 @@ def main():
     check_input_folders(BMINDS_INJECTIONS_FOLDER, "BMINDS_INJECTIONS_FOLDER")
 
     # Check the output folders
-    check_output_folders(BMINDS_OUTPUTS_FOLDER, "BMINDS_OUTPUTS_FOLDER", wipe=False)
+    check_output_folders(BMINDS_OUTPUTS_DMRI_FOLDER, "BMINDS_OUTPUTS_FOLDER", wipe=False)
     check_output_folders(BMINDS_UNZIPPED_DWI_FOLDER, "BMINDS_UNZIPPED_DWI_FOLDER", wipe=False)
-    check_output_folders(MAIN_MRTRIX_FOLDER, "MAIN_MRTRIX_FOLDER", wipe=True)
+    check_output_folders(MAIN_MRTRIX_FOLDER_DMRI, "MAIN_MRTRIX_FOLDER", wipe=True)
 
     # Unzip all input files
     check_unzipping(BMINDS_DWI_FOLDER, BMINDS_UNZIPPED_DWI_FOLDER)
@@ -87,22 +89,24 @@ def main():
     ALL_DATA_LIST = create_data_list(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_FILES, 
                                      BMINDS_STREAMLINE_FILES, BMINDS_INJECTION_FILES, BMINDS_ATLAS_FILE, 
                                      BMINDS_STPT_FILE)
+    
+    print("MAIN_MRTRIX_FOLDER_DMRI: {}".format(MAIN_MRTRIX_FOLDER_DMRI))
          
     # --------------- Preprocessing the data to get the right file formats --------------- #
-    if hpc:
-        # Get the current region based on the command-line
-        region_idx = int(sys.argv[1])
-        # Get the data of the indexed region in the list
-        (REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT) = ALL_DATA_LIST[region_idx]
-        # Call the parallel process function on this region
-        parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT)
-    else:
-        # Call the parallel process function on all regions - serially
-        for region_idx in range(len(ALL_DATA_LIST)):
-            # Get the region data
-            (REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT) = ALL_DATA_LIST[region_idx]
-            # Call the parallel process function on this region
-            parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT)
+    # if hpc:
+    #     # Get the current region based on the command-line
+    #     region_idx = int(sys.argv[1])
+    #     # Get the data of the indexed region in the list
+    #     (REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT) = ALL_DATA_LIST[region_idx]
+    #     # Call the parallel process function on this region
+    #     parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT)
+    # else:
+    #     # Call the parallel process function on all regions - serially
+    #     for region_idx in range(len(ALL_DATA_LIST)):
+    #         # Get the region data
+    #         (REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT) = ALL_DATA_LIST[region_idx]
+    #         # Call the parallel process function on this region
+    #         parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT)
 
 
 if __name__ == '__main__':

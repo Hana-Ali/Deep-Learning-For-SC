@@ -1,4 +1,7 @@
+import sys
+sys.path.append("..")
 from py_helpers.general_helpers import *
+from py_helpers.shared_helpers import *
 
 # ----------------------------------------------------- PATH DEFINITIONS ----------------------------------------------------- #
 
@@ -6,11 +9,12 @@ from py_helpers.general_helpers import *
 def main_mrtrix_folder_paths(REGION_ID):
     
     # Get the general paths
-    (BMINDS_DATA_FOLDER, BMINDS_OUTPUTS_FOLDER, BMINDS_ATLAS_STPT_FOLDER, BMINDS_CORE_FOLDER, BMINDS_DWI_FOLDER,
-        BMINDS_METADATA_FOLDER, BMINDS_INJECTIONS_FOLDER, BMINDS_UNZIPPED_DWI_FOLDER, MAIN_MRTRIX_FOLDER) = get_main_paths(hpc=False)
+    (BMINDS_DATA_FOLDER, BMINDS_OUTPUTS_DMRI_FOLDER, BMINDS_OUTPUTS_INJECTIONS_FOLDER, BMINDS_ATLAS_STPT_FOLDER, 
+            BMINDS_CORE_FOLDER, BMINDS_DWI_FOLDER, BMINDS_METADATA_FOLDER, BMINDS_INJECTIONS_FOLDER, BMINDS_UNZIPPED_DWI_FOLDER, 
+                MAIN_MRTRIX_FOLDER_DMRI, MAIN_MRTRIX_FOLDER_INJECTIONS) = get_main_paths(hpc=False)
 
     # Create the region's main folder - don't wipe as it'll be invoked more than once
-    REGION_MRTRIX_PATH = os.path.join(MAIN_MRTRIX_FOLDER, REGION_ID)
+    REGION_MRTRIX_PATH = os.path.join(MAIN_MRTRIX_FOLDER_DMRI, REGION_ID)
     check_output_folders(REGION_MRTRIX_PATH, "REGION MRTRIX PATH", wipe=False)
     
     # Because there's a lot of commands, we define extra folder paths here. DON'T WIPE as it'll be used by other functions

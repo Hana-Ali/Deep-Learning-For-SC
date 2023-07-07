@@ -1,7 +1,9 @@
-from .general_helpers import *
-from .SC_paths import *
-from .SC_checkpoints import *
-import os
+from .dwi_paths import *
+from .dwi_checkpoints import *
+
+import sys
+sys.path.append("..") # Adds higher directory to python modules path.
+from py_helpers.general_helpers import *
 
 # ----------------------------------------------------- COMMAND DEFINITIONS ----------------------------------------------------- #
 
@@ -234,16 +236,3 @@ def pre_tractography_commands(ARGS):
     
     # Return the commands array
     return MRTRIX_COMMANDS
-
-# Define command to make the injection matrix
-def def_injection_matrix_command(ARGS):
-    # Extract arguments needed to define paths
-    REGION_ID = ARGS[0]
-    DWI_FILES = ARGS[1]
-    STREAMLINE_FILES = ARGS[2]
-    INJECTION_FILES = ARGS[3]
-    ATLAS_STPT = ARGS[2]
-
-
-    # Get the probabilistic tractography results path
-    (GMWM_SEED_PATH, TRACT_TCK_PATH) = get_mrtrix_probtrack_paths(REGION_ID)
