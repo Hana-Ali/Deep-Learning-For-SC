@@ -304,9 +304,67 @@ def extract_from_input_list(GENERAL_FILES, ITEMS_NEEDED, list_type):
                 print("Item {} of atlas and STPT not found".format(item))
                 sys.exit('Exiting program')
     
+    # For transforms, it's also just the index
+    elif list_type == "transforms":
+        # For every item in items, get the item
+        for item in ITEMS_NEEDED:
+            if item == "mbca_transform":
+                items_to_get["mbca_transform"] = GENERAL_FILES[0]
+            else:
+                print("Item {} of transforms not found".format(item))
+                sys.exit('Exiting program')
+    
     # If not any of the above, exit the program
     else:
         print("List type {} not found".format(list_type))
         sys.exit('Exiting program')
             
     return items_to_get
+
+# Create initial lists for the above function
+def create_initial_lists(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_FILES, BMINDS_STREAMLINE_FILES,
+                            BMINDS_INJECTION_FILES):
+    DWI_LIST = []
+    STREAMLINE_LIST = []
+    INJECTION_LIST = []
+
+    # For each DWI file
+    for dwi_file in BMINDS_UNZIPPED_DWI_FILES:
+
+        # Check that it's not a concat file - skip if it is
+        if "concat" in dwi_file:
+            continue
+
+        # Get the region ID
+        region_ID = extract_region_ID(dwi_file)
+
+        # Get the bval and bvec files
+        bval_path = extract_correct_bval(dwi_file, BMINDS_BVAL_FILES)
+        bvec_path = extract_correct_bvec(dwi_file, BMINDS_BVEC_FILES)
+
+        # Append to a DWI list
+        DWI_LIST.append([region_ID, dwi_file, bval_path, bvec_path])
+
+    # For each streamline file
+    for streamline_file in BMINDS_STREAMLINE_FILES:
+        # Get the region ID
+        region_ID = extract_region_ID(streamline_file)
+        # Get the type of streamline file it is
+        streamline_type = get_streamline_type(streamline_file)
+        # Append all the data to the dictionary
+        STREAMLINE_LIST.append([region_ID, streamline_type, streamline_file])
+
+    # For each injection file
+    for injection_file in BMINDS_INJECTION_FILES:
+        # Ignore the ones with small in the filename
+        if "small" in injection_file:
+            continue
+        # Get the region ID
+        region_ID = extract_region_ID(injection_file)
+        # Get the type of injection file it is
+        injection_type = get_injection_type(injection_file)
+        # Append all the data to the dictionary
+        INJECTION_LIST.append([region_ID, injection_type, injection_file])
+
+    # Return the lists
+    return (DWI_LIST, STREAMLINE_LIST, INJECTION_LIST)

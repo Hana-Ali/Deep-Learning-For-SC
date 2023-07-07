@@ -49,7 +49,8 @@ def check_missing_general(REGION_ID, DWI_FILES, GENERAL_FOLDER_NAME):
     MRTRIX_GENERAL_MIF_FILES = glob_files(GENERAL_FOLDER_NAME, "mif")
     MRTRIX_GENERAL_NII_FILES = glob_files(GENERAL_FOLDER_NAME, "nii")
     # Check that we have all the files we need
-    if MASK_MIF_PATH in MRTRIX_GENERAL_MIF_FILES and MASK_NII_PATH in MRTRIX_GENERAL_NII_FILES:
+    if (any(MASK_MIF_PATH in mif_file for mif_file in MRTRIX_GENERAL_MIF_FILES) and
+            any(MASK_NII_PATH in nii_file for nii_file in MRTRIX_GENERAL_NII_FILES)):
         print("--- MRtrix general files found. Skipping MRtrix general processing.")
         MRTRIX_GENERAL = False
     
@@ -72,7 +73,9 @@ def check_missing_mrtrix_fod(REGION_ID, FOD_NORM_FOLDER_NAME):
     # Grab all the mif files
     MRTRIX_FOD_MIF_FILES = glob_files(FOD_NORM_FOLDER_NAME, "mif")
     # Check that we have all the files we need
-    if WM_FOD_NORM_PATH in MRTRIX_FOD_MIF_FILES and GM_FOD_NORM_PATH in MRTRIX_FOD_MIF_FILES and CSF_FOD_NORM_PATH in MRTRIX_FOD_MIF_FILES:
+    if (any(WM_FOD_NORM_PATH in wm_fod_file for wm_fod_file in MRTRIX_FOD_MIF_FILES) and 
+        any(GM_FOD_NORM_PATH in gm_fod_file for gm_fod_file in MRTRIX_FOD_MIF_FILES) and
+        any(CSF_FOD_NORM_PATH in csf_fod_file for csf_fod_file in MRTRIX_FOD_MIF_FILES)):
         print("--- MRtrix FOD files found. Skipping MRtrix FOD processing.")
         MRTRIX_FOD = False
 
@@ -94,7 +97,7 @@ def check_missing_mrtrix_registration(REGION_ID, ATLAS, ATLAS_REG_FOLDER_NAME):
     # Grab all the mif files in the T1 and atlas registration folders
     MRTRIX_ATLAS_REG_MIF_FILES = glob_files(ATLAS_REG_FOLDER_NAME, "mif")
     # Check that we have all the files we need
-    if ATLAS_REG_PATH in MRTRIX_ATLAS_REG_MIF_FILES:
+    if (any(ATLAS_REG_PATH in reg_mif_file for reg_mif_file in MRTRIX_ATLAS_REG_MIF_FILES)):
         print("--- MRtrix registration files found. Skipping MRtrix registration processing.")
         MRTRIX_REGISTRATION = False
     
@@ -115,7 +118,7 @@ def check_missing_mrtrix_probtrack(REGION_ID, PROB_TRACKING_FOLDER_NAME):
     # Grab all the tck files
     MRTRIX_PROBTRACK_TCK_FILES = glob_files(PROB_TRACKING_FOLDER_NAME, "tck")
     # Check that we have all the files we need
-    if TRACT_TCK_PATH in MRTRIX_PROBTRACK_TCK_FILES:
+    if (any(TRACT_TCK_PATH in tck_file for tck_file in MRTRIX_PROBTRACK_TCK_FILES)):
         print("--- MRtrix probabilistic tracking files found. Skipping MRtrix probabilistic tracking processing.")
         MRTRIX_PROBTRACK = False
 
@@ -136,7 +139,7 @@ def check_missing_mrtrix_connectome(REGION_ID, CONNECTIVITY_FOLDER_NAME):
     # Grab all the csv files
     MRTRIX_CONNECTOME_CSV_FILES = glob_files(CONNECTIVITY_FOLDER_NAME, "csv")
     # Check that we have all the files we need
-    if CONNECTIVITY_PROB_PATH in MRTRIX_CONNECTOME_CSV_FILES:
+    if (any(CONNECTIVITY_PROB_PATH in csv_file for csv_file in MRTRIX_CONNECTOME_CSV_FILES)):
         print("--- MRtrix connectome files found. Skipping MRtrix connectome processing.")
         MRTRIX_CONNECTOME = False
 

@@ -81,7 +81,7 @@ def define_mrtrix_registration_commands(ARGS):
     (INPUT_MIF_PATH, MASK_MIF_PATH, MASK_NII_PATH) = get_mrtrix_general_paths(REGION_ID, DWI_FILES)
     # Get the registration paths
     (DWI_B0_PATH, DWI_B0_NII, ATLAS_DWI_MAP_MAT, ATLAS_DWI_CONVERT_INV, 
-     ATLAS_REG_PATH, ATLAS_MIF_PATH) = get_mrtrix_registration_paths(REGION_ID, ATLAS_NEEDED_PATH)
+     ATLAS_REG_PATH, ATLAS_MIF_PATH) = get_mrtrix_registration_paths(REGION_ID, ATLAS_NEEDED_PATH["atlas"])
 
     # Extracting mean B0 and transforming to NII command
     DWI_B0_CMD = "dwiextract {input}.mif - -bzero | mrmath - mean {output}.mif -axis 3".format(
@@ -89,10 +89,10 @@ def define_mrtrix_registration_commands(ARGS):
     DWI_B0_NII_CMD = "mrconvert {input}.mif {output}".format(input=DWI_B0_PATH, output=DWI_B0_NII)
     # Transformation and registration of atlas to DWI space (to be used for connectome generation)
     REGISTER_ATLAS_DWI_CMD = "flirt -in {dwi} -ref {atlas} -interp nearestneighbour -dof 6 -omat {transform_mat}.mat".format(
-        dwi=DWI_B0_NII, atlas=ATLAS_NEEDED_PATH, transform_mat=ATLAS_DWI_MAP_MAT)
+        dwi=DWI_B0_NII, atlas=ATLAS_NEEDED_PATH["atlas"], transform_mat=ATLAS_DWI_MAP_MAT)
     TRANSFORMATION_ATLAS_DWI_CMD = "transformconvert {transform_mat}.mat {dwi} {atlas} flirt_import {output}.txt".format(
-        transform_mat=ATLAS_DWI_MAP_MAT, dwi=DWI_B0_NII, atlas=ATLAS_NEEDED_PATH, output=ATLAS_DWI_CONVERT_INV)
-    ATLAS_MIF_CMD = "mrconvert {atlas} {output}.mif".format(atlas=ATLAS_NEEDED_PATH, output=ATLAS_MIF_PATH)
+        transform_mat=ATLAS_DWI_MAP_MAT, dwi=DWI_B0_NII, atlas=ATLAS_NEEDED_PATH["atlas"], output=ATLAS_DWI_CONVERT_INV)
+    ATLAS_MIF_CMD = "mrconvert {atlas} {output}.mif".format(atlas=ATLAS_NEEDED_PATH["atlas"], output=ATLAS_MIF_PATH)
     FINAL_ATLAS_TRANSFORM_CMD = "mrtransform {atlas}.mif -linear {transform}.txt -inverse {output}.mif".format(
         atlas=ATLAS_MIF_PATH, transform=ATLAS_DWI_CONVERT_INV, output=ATLAS_REG_PATH)
     
@@ -122,7 +122,7 @@ def define_mrtrix_probtrack_commands(ARGS):
             CSF_FOD_NORM_PATH) = get_mrtrix_fod_paths(REGION_ID)
     # Get the registration paths
     (DWI_B0_PATH, DWI_B0_NII, ATLAS_DWI_MAP_MAT, ATLAS_DWI_CONVERT_INV, 
-     ATLAS_REG_PATH, ATLAS_MIF_PATH) = get_mrtrix_registration_paths(REGION_ID, ATLAS_NEEDED_PATH)
+     ATLAS_REG_PATH, ATLAS_MIF_PATH) = get_mrtrix_registration_paths(REGION_ID, ATLAS_NEEDED_PATH["atlas"])
     # Get the probabilistic tracking paths
     (GM_WM_SEED_PATH, TRACT_TCK_PATH) = get_mrtrix_probtrack_paths(REGION_ID)
     
@@ -150,7 +150,7 @@ def define_mrtrix_connectome_commands(ARGS):
 
     # Get the registration paths
     (DWI_B0_PATH, DWI_B0_NII, ATLAS_DWI_MAP_MAT, ATLAS_DWI_CONVERT_INV, 
-     ATLAS_REG_PATH, ATLAS_MIF_PATH) = get_mrtrix_registration_paths(REGION_ID, ATLAS_NEEDED_PATH)
+     ATLAS_REG_PATH, ATLAS_MIF_PATH) = get_mrtrix_registration_paths(REGION_ID, ATLAS_NEEDED_PATH["atlas"])
     # Get the probabilistic tracking paths
     (GM_WM_SEED_PATH, TRACT_TCK_PATH) = get_mrtrix_probtrack_paths(REGION_ID)
     # Get the connectivity paths

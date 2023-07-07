@@ -122,48 +122,11 @@ def check_unzipping(BMINDS_DWI_FOLDER, BMINDS_UNZIPPED_DWI_FOLDER):
 def create_data_list(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_FILES, BMINDS_STREAMLINE_FILES, 
                      BMINDS_INJECTION_FILES, BMINDS_ATLAS_FILE, BMINDS_STPT_FILE):
     DATA_LISTS = []
-    DWI_LIST = []
-    STREAMLINE_LIST = []
-    INJECTION_LIST = []
-
-    # For each DWI file
-    for dwi_file in BMINDS_UNZIPPED_DWI_FILES:
-
-        # Check that it's not a concat file - skip if it is
-        if "concat" in dwi_file:
-            continue
-
-        # Get the region ID
-        region_ID = extract_region_ID(dwi_file)
-
-        # Get the bval and bvec files
-        bval_path = extract_correct_bval(dwi_file, BMINDS_BVAL_FILES)
-        bvec_path = extract_correct_bvec(dwi_file, BMINDS_BVEC_FILES)
-
-        # Append to a DWI list
-        DWI_LIST.append([region_ID, dwi_file, bval_path, bvec_path])
-
-    # For each streamline file
-    for streamline_file in BMINDS_STREAMLINE_FILES:
-        # Get the region ID
-        region_ID = extract_region_ID(streamline_file)
-        # Get the type of streamline file it is
-        streamline_type = get_streamline_type(streamline_file)
-        # Append all the data to the dictionary
-        STREAMLINE_LIST.append([region_ID, streamline_type, streamline_file])
-
-    # For each injection file
-    for injection_file in BMINDS_INJECTION_FILES:
-        # Ignore the ones with small in the filename
-        if "small" in injection_file:
-            continue
-        # Get the region ID
-        region_ID = extract_region_ID(injection_file)
-        # Get the type of injection file it is
-        injection_type = get_injection_type(injection_file)
-        # Append all the data to the dictionary
-        INJECTION_LIST.append([region_ID, injection_type, injection_file])
-        
+    # Get the initial lists
+    (DWI_LIST, STREAMLINE_LIST, INJECTION_LIST) = create_initial_lists(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES,
+                                                                        BMINDS_BVEC_FILES, BMINDS_STREAMLINE_FILES,
+                                                                        BMINDS_INJECTION_FILES)
+    
     # Join all DWIs with the same region name but different bvals and bvecs using mrtrix
     CONCATENATED_DWI_LIST = join_dwi_diff_bvals_bvecs(DWI_LIST)   
 

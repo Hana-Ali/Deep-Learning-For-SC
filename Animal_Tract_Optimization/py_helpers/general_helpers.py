@@ -9,11 +9,14 @@ def get_main_paths(hpc):
     if hpc == True:
         BMINDS_DATA_FOLDER = "/rds/general/user/hsa22/home/Brain_MINDS"
         BMINDS_OUTPUTS_DMRI_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "processed_dMRI"))
-        BMINDS_OUTPUTS_INJECTIONS_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "processed_tracer"))
-        BMINDS_ATLAS_STPT_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "BMCR_STPT_template"))
+        BMINDS_OUTPUTS_INJECTIONS_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "processed_tracer"))        
         BMINDS_CORE_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "BMCR_core_data"))
         BMINDS_DWI_FOLDER = os.path.realpath(os.path.join(BMINDS_CORE_FOLDER, "dMRI_raw"))
         BMINDS_METADATA_FOLDER = os.path.realpath(os.path.join(BMINDS_CORE_FOLDER, "meta_data"))
+        BMINDS_TEMPLATES_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "BMCR_STPT_template"))
+        BMINDS_ATLAS_FOLDER = os.path.realpath(os.path.join(BMINDS_TEMPLATES_FOLDER, "Atlases"))
+        BMINDS_STPT_TEMPLATE_FOLDER = os.path.realpath(os.path.join(BMINDS_TEMPLATES_FOLDER, "STPT_population_average"))
+        BMINDS_TRANSFORMS_FOLDER = os.path.realpath(os.path.join(BMINDS_TEMPLATES_FOLDER, "ANTS_transforms"))
         BMINDS_INJECTIONS_FOLDER = os.path.realpath(os.path.join(BMINDS_CORE_FOLDER, "processed_tracer_data"))
         BMINDS_UNZIPPED_DWI_FOLDER = os.path.realpath(os.path.join(BMINDS_OUTPUTS_DMRI_FOLDER, "dMRI_unzipped"))
 
@@ -37,10 +40,13 @@ def get_main_paths(hpc):
             BMINDS_DATA_FOLDER = os.path.realpath(os.path.join(os.getcwd(), "..", "Animal_Data", "Brain-MINDS"))
             BMINDS_OUTPUTS_DMRI_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "processed_dMRI"))
             BMINDS_OUTPUTS_INJECTIONS_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "processed_tracer"))
-            BMINDS_ATLAS_STPT_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "BMCR_STPT_template"))
             BMINDS_CORE_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "BMCR_core_data"))
             BMINDS_DWI_FOLDER = os.path.realpath(os.path.join(BMINDS_CORE_FOLDER, "dMRI_raw"))
             BMINDS_METADATA_FOLDER = os.path.realpath(os.path.join(BMINDS_CORE_FOLDER, "meta_data"))
+            BMINDS_TEMPLATES_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "BMCR_STPT_template"))
+            BMINDS_ATLAS_FOLDER = os.path.realpath(os.path.join(BMINDS_TEMPLATES_FOLDER, "Atlases"))
+            BMINDS_STPT_TEMPLATE_FOLDER = os.path.realpath(os.path.join(BMINDS_TEMPLATES_FOLDER, "STPT_population_average"))
+            BMINDS_TRANSFORMS_FOLDER = os.path.realpath(os.path.join(BMINDS_TEMPLATES_FOLDER, "ANTS_transforms"))
             BMINDS_INJECTIONS_FOLDER = os.path.realpath(os.path.join(BMINDS_CORE_FOLDER, "processed_tracer_data"))
             BMINDS_UNZIPPED_DWI_FOLDER = os.path.realpath(os.path.join(BMINDS_OUTPUTS_DMRI_FOLDER, "dMRI_unzipped"))
 
@@ -49,9 +55,10 @@ def get_main_paths(hpc):
     MAIN_MRTRIX_FOLDER_INJECTIONS = os.path.join(BMINDS_OUTPUTS_INJECTIONS_FOLDER, "MRTRIX")
 
     # Return folder names
-    return (BMINDS_DATA_FOLDER, BMINDS_OUTPUTS_DMRI_FOLDER, BMINDS_OUTPUTS_INJECTIONS_FOLDER, BMINDS_ATLAS_STPT_FOLDER, 
-            BMINDS_CORE_FOLDER, BMINDS_DWI_FOLDER, BMINDS_METADATA_FOLDER, BMINDS_INJECTIONS_FOLDER, BMINDS_UNZIPPED_DWI_FOLDER, 
-            MAIN_MRTRIX_FOLDER_DMRI, MAIN_MRTRIX_FOLDER_INJECTIONS)
+    return (BMINDS_DATA_FOLDER, BMINDS_OUTPUTS_DMRI_FOLDER, BMINDS_OUTPUTS_INJECTIONS_FOLDER, BMINDS_CORE_FOLDER,
+            BMINDS_DWI_FOLDER, BMINDS_METADATA_FOLDER, BMINDS_TEMPLATES_FOLDER, BMINDS_ATLAS_FOLDER, BMINDS_STPT_TEMPLATE_FOLDER, 
+            BMINDS_TRANSFORMS_FOLDER, BMINDS_INJECTIONS_FOLDER, BMINDS_UNZIPPED_DWI_FOLDER, MAIN_MRTRIX_FOLDER_DMRI, 
+            MAIN_MRTRIX_FOLDER_INJECTIONS)
        
 
 # Check that output folders with subfolders are in suitable shape
