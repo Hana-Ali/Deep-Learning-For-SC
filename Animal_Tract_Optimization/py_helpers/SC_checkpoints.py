@@ -9,7 +9,8 @@ from .SC_paths import *
 def check_all_mrtrix_missing_files(ARGS):
     # Get the arguments
     REGION_ID = ARGS[0]
-    ATLAS_STPT = ARGS[1]
+    DWI_FILES = ARGS[1]
+    ATLAS_STPT = ARGS[2]
 
     # Extract the needed files
     ATLAS_NEEDED = ["atlas"]
@@ -19,7 +20,9 @@ def check_all_mrtrix_missing_files(ARGS):
     # Get the main MRTRIX folder paths
     (REGION_MRTRIX_PATH, GENERAL_FOLDER_NAME, RESPONSE_FOLDER_NAME, FOD_FOLDER_NAME, 
         FOD_NORM_FOLDER_NAME, ATLAS_REG_FOLDER_NAME, PROB_TRACKING_FOLDER_NAME, CONNECTIVITY_FOLDER_NAME) = main_mrtrix_folder_paths(REGION_ID)
-        
+    # --------------------- MRTRIX GENERAL CHECK
+    MRTRIX_GENERAL = check_missing_general(REGION_ID, DWI_FILES, GENERAL_FOLDER_NAME)
+
     # --------------------- MRTRIX FOD CHECK
     MRTRIX_FOD = check_missing_mrtrix_fod(REGION_ID, FOD_NORM_FOLDER_NAME)
     
@@ -33,8 +36,30 @@ def check_all_mrtrix_missing_files(ARGS):
     MRTRIX_CONNECTOME = check_missing_mrtrix_connectome(REGION_ID, CONNECTIVITY_FOLDER_NAME)
 
     # Return the variables
-    return (MRTRIX_FOD, MRTRIX_REGISTRATION, MRTRIX_PROBTRACK, MRTRIX_CONNECTOME)
+    return (MRTRIX_GENERAL, MRTRIX_FOD, MRTRIX_REGISTRATION, MRTRIX_PROBTRACK, MRTRIX_CONNECTOME)
     
+# Function to check missing mrtrix general processing
+def check_missing_general(REGION_ID, DWI_FILES, GENERAL_FOLDER_NAME):
+    # Define variable that stores whether or not we should do MRtrix general processing
+    MRTRIX_GENERAL = True
+    # Get the MRtrix general paths
+    (INPUT_MIF_PATH, MASK_MIF_PATH, MASK_NII_PATH) = get_mrtrix_general_paths(REGION_ID, DWI_FILES)
+    # Grab all the mif and nii files
+    MRTRIX_GENERAL_MIF_FILES = glob_files(GENERAL_FOLDER_NAME, "mif")
+    MRTRIX_GENERAL_NII_FILES = glob_files(GENERAL_FOLDER_NAME, "nii")
+    # Check that we have all the files we need
+    if MASK_MIF_PATH in MRTRIX_GENERAL_MIF_FILES and MASK_NII_PATH in MRTRIX_GENERAL_NII_FILES:
+        print("--- MRtrix general files found. Skipping MRtrix general processing.")
+        MRTRIX_GENERAL = False
+    
+    # If we don't have all the files we need, then we clean the folder and start from scratch
+    if MRTRIX_GENERAL:
+        print("--- MRtrix general files not found. Cleaning MRtrix general folder.")
+        check_output_folders(GENERAL_FOLDER_NAME, "MRtrix general folder", wipe=True)
+
+    # Return the variable
+    return MRTRIX_GENERAL
+
 # Function to check missing MRtrix FOD processing
 def check_missing_mrtrix_fod(REGION_ID, FOD_NORM_FOLDER_NAME):
     # Define variable that stores whether or not we should do MRtrix FOD processing

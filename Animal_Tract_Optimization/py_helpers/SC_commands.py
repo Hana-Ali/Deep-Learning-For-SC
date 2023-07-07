@@ -5,6 +5,23 @@ import os
 
 # ----------------------------------------------------- COMMAND DEFINITIONS ----------------------------------------------------- #
 
+# Define MRTrix General (mask) commands
+def define_mrtrix_general_commands(ARGS):
+
+    # Extract arguments needed to define paths
+    REGION_ID = ARGS[0]
+    DWI_FILES = ARGS[1]
+    
+    # Get the rest of the paths for the commands
+    (INPUT_MIF_PATH, MASK_MIF_PATH, MASK_NII_PATH) = get_mrtrix_general_paths(REGION_ID, DWI_FILES)
+
+    # DWI brain mask and conversion mif -> nii command
+    MASK_CMD = "dwi2mask {input}.mif {output}.mif".format(input=INPUT_MIF_PATH, output=MASK_MIF_PATH)
+    MASK_NII_CMD = "mrconvert {input}.mif {output}.nii".format(input=MASK_MIF_PATH, output=MASK_NII_PATH)
+
+    # Return the commands
+    return (MASK_CMD, MASK_NII_CMD)
+
 # Define MRtrix FOD commands
 def define_mrtrix_fod_commands(ARGS):
 
@@ -20,9 +37,6 @@ def define_mrtrix_fod_commands(ARGS):
             CSF_FOD_NORM_PATH) = get_mrtrix_fod_paths(REGION_ID)
 
 
-    # DWI brain mask and conversion mif -> nii command
-    MASK_CMD = "dwi2mask {input}.mif {output}.mif".format(input=INPUT_MIF_PATH, output=MASK_MIF_PATH)
-    MASK_NII_CMD = "mrconvert {input}.mif {output}.nii".format(input=MASK_MIF_PATH, output=MASK_NII_PATH)
     # Response estimation of WM, GM, CSF from DWI command
     RESPONSE_EST_CMD = "dwi2response dhollander {input}.mif -mask {mask}.mif {wm}.txt {gm}.txt {csf}.txt -voxels {response_voxels}.mif".format(
         input=INPUT_MIF_PATH, mask=MASK_MIF_PATH, wm=RESPONSE_WM_PATH, gm=RESPONSE_GM_PATH, csf=RESPONSE_CSF_PATH, response_voxels=RESPONSE_VOXEL_PATH)
@@ -46,7 +60,7 @@ def define_mrtrix_fod_commands(ARGS):
                                                                                       wmfod_norm=WM_FOD_NORM_PATH)
     
     # Return the commands
-    return (MASK_CMD, MASK_NII_CMD, RESPONSE_EST_CMD, VIEW_RESPONSE_CMD, MULTISHELL_CSD_CMD, COMBINE_FODS_CMD,
+    return (RESPONSE_EST_CMD, VIEW_RESPONSE_CMD, MULTISHELL_CSD_CMD, COMBINE_FODS_CMD,
                 VIEW_COMBINED_FODS_CMD, NORMALIZE_FODS_CMD, VIEW_NORMALIZED_FODS_CMD)
 
 # Define MRtrix Registration commands
@@ -154,9 +168,13 @@ def pre_tractography_commands(ARGS):
     DWI_FILES = ARGS[1]
     ATLAS_STPT = ARGS[2]
 
+    # Define the general commands
+    GENERAL_ARGS = [REGION_ID, DWI_FILES]
+    (MASK_CMD, MASK_NII_CMD) = define_mrtrix_general_commands(GENERAL_ARGS)
+
     # Define the FOD commands
     FOD_ARGS = [REGION_ID, DWI_FILES]
-    (MASK_CMD, MASK_NII_CMD, RESPONSE_EST_CMD, VIEW_RESPONSE_CMD, MULTISHELL_CSD_CMD, COMBINE_FODS_CMD,
+    (RESPONSE_EST_CMD, VIEW_RESPONSE_CMD, MULTISHELL_CSD_CMD, COMBINE_FODS_CMD,
         VIEW_COMBINED_FODS_CMD, NORMALIZE_FODS_CMD, VIEW_NORMALIZED_FODS_CMD) = define_mrtrix_fod_commands(FOD_ARGS)
     
     # Define the registration commands
@@ -173,43 +191,46 @@ def pre_tractography_commands(ARGS):
     (CONNECTIVITY_PROB_CMD) = define_mrtrix_connectome_commands(CONNECTOME_ARGS)
 
     # Get the checkpoints for what has and hasn't been done yet
-    CHECKPOINT_ARGS = [REGION_ID, ATLAS_STPT]
-    (MRTRIX_FOD, MRTRIX_REGISTRATION, MRTRIX_PROBTRACK, MRTRIX_GLOBAL_TRACKING, 
+    CHECKPOINT_ARGS = [REGION_ID, DWI_FILES, ATLAS_STPT]
+    (MRTRIX_GENERAL, MRTRIX_FOD, MRTRIX_REGISTRATION, MRTRIX_PROBTRACK, 
         MRTRIX_CONNECTOME) = check_all_mrtrix_missing_files(CHECKPOINT_ARGS)
 
     # Print the checkpoints
+    print("--- MRtrix General: {}".format(MRTRIX_GENERAL))
     print("--- MRtrix FOD: {}".format(MRTRIX_FOD))
     print("--- MRtrix Registration: {}".format(MRTRIX_REGISTRATION))
     print("--- MRtrix Probtrack: {}".format(MRTRIX_PROBTRACK))
-    print("--- MRtrix Global Tracking: {}".format(MRTRIX_GLOBAL_TRACKING))
     print("--- MRtrix Connectome: {}".format(MRTRIX_CONNECTOME))
 
     # Define the commands array, depending on what's been done before
     MRTRIX_COMMANDS = []
-    if MRTRIX_FOD:
-        MRTRIX_COMMANDS.append(
+    if MRTRIX_GENERAL:
+        MRTRIX_COMMANDS.extend([
                                 (MASK_CMD, "Create DWI brain mask"),
                                 (MASK_NII_CMD, "Convert DWI brain mask mif -> nii"), 
+                            ])
+    if MRTRIX_FOD:
+        MRTRIX_COMMANDS.extend([
                                 (RESPONSE_EST_CMD, "Estimate response function of WM, GM, CSF from DWI"),
                                 (MULTISHELL_CSD_CMD, "Spherical deconvolution to estimate fODs"),
                                 (COMBINE_FODS_CMD, "Combining fODs into a VF"),
                                 (NORMALIZE_FODS_CMD, "Normalizing fODs"),
-                            )
+                            ])
     if MRTRIX_REGISTRATION:
-        MRTRIX_COMMANDS.append(
+        MRTRIX_COMMANDS.extend([
                                 (DWI_B0_CMD, "Extracting mean B0 and transforming to NII"), (DWI_B0_NII_CMD, "DWI B0 mif -> NII"),
                                 (REGISTER_ATLAS_DWI_CMD, "Begin registering atlas to DWI space"),
                                 (TRANSFORMATION_ATLAS_DWI_CMD, "Initial transformation of atlas to DWI space"),
                                 (ATLAS_MIF_CMD, "Convert atlas nii -> mif"), (FINAL_ATLAS_TRANSFORM_CMD, "Final transformation of atlas to DWI space"),
-                        )
+                        ])
     if MRTRIX_PROBTRACK:
-        MRTRIX_COMMANDS.append(
+        MRTRIX_COMMANDS.extend([
                                 (PROB_TRACT_CMD, "Probabilistic tractography"),
-                            )
+                            ])
     if MRTRIX_CONNECTOME:
-        MRTRIX_COMMANDS.append(
+        MRTRIX_COMMANDS.extend([
                                 (CONNECTIVITY_PROB_CMD, "Creating connectivity matrix - probabilistic"),
-                            )
+                            ])
     
     # Return the commands array
     return MRTRIX_COMMANDS
