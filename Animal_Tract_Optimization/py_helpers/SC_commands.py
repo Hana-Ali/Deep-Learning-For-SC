@@ -177,6 +177,13 @@ def pre_tractography_commands(ARGS):
     (MRTRIX_FOD, MRTRIX_REGISTRATION, MRTRIX_PROBTRACK, MRTRIX_GLOBAL_TRACKING, 
         MRTRIX_CONNECTOME) = check_all_mrtrix_missing_files(CHECKPOINT_ARGS)
 
+    # Print the checkpoints
+    print("--- MRtrix FOD: {}".format(MRTRIX_FOD))
+    print("--- MRtrix Registration: {}".format(MRTRIX_REGISTRATION))
+    print("--- MRtrix Probtrack: {}".format(MRTRIX_PROBTRACK))
+    print("--- MRtrix Global Tracking: {}".format(MRTRIX_GLOBAL_TRACKING))
+    print("--- MRtrix Connectome: {}".format(MRTRIX_CONNECTOME))
+
     # Define the commands array, depending on what's been done before
     MRTRIX_COMMANDS = []
     if MRTRIX_FOD:
