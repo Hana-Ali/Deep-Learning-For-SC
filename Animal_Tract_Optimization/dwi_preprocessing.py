@@ -1,14 +1,11 @@
 # Right now we just want to read the data using nibabel
-import os
 import sys
-import numpy as np
-import nibabel as nib
 from py_helpers.general_helpers import *
 from py_helpers.shared_helpers import *
 from dwi_helpers.dwi_commands import *
 from dwi_helpers.dwi_general import *
-import multiprocessing as mp
 import subprocess
+import argparse
 
 def parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT):
 
@@ -38,14 +35,19 @@ def parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, AT
     # Pre-tractography commands
     for (mrtrix_cmd, cmd_name) in MRTRIX_COMMANDS:
         print("Started {} - {}".format(cmd_name, REGION_ID))
-        subprocess.run(mrtrix_cmd, shell=True, check=True)
+        subprocess.run(mrtrix_cmd, shell=True, check=True) 
 
 # Main function
 def main():
 
     # --------------- Get main folder paths, check inputs/outputs, unzip necessary --------------- #
+    # Get whether it's HPC or not
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--hpc', help='Whether or not this is being run on the HPC',
+                        action='store_true')
+    args = parser.parse_args()
+    hpc = args.hpc
     # Get the folder paths
-    hpc = False
     (BMINDS_DATA_FOLDER, BMINDS_OUTPUTS_DMRI_FOLDER, BMINDS_OUTPUTS_INJECTIONS_FOLDER, BMINDS_ATLAS_STPT_FOLDER, 
             BMINDS_CORE_FOLDER, BMINDS_DWI_FOLDER, BMINDS_METADATA_FOLDER, BMINDS_INJECTIONS_FOLDER, BMINDS_UNZIPPED_DWI_FOLDER, 
                 MAIN_MRTRIX_FOLDER_DMRI, MAIN_MRTRIX_FOLDER_INJECTIONS) = get_main_paths(hpc)
@@ -61,7 +63,7 @@ def main():
     # Check the output folders
     check_output_folders(BMINDS_OUTPUTS_DMRI_FOLDER, "BMINDS_OUTPUTS_FOLDER", wipe=False)
     check_output_folders(BMINDS_UNZIPPED_DWI_FOLDER, "BMINDS_UNZIPPED_DWI_FOLDER", wipe=False)
-    check_output_folders(MAIN_MRTRIX_FOLDER_DMRI, "MAIN_MRTRIX_FOLDER", wipe=True)
+    check_output_folders(MAIN_MRTRIX_FOLDER_DMRI, "MAIN_MRTRIX_FOLDER", wipe=False)
 
     # Unzip all input files
     check_unzipping(BMINDS_DWI_FOLDER, BMINDS_UNZIPPED_DWI_FOLDER)
@@ -89,9 +91,7 @@ def main():
     ALL_DATA_LIST = create_data_list(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_FILES, 
                                      BMINDS_STREAMLINE_FILES, BMINDS_INJECTION_FILES, BMINDS_ATLAS_FILE, 
                                      BMINDS_STPT_FILE)
-    
-    print("MAIN_MRTRIX_FOLDER_DMRI: {}".format(MAIN_MRTRIX_FOLDER_DMRI))
-         
+    print("MRTRIX_MAIN_FOLDER: ", MAIN_MRTRIX_FOLDER_DMRI)
     # --------------- Preprocessing the data to get the right file formats --------------- #
     # if hpc:
     #     # Get the current region based on the command-line
