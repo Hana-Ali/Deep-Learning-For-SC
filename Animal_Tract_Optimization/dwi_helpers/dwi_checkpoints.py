@@ -1,4 +1,4 @@
-from .SC_paths import *
+from .dwi_paths import *
 
 import sys
 sys.path.append("..")
