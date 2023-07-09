@@ -98,7 +98,7 @@ def combine_all_injection_files(ARGS):
     (COMBINED_INJECTIONS_PATH, COMBINED_INJECTIONS_MIF_PATH) = get_combined_injections_path()
 
     # Combine all the injection files into one file
-    COMBINE_INJECTION_CMD = "mrcat {input} {output}.nii.gz".format(input=INJECTION_FILES_STRING, output=COMBINED_INJECTIONS_PATH)
+    COMBINE_INJECTION_CMD = "mrcalc {input} -or {output}.nii.gz".format(input=INJECTION_FILES_STRING, output=COMBINED_INJECTIONS_PATH)
     COMBINE_INJECTION_MIF_CMD = "mrconvert {input}.nii.gz {output}.mif".format(input=COMBINED_INJECTIONS_PATH, output=COMBINED_INJECTIONS_MIF_PATH)
 
     # Return the command
@@ -117,7 +117,7 @@ def combine_injection_atlas(ARGS):
     (COMBINED_INJECTION_ATLAS_MIF_PATH, COMBINED_INJECTION_ATLAS_NII_PATH) = get_combined_injection_atlas_path()
 
     # Combine the injection and atlas
-    COMBINE_INJECTION_ATLAS_CMD = "mrcat {inj}.mif {atlas}.mif {output}.mif".format(
+    COMBINE_INJECTION_ATLAS_CMD = "mrcalc {inj}.mif {atlas}.mif -or {output}.mif".format(
         inj=COMBINED_INJECTIONS_MIF_PATH, atlas=ATLAS_REG_MIF_PATH, output=COMBINED_INJECTION_ATLAS_MIF_PATH)
     # Convert to nifti
     CONVERT_INJECTION_ATLAS_CMD = "mrconvert {input}.mif {output}.nii.gz".format(
@@ -172,11 +172,11 @@ def mrtrix_all_general_functions(ARGS):
     (COMBINE_INJECTION_CMD, COMBINE_INJECTION_MIF_CMD) = combine_all_injection_files(INJECTION_COMBO_ARGS)
 
     # Define the injection and atlas combination command
-    # INJECTION_ATLAS_ARGS = [ATLAS_STPT]
-    # (COMBINE_INJECTION_ATLAS_CMD, CONVERT_INJECTION_ATLAS_CMD) = combine_injection_atlas(INJECTION_ATLAS_ARGS)
+    INJECTION_ATLAS_ARGS = [ATLAS_STPT]
+    (COMBINE_INJECTION_ATLAS_CMD, CONVERT_INJECTION_ATLAS_CMD) = combine_injection_atlas(INJECTION_ATLAS_ARGS)
 
-    # # Define the connectome creation command
-    # (CONNECTOME_CMD) = create_connectome_for_combined_injection_atlas()
+    # Define the connectome creation command
+    (CONNECTOME_CMD) = create_connectome_for_combined_injection_atlas()
 
     # Check if we need to do the above commands
     CHECK_MISSING_GENERAL_ARGS = [ATLAS_STPT]
@@ -199,15 +199,15 @@ def mrtrix_all_general_functions(ARGS):
             (COMBINE_INJECTION_CMD, "Combining all injection files"),
             (COMBINE_INJECTION_MIF_CMD, "Converting injection file to mif")
         ])
-    # if MRTRIX_INJECTION_ATLAS_COMBINATION:
-    #     MRTRIX_COMMANDS.extend([
-    #         (COMBINE_INJECTION_ATLAS_CMD, "Combining injection and atlas mifs"),
-    #         (CONVERT_INJECTION_ATLAS_CMD, "Converting injection and atlas mifs to mif")
-    #     ])
-    # if MRTRIX_CONNECTOME:
-    #     MRTRIX_COMMANDS.extend([
-    #         (CONNECTOME_CMD, "Creating connectome for injection <-> atlas combination")
-    #     ])
+    if MRTRIX_INJECTION_ATLAS_COMBINATION:
+        MRTRIX_COMMANDS.extend([
+            (COMBINE_INJECTION_ATLAS_CMD, "Combining injection and atlas mifs"),
+            (CONVERT_INJECTION_ATLAS_CMD, "Converting injection and atlas mifs to mif")
+        ])
+    if MRTRIX_CONNECTOME:
+        MRTRIX_COMMANDS.extend([
+            (CONNECTOME_CMD, "Creating connectome for injection <-> atlas combination")
+        ])
     # Return the commands
     return (MRTRIX_COMMANDS)
 
