@@ -106,7 +106,7 @@ def get_combined_injections_path():
         INDIVIDUAL_ROIS_MIF_FOLDER_NAME) = main_mrtrix_folder_paths()
 
     # Define the combined tracts path
-    COMBINED_INJECTIONS_PATH = os.path.join(COMBINED_INJECTIONS_FOLDER_NAME, "combined_injections")
+    COMBINED_INJECTIONS_PATH = os.path.join(COMBINED_INJECTIONS_FOLDER_NAME, "combined_injections.nii.gz")
     COMBINED_INJECTIONS_MIF_PATH = os.path.join(COMBINED_INJECTIONS_FOLDER_NAME, "combined_injections_mif")
 
     # Return the path

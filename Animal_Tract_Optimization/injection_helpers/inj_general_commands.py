@@ -91,18 +91,35 @@ def combine_all_injection_files(ARGS):
     # Extract arguments needed to define paths
     INJECTION_FILES = ARGS[0]
 
-    # Create a string of all the injection files
-    INJECTION_FILES_STRING = " ".join(INJECTION_FILES)
-
     # Get the combined injections path
     (COMBINED_INJECTIONS_PATH, COMBINED_INJECTIONS_MIF_PATH) = get_combined_injections_path()
 
-    # Combine all the injection files into one file
-    COMBINE_INJECTION_CMD = "mrcalc {input} -or {output}.nii.gz".format(input=INJECTION_FILES_STRING, output=COMBINED_INJECTIONS_PATH)
-    COMBINE_INJECTION_MIF_CMD = "mrconvert {input}.nii.gz {output}.mif".format(input=COMBINED_INJECTIONS_PATH, output=COMBINED_INJECTIONS_MIF_PATH)
+    # Define the initial string
+    INJECTION_FILES_STRING = " ".join(INJECTION_FILES[0:2])
+    print("INJECTION_FILES_STRING: {}".format(INJECTION_FILES_STRING))
+    print("INJECTION_FILES 0: {}".format(INJECTION_FILES[0]))
+
+    # This will hold the combination commands
+    COMBINE_INJECTION_CMD_LIST = []
+
+    # Combine all the injection files into one file - note that we need to go one by one
+    for injection_idx in range(2, len(INJECTION_FILES)):
+        print("injection_idx: {}".format(injection_idx))
+        # Write the command
+        COMBINE_INJECTION_CMD = "mrcalc {input_string} -or {output} -force".format(input_string=INJECTION_FILES_STRING, 
+                                                                               output=COMBINED_INJECTIONS_PATH)
+        # Update the string
+        INJECTION_FILES_STRING = " ".join([COMBINED_INJECTIONS_PATH, INJECTION_FILES[injection_idx]])
+        print("INJECTION_FILES_STRING: {}".format(INJECTION_FILES_STRING))
+        # Append to the commands list
+        COMBINE_INJECTION_CMD_LIST.append(COMBINE_INJECTION_CMD)
+        
+    # Convert the combined injection file to mif
+    COMBINE_INJECTION_MIF_CMD = "mrconvert {input} {output}.mif".format(input=COMBINED_INJECTIONS_PATH, 
+                                                                        output=COMBINED_INJECTIONS_MIF_PATH)
 
     # Return the command
-    return (COMBINE_INJECTION_CMD, COMBINE_INJECTION_MIF_CMD)
+    return (COMBINE_INJECTION_CMD_LIST, COMBINE_INJECTION_MIF_CMD)
 
 # Function to combine the injection and atlas
 def combine_injection_atlas(ARGS):
@@ -195,8 +212,11 @@ def mrtrix_all_general_functions(ARGS):
             (COMBINE_STREAMLINE_CMD, "Combining all streamline files")
         ])
     if MRTRIX_INJECTION_COMBINATION:
+        for (idx, cmd) in enumerate(COMBINE_INJECTION_CMD):
+            MRTRIX_COMMANDS.extend([
+                (cmd, "Combining injection file {} with previous combination".format(idx))
+            ])
         MRTRIX_COMMANDS.extend([
-            (COMBINE_INJECTION_CMD, "Combining all injection files"),
             (COMBINE_INJECTION_MIF_CMD, "Converting injection file to mif")
         ])
     if MRTRIX_INJECTION_ATLAS_COMBINATION:
@@ -221,4 +241,11 @@ def mrtrix_all_general_functions(ARGS):
 # 5. Create a function to find streamlines between these injection <-> ROI mif combinations --------------- DONE
 # 6. Create the connectome of this for each injection <-> ROI mif combination ----------------------------- DONE 
 # 7. Create a function to combine all the connectomes into one big connectome
+
+
+
+
+# DIDNT WORK DONT KNOW HOW TO MAKE MY OWN ATLAS INSTEAD JUST FIND THE TCKEDIT BETWEEN EACH INJECTION SITE AND EACH ROI
+# AND THEN USE TCKSTATS TO FIND THE NUMBER OF STREAMLINES BETWEEN EACH INJECTION SITE AND EACH ROI USING COUNT AND THAT
+# MAKES THE CONNECTOME
 
