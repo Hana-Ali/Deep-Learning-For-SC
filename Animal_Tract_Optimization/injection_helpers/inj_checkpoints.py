@@ -27,7 +27,7 @@ def check_missing_general_files(ARGS):
     MRTRIX_INJECTION_COMBINATION = check_missing_mrtrix_injection_combination(COMBINED_INJECTIONS_FOLDER_NAME)
 
     # --------------------- MRTRIX INJECTION AND ATLAS COMBINATION CHECK
-    MRTRIX_INJECTION_ATLAS_COMBINATION = check_missing_mrtrix_injection_atlas_combination(ATLAS_STPT, INJECTION_ROI_FOLDER_NAME)
+    MRTRIX_INJECTION_ATLAS_COMBINATION = check_missing_mrtrix_injection_atlas_combination(COMBINED_INJECTIONS_FOLDER_NAME)
 
     # --------------------- MRTRIX ATLAS ROI CHECK
     MRTRIX_ATLAS_ROIS = check_missing_atlas_rois(ATLAS_STPT, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME)
@@ -176,11 +176,13 @@ def check_missing_mrtrix_injection_combination(COMBINED_INJECTIONS_FOLDER_NAME):
     # Define variable that stores whether or not we should do MRtrix general processing
     MRTRIX_INJECTION_COMBINATION = True
     # Get the MRtrix injection combination paths
-    COMBINED_INJECTIONS_PATH = get_combined_injections_path()
-    # Grab all the nii.gz files
+    (COMBINED_INJECTIONS_PATH, COMBINED_INJECTIONS_MIF_PATH) = get_combined_injections_path()
+    # Grab all the nii.gz and mif files
     MRTRIX_INJECTION_COMBINATION_NII_FILES = glob_files(COMBINED_INJECTIONS_FOLDER_NAME, "nii.gz")
+    MRTRIX_INJECTION_COMBINATION_MIF_FILES = glob_files(COMBINED_INJECTIONS_FOLDER_NAME, "mif")
     # Check that we have all the files we need
-    if any(COMBINED_INJECTIONS_PATH in injection_file for injection_file in MRTRIX_INJECTION_COMBINATION_NII_FILES):
+    if (any(COMBINED_INJECTIONS_PATH in injection_file for injection_file in MRTRIX_INJECTION_COMBINATION_NII_FILES)
+        and any(COMBINED_INJECTIONS_MIF_PATH in injection_file for injection_file in MRTRIX_INJECTION_COMBINATION_MIF_FILES)):
         print("--- MRtrix injection combination files found. Skipping MRtrix injection combination.")
         MRTRIX_INJECTION_COMBINATION = False
 
@@ -198,11 +200,13 @@ def check_missing_mrtrix_injection_atlas_combination(COMBINED_INJECTIONS_FOLDER_
     # Define variable that stores whether or not we should do MRtrix general processing
     MRTRIX_INJECTION_ATLAS_COMBINATION = True
     # Get the MRtrix injection and atlas combination paths
-    (COMBINED_INJECTION_ATLAS_PATH) = get_combined_injection_atlas_path()
-    # Grab all the nii.gz files
-    MRTRIX_INJECTION_ATLAS_COMBINATION_NII_FILES = glob_files(COMBINED_INJECTIONS_FOLDER_NAME, "nii.gz")
+    (COMBINED_INJECTION_ATLAS_MIF_PATH, COMBINED_INJECTION_ATLAS_NII_PATH) = get_combined_injection_atlas_path()
+    # Grab all the nii.gz and mif files
+    COMBINED_INJECTION_ATLAS_NII_FILES = glob_files(COMBINED_INJECTIONS_FOLDER_NAME, "nii.gz")
+    COMBINED_INJECTION_ATLAS_MIF_FILES = glob_files(COMBINED_INJECTIONS_FOLDER_NAME, "mif")
     # Check that we have all the files we need
-    if any(COMBINED_INJECTION_ATLAS_PATH in injection_atlas_file for injection_atlas_file in MRTRIX_INJECTION_ATLAS_COMBINATION_NII_FILES):
+    if (any(COMBINED_INJECTION_ATLAS_NII_PATH in injection_atlas_file for injection_atlas_file in COMBINED_INJECTION_ATLAS_NII_FILES)
+        and any(COMBINED_INJECTION_ATLAS_MIF_PATH in injection_atlas_file for injection_atlas_file in COMBINED_INJECTION_ATLAS_MIF_FILES)):
         print("--- MRtrix injection and atlas combination files found. Skipping MRtrix injection and atlas combination.")
         MRTRIX_INJECTION_ATLAS_COMBINATION = False
 

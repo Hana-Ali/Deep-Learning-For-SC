@@ -161,8 +161,8 @@ def get_tracer_injections_from_all_data_list(ALL_DATA_LIST, injection_type_list)
     return items_to_get
 
 # Function to actually perform the atlas registration and streamline combination commands
-def perform_atlas_streamline_combo(ALL_DATA_LIST, BMINDS_MBCA_TRANSFORM_FILE, BMINDS_ATLAS_FILE, 
-                                    BMINDS_STPT_FILE, BMINDS_ATLAS_LABEL_FILE):
+def perform_all_general_mrtrix_functions(ALL_DATA_LIST, BMINDS_MBCA_TRANSFORM_FILE, BMINDS_ATLAS_FILE, 
+                                            BMINDS_STPT_FILE, BMINDS_ATLAS_LABEL_FILE):
     # Grab the streamlines as a list
     STREAMLINE_TYPES_TO_GRAB = ["tracer_tracts"]
     ALL_STREAMLINES_LIST = get_tracer_streamlines_from_all_data_list(ALL_DATA_LIST, STREAMLINE_TYPES_TO_GRAB)
@@ -182,20 +182,6 @@ def perform_atlas_streamline_combo(ALL_DATA_LIST, BMINDS_MBCA_TRANSFORM_FILE, BM
     # Run the commands
     for (cmd, cmd_name) in MRTRIX_GENERAL_CMDS:
         print("Started command: {}".format(cmd_name))
-        subprocess.run(cmd, shell=True, check=True)
-
-# Function to do the injection combination command
-def perform_injection_combo(ALL_DATA_LIST):
-    # Grab the injections as a list
-    INJECTION_TYPES_TO_GRAB = ["cell_density"]
-    ALL_INJECTIONS_LIST = get_tracer_injections_from_all_data_list(ALL_DATA_LIST, INJECTION_TYPES_TO_GRAB)
-    # Define the arguments to the function
-    INJECTION_ARGS = [ALL_INJECTIONS_LIST["cell_density"]]
-    # Get the commands
-    INJECTION_CMDS = mrtrix_injection_combination(INJECTION_ARGS)
-    # Run the commands
-    for (cmd, cmd_name) in INJECTION_CMDS:
-        print("Started {} - {}".format(cmd_name, "common"))
         subprocess.run(cmd, shell=True, check=True)
 
 # Function to extract the ROI name from the combination file

@@ -97,9 +97,10 @@ def get_combined_injections_path():
 
     # Define the combined tracts path
     COMBINED_INJECTIONS_PATH = os.path.join(COMBINED_INJECTIONS_FOLDER_NAME, "combined_injections")
+    COMBINED_INJECTIONS_MIF_PATH = os.path.join(COMBINED_INJECTIONS_FOLDER_NAME, "combined_injections_mif")
 
     # Return the path
-    return (COMBINED_INJECTIONS_PATH)
+    return (COMBINED_INJECTIONS_PATH, COMBINED_INJECTIONS_MIF_PATH)
 
 # Function to define the injection mif path
 def get_injection_mif_path(REGION_ID):
@@ -207,7 +208,8 @@ def get_combined_injection_atlas_path():
         INDIVIDUAL_ROIS_MIF_FOLDER_NAME, INJECTION_ROI_FOLDER_NAME, INJECTION_ROI_CONNECTOMES_FOLDER_NAME) = main_mrtrix_folder_paths()
 
     # Define the combined injection atlas path
-    COMBINED_INJECTION_ATLAS_PATH = os.path.join(COMBINED_INJECTIONS_FOLDER_NAME, "combined_injection_atlas")
+    COMBINED_INJECTION_ATLAS_MIF_PATH = os.path.join(COMBINED_INJECTIONS_FOLDER_NAME, "combined_injection_atlas_mif")
+    COMBINED_INJECTION_ATLAS_NII_PATH = os.path.join(COMBINED_INJECTIONS_FOLDER_NAME, "combined_injection_atlas_nii")
 
     # Return the path
-    return (COMBINED_INJECTION_ATLAS_PATH)
+    return (COMBINED_INJECTION_ATLAS_MIF_PATH, COMBINED_INJECTION_ATLAS_NII_PATH)

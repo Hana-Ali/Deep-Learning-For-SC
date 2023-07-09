@@ -25,9 +25,9 @@ def parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, AT
     # # --------------- Calling subprocesses commands --------------- #
    
     # Injection masks and atlas registration commands
-    for (mrtrix_cmd, cmd_name) in MRTRIX_COMMANDS:
-        print("Started {} - {}".format(cmd_name, REGION_ID))
-        subprocess.run(mrtrix_cmd, shell=True, check=True) 
+    # for (mrtrix_cmd, cmd_name) in MRTRIX_COMMANDS:
+    #     print("Started {} - {}".format(cmd_name, REGION_ID))
+    #     subprocess.run(mrtrix_cmd, shell=True, check=True) 
 
 # Main function
 def main():
@@ -93,8 +93,8 @@ def main():
                                      BMINDS_ATLAS_LABEL_FILE, BMINDS_STPT_FILE, BMINDS_MBCA_TRANSFORM_FILE)
     
     # --------------- Create the common atlas and combined tracts folders --------------- #
-    perform_atlas_streamline_combo(ALL_DATA_LIST, BMINDS_MBCA_TRANSFORM_FILE, BMINDS_ATLAS_FILE,
-                                    BMINDS_STPT_FILE, BMINDS_ATLAS_LABEL_FILE)
+    perform_all_general_mrtrix_functions(ALL_DATA_LIST, BMINDS_MBCA_TRANSFORM_FILE, BMINDS_ATLAS_FILE,
+                                            BMINDS_STPT_FILE, BMINDS_ATLAS_LABEL_FILE)
 
     # --------------- Preprocessing the data to get the right file formats --------------- #
     if hpc:
