@@ -4,7 +4,8 @@
 import sys
 from py_helpers.general_helpers import *
 from injection_helpers.inj_general import *
-from injection_helpers.inj_commands import *
+from injection_helpers.inj_general_commands import *
+from injection_helpers.inj_region_commands import *
 import argparse
 
 def parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT, TRANSFORMS):

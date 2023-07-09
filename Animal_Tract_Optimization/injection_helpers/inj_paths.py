@@ -199,6 +199,20 @@ def get_injection_roi_connectome_path(REGION_ID, ROI_ID):
     # Return the path
     return (INJECTION_ROI_CONNECTOME_PATH)
 
+# Function to define the combined injection atlas connectome path
+def get_combined_injection_atlas_connectome_path():
+
+    # Get the folder names and paths
+    (GENERAL_MRTRIX_FOLDER, SPECIFIC_MRTRIX_FOLDER, ATLAS_REG_FOLDER_NAME, COMBINED_TRACTS_FOLDER_NAME,
+        COMBINED_INJECTIONS_FOLDER_NAME, INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME,
+        INDIVIDUAL_ROIS_MIF_FOLDER_NAME, INJECTION_ROI_FOLDER_NAME, INJECTION_ROI_CONNECTOMES_FOLDER_NAME) = main_mrtrix_folder_paths()
+    
+    # Define the combibed connectome paths
+    COMBINED_INJECTION_ATLAS_CONNECTOME_PATH = os.path.join(COMBINED_INJECTIONS_FOLDER_NAME, "combined_injection_atlas_connectome")
+
+    # Return the path
+    return (COMBINED_INJECTION_ATLAS_CONNECTOME_PATH)
+
 # Function to define the combined injection atlas path (BIG)
 def get_combined_injection_atlas_path():
 

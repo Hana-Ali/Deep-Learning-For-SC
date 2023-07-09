@@ -4,7 +4,7 @@ import sys
 sys.path.append("..")
 from py_helpers.general_helpers import *
 from py_helpers.shared_helpers import *
-from .inj_commands import *
+from .inj_general_commands import *
 from numpy import random
 
 # Create a list that associates each subject with its T1 and DWI files

@@ -29,29 +29,12 @@ def check_missing_general_files(ARGS):
     # --------------------- MRTRIX INJECTION AND ATLAS COMBINATION CHECK
     MRTRIX_INJECTION_ATLAS_COMBINATION = check_missing_mrtrix_injection_atlas_combination(COMBINED_INJECTIONS_FOLDER_NAME)
 
-    # --------------------- MRTRIX ATLAS ROI CHECK
-    MRTRIX_ATLAS_ROIS = check_missing_atlas_rois(ATLAS_STPT, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME)
-
-    # --------------------- MRTRIX ATLAS MIF CONVERSION CHECK
-    MRTRIX_ATLAS_MIF_CONVERSION = check_missing_atlas_mif_conversion(ATLAS_STPT, INDIVIDUAL_ROIS_MIF_FOLDER_NAME)
+    # --------------------- MRTRIX CONNECTOME CHECK
+    MRTRIX_CONNECTOME = check_missing_connectome(COMBINED_INJECTIONS_FOLDER_NAME)
 
     # Return the variables
     return (MRTRIX_ATLAS_REGISTRATION, MRTRIX_STREAMLINE_COMBINATION, MRTRIX_INJECTION_COMBINATION, 
-            MRTRIX_INJECTION_ATLAS_COMBINATION, MRTRIX_ATLAS_ROIS, MRTRIX_ATLAS_MIF_CONVERSION)
-
-# Function to check which files are missing from the ENTIRE injection combination
-def check_missing_injection_all():
-
-    # Get the main paths
-    (GENERAL_MRTRIX_FOLDER, SPECIFIC_MRTRIX_FOLDER, ATLAS_REG_FOLDER_NAME, COMBINED_TRACTS_FOLDER_NAME, 
-        COMBINED_INJECTIONS_FOLDER_NAME, INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME, 
-        INDIVIDUAL_ROIS_MIF_FOLDER_NAME, INJECTION_ROI_FOLDER_NAME, INJECTION_ROI_CONNECTOMES_FOLDER_NAME) = main_mrtrix_folder_paths()
-
-    # --------------------- MRTRIX INJECTION COMBINATION CHECK
-    MRTRIX_INJECTION_COMBINATION = check_missing_mrtrix_injection_combination(COMBINED_INJECTIONS_FOLDER_NAME)
-
-    # Return the variables
-    return (MRTRIX_INJECTION_COMBINATION)
+            MRTRIX_INJECTION_ATLAS_COMBINATION, MRTRIX_CONNECTOME)
 
 # Function to check which files are missing from the injection mifs
 def check_missing_region_files(ARGS):
@@ -69,14 +52,20 @@ def check_missing_region_files(ARGS):
     # --------------------- MRTRIX INJECTION MIFS CHECK
     INJECTION_MIFS = check_missing_injection_mifs(REGION_ID, INJECTION_MIF_FOLDER)
 
+    # --------------------- MRTRIX ATLAS ROI CHECK
+    MRTRIX_ATLAS_ROIS = check_missing_atlas_rois(ATLAS_STPT, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME)
+
+    # --------------------- MRTRIX ATLAS MIF CONVERSION CHECK
+    MRTRIX_ATLAS_MIF_CONVERSION = check_missing_atlas_mif_conversion(ATLAS_STPT, INDIVIDUAL_ROIS_MIF_FOLDER_NAME)
+
     # --------------------- MRTRIX INJECTION <-> ROI COMBINATION CHECK
     INJECTION_ROI_COMBINATION = check_missing_injection_roi_combination(REGION_ID, ATLAS_STPT, INJECTION_ROI_FOLDER_NAME)
 
     # --------------------- MRTRIX CONNECTOMES CHECK
-    CONNECTOMES = check_missing_connectomes(REGION_ID, ATLAS_STPT, INJECTION_ROI_CONNECTOMES_FOLDER_NAME)
+    CONNECTOMES = check_missing_connectomes_region_roi(REGION_ID, ATLAS_STPT, INJECTION_ROI_CONNECTOMES_FOLDER_NAME)
 
     # Return the variables
-    return (INJECTION_MIFS, INJECTION_ROI_COMBINATION, CONNECTOMES)
+    return (INJECTION_MIFS, MRTRIX_ATLAS_ROIS, MRTRIX_ATLAS_MIF_CONVERSION, INJECTION_ROI_COMBINATION, CONNECTOMES)
 
 # Function to check missing mrtrix atlas registration
 def check_missing_atlas_registration_ants(ATLAS_REG_FOLDER_NAME):
@@ -268,7 +257,7 @@ def check_missing_injection_roi_combination(REGION_ID, ATLAS_STPT, INJECTION_ROI
     return (INJECTION_ROI_COMBINATION)
 
 # Function to check if the connectomes are missing
-def check_missing_connectomes(REGION_ID, ATLAS_STPT, INJECTION_ROI_CONNECTOMES_FOLDER_NAME):
+def check_missing_connectomes_region_roi(REGION_ID, ATLAS_STPT, INJECTION_ROI_CONNECTOMES_FOLDER_NAME):
     # Define variable that stores whether or not we should do MRtrix general processing
     CONNECTOMES = True
     # Get all the atlas ROI mif paths
@@ -294,5 +283,25 @@ def check_missing_connectomes(REGION_ID, ATLAS_STPT, INJECTION_ROI_CONNECTOMES_F
     # Return the variable
     return (CONNECTOMES)
 
+# Function to check for a missing connectome
+def check_missing_connectome(COMBINED_INJECTIONS_FOLDER_NAME):
 
+    # Define variable that stores whether or not we should do MRtrix general processing
+    MRTRIX_CONNECTOME = True
+    # Get the connectome paths
+    (COMBINED_INJECTION_ATLAS_CONNECTOME_PATH) = get_combined_injection_atlas_connectome_path()
+    # Grab all the connectome files
+    COMBINED_INJECTION_ATLAS_CONNECTOME_FILES = glob_files(COMBINED_INJECTIONS_FOLDER_NAME, "csv")
+    # Check that we have all the files we need
+    if any(COMBINED_INJECTION_ATLAS_CONNECTOME_PATH in connectome_file for connectome_file in COMBINED_INJECTION_ATLAS_CONNECTOME_FILES):
+        print("--- MRtrix connectome found. Skipping MRtrix connectome.")
+        MRTRIX_CONNECTOME = False
+
+    # If we don't have all the files we need, then we clean the folder and start from scratch
+    if MRTRIX_CONNECTOME:
+        print("--- MRtrix connectome not found. Cleaning MRtrix connectome folder.")
+        check_output_folders(COMBINED_INJECTIONS_FOLDER_NAME, "MRtrix connectome folder", wipe=True)
+
+    # Return the variable
+    return (MRTRIX_CONNECTOME)
 
