@@ -257,11 +257,13 @@ def extract_each_roi_from_atlas(ARGS):
     NEEDED_FILES_ATLAS = ["atlas_label"]
     ATLAS_LABEL_NEEDED_PATH = extract_from_input_list(ATLAS_STPT, NEEDED_FILES_ATLAS, "atlas_stpt")
 
-    # Get the atlas from the REGISTERED ONE
+    # Get the main folders
     (GENERAL_MRTRIX_FOLDER, SPECIFIC_MRTRIX_FOLDER, ATLAS_REG_FOLDER_NAME, COMBINED_TRACTS_FOLDER_NAME, 
         COMBINED_INJECTIONS_FOLDER_NAME, INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME, 
         INDIVIDUAL_ROIS_MIF_FOLDER_NAME, INJECTION_ROI_FOLDER_NAME) = main_mrtrix_folder_paths()
-    REGISTERED_ATLAS_PATH = glob_files(ATLAS_REG_FOLDER_NAME, "nii.gz")[0]
+    # Get the registered atlas path
+    REG_ATLAS_PATH_IDX, REG_ATLAS_MIF_PATH_IDX = 0, 1
+    REGISTERED_ATLAS_PATH = get_mrtrix_atlas_reg_paths_ants()[REG_ATLAS_PATH_IDX]
 
     # For every line in the atlas label file, extract the ROI
     with open(ATLAS_LABEL_NEEDED_PATH["atlas_label"], "r") as atlas_label_file:
@@ -274,7 +276,7 @@ def extract_each_roi_from_atlas(ARGS):
             # Get the atlas ROI path - FROM THE INDIVIDUAL ROIS FROM ATLAS PATH
             ATLAS_ROI_PATH = [file for file in INDIVIDUAL_ROIS_FROM_ATLAS_PATH if filename == file.split("/")[-1].split(".")[0]][0]
             # Extract the ROI from the atlas
-            EXTRACT_ROI_CMD = "mrcalc {input} {roi_num} -eq {output}.nii.gz".format(input=REGISTERED_ATLAS_PATH,
+            EXTRACT_ROI_CMD = "mrcalc {input}.nii.gz {roi_num} -eq {output}.nii.gz".format(input=REGISTERED_ATLAS_PATH,
                                                                                     roi_num=ROI_NUM, output=ATLAS_ROI_PATH) 
             # Add the command to the list
             EXTRACTION_COMMANDS.append(EXTRACT_ROI_CMD)
