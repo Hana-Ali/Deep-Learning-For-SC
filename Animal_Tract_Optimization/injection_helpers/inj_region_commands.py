@@ -17,18 +17,18 @@ def mrtrix_all_region_functions(ARGS):
     ATLAS_STPT = ARGS[4]
 
     # Get the main paths
-        # Get the main paths (only one will be used)
     (GENERAL_MRTRIX_FOLDER, SPECIFIC_MRTRIX_FOLDER, ATLAS_REG_FOLDER_NAME, COMBINED_TRACTS_FOLDER_NAME, 
-        COMBINED_INJECTIONS_FOLDER_NAME, INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME, 
-        INDIVIDUAL_ROIS_MIF_FOLDER_NAME, INJECTION_ROI_FOLDER_NAME, INJECTION_ROI_CONNECTOMES_FOLDER_NAME) = main_mrtrix_folder_paths()
-
+        COMBINED_INJECTIONS_FOLDER_NAME, COMBINED_ATLAS_INJECTIONS_FOLDER_NAME, COMBINED_CONNECTOME_FOLDER_NAME,
+        INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME, INDIVIDUAL_ROIS_MIF_FOLDER_NAME, 
+        INJECTION_ROI_FOLDER_NAME, INJECTION_ROI_CONNECTOMES_FOLDER_NAME) = main_mrtrix_folder_paths()
 
     # Extract the ROIs of each atlas
     ATLAS_ROI_ARGS = [ATLAS_STPT, INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME]
     (EXTRACTION_COMMANDS) = extract_each_roi_from_atlas(ATLAS_ROI_ARGS)
 
     # Convert each ROI to mif
-    CONVERT_ROI_TO_MIF_CMD = convert_each_roi_to_mif(ATLAS_STPT)
+    ROI_MIF_ARGS = [ATLAS_STPT]
+    CONVERT_ROI_TO_MIF_CMD = convert_each_roi_to_mif(ROI_MIF_ARGS)
 
     # Define the injection mif commands
     INJECTION_MIF_ARGS = [REGION_ID, INJECTION_FILE]
@@ -113,10 +113,6 @@ def extract_each_roi_from_atlas(ARGS):
     NEEDED_FILES_ATLAS = ["atlas_label"]
     ATLAS_LABEL_NEEDED_PATH = extract_from_input_list(ATLAS_STPT, NEEDED_FILES_ATLAS, "atlas_stpt")
 
-    # Get the main folders
-    (GGENERAL_MRTRIX_FOLDER, SPECIFIC_MRTRIX_FOLDER, ATLAS_REG_FOLDER_NAME, COMBINED_TRACTS_FOLDER_NAME, 
-        COMBINED_INJECTIONS_FOLDER_NAME, INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME, 
-        INDIVIDUAL_ROIS_MIF_FOLDER_NAME, INJECTION_ROI_FOLDER_NAME, INJECTION_ROI_CONNECTOMES_FOLDER_NAME) = main_mrtrix_folder_paths()
     # Get the registered atlas path
     REG_ATLAS_PATH_IDX, REG_ATLAS_MIF_PATH_IDX = 0, 1
     REGISTERED_ATLAS_PATH = get_mrtrix_atlas_reg_paths_ants()[REG_ATLAS_PATH_IDX]
@@ -141,15 +137,15 @@ def extract_each_roi_from_atlas(ARGS):
     return (EXTRACTION_COMMANDS)
 
 # Function to convert each extracted ROI to mif
-def convert_each_roi_to_mif(ATLAS_STPT):
+def convert_each_roi_to_mif(ARGS):
+
+    # Extract arguments needed to define paths
+    ATLAS_STPT = ARGS[0]
 
     # This will hold all the conversion commands
     CONVERSION_COMMANDS = []
 
-    # Get the main path for the atlas ROIs
-    (GENERAL_MRTRIX_FOLDER, SPECIFIC_MRTRIX_FOLDER, ATLAS_REG_FOLDER_NAME, COMBINED_TRACTS_FOLDER_NAME, 
-        COMBINED_INJECTIONS_FOLDER_NAME, INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME, 
-        INDIVIDUAL_ROIS_MIF_FOLDER_NAME, INJECTION_ROI_FOLDER_NAME, INJECTION_ROI_CONNECTOMES_FOLDER_NAME) = main_mrtrix_folder_paths()
+    # Get the paths we need
     (INDIVIDUAL_ROIS_FROM_ATLAS_PATH) = get_individual_rois_from_atlas_path(ATLAS_STPT)
     # Get mif paths
     (INDIVIDUAL_ROIS_MIF_PATHS) = get_individual_rois_mif_path(ATLAS_STPT)

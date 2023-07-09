@@ -23,12 +23,12 @@ def parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, AT
     # Get the mrtrix commands array
     MRTRIX_COMMANDS = mrtrix_all_region_functions(ARGS_MRTRIX)
 
-    # # --------------- Calling subprocesses commands --------------- #
+    # --------------- Calling subprocesses commands --------------- #
    
     # Injection masks and atlas registration commands
-    # for (mrtrix_cmd, cmd_name) in MRTRIX_COMMANDS:
-    #     print("Started {} - {}".format(cmd_name, REGION_ID))
-    #     subprocess.run(mrtrix_cmd, shell=True, check=True) 
+    for (mrtrix_cmd, cmd_name) in MRTRIX_COMMANDS:
+        print("Started {} - {}".format(cmd_name, REGION_ID))
+        subprocess.run(mrtrix_cmd, shell=True, check=True) 
 
 # Main function
 def main():
