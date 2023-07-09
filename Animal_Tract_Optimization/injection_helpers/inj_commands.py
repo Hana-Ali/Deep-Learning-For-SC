@@ -167,6 +167,14 @@ def mrtrix_all_general_functions(ARGS):
     STREAMLINE_COMBO_ARGS = [STREAMLINE_FILES]
     (COMBINE_STREAMLINE_CMD) = combine_all_streamline_files(STREAMLINE_COMBO_ARGS)
 
+    # Define the injection combination command
+    INJECTION_COMBO_ARGS = [INJECTION_FILES]
+    (COMBINE_INJECTION_CMD) = combine_all_injection_files(INJECTION_COMBO_ARGS)
+
+    # Define the injection and atlas combination command
+    INJECTION_ATLAS_ARGS = [ATLAS_STPT]
+    (COMBINE_INJ_ATLAS_CMD) = combine_injection_atlas(INJECTION_ATLAS_ARGS)
+
     # Extract the ROIs of each atlas
     ATLAS_ROI_ARGS = [ATLAS_STPT, INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME]
     (EXTRACTION_COMMANDS) = extract_each_roi_from_atlas(ATLAS_ROI_ARGS)
@@ -176,8 +184,9 @@ def mrtrix_all_general_functions(ARGS):
 
     # Check if we need to do the above commands
     CHECK_MISSING_GENERAL_ARGS = [ATLAS_STPT]
-    (MRTRIX_ATLAS_REGISTRATION, MRTRIX_STREAMLINE_COMBINATION, 
-        MRTRIX_ATLAS_ROIS, MRTRIX_ATLAS_MIF_CONVERSION) = check_missing_general_files(CHECK_MISSING_GENERAL_ARGS)
+    (MRTRIX_ATLAS_REGISTRATION, MRTRIX_STREAMLINE_COMBINATION, MRTRIX_INJECTION_COMBINATION, 
+        MRTRIX_INJECTION_ATLAS_COMBINATION, MRTRIX_ATLAS_ROIS, 
+        MRTRIX_ATLAS_MIF_CONVERSION) = check_missing_general_files(CHECK_MISSING_GENERAL_ARGS)
 
     # Create MRTRIX commands, depending on what we need to do
     MRTRIX_COMMANDS = []
@@ -189,6 +198,14 @@ def mrtrix_all_general_functions(ARGS):
     if MRTRIX_STREAMLINE_COMBINATION:
         MRTRIX_COMMANDS.extend([
             (COMBINE_STREAMLINE_CMD, "Combining all streamline files")
+        ])
+    if MRTRIX_INJECTION_COMBINATION:
+        MRTRIX_COMMANDS.extend([
+            (COMBINE_INJECTION_CMD, "Combining all injection files")
+        ])
+    if MRTRIX_INJECTION_ATLAS_COMBINATION:
+        MRTRIX_COMMANDS.extend([
+            (COMBINE_INJ_ATLAS_CMD, "Combining injection and atlas")
         ])
     if MRTRIX_ATLAS_ROIS:
         for idx, extraction in enumerate(EXTRACTION_COMMANDS):
@@ -237,12 +254,12 @@ def mrtrix_all_region_functions(ARGS):
             (CREATE_INJECTION_MIF_CMD, "Creating injection mifs")
         ])
     if INJECTION_ROI_COMBINATION:
-        for idx, combine in COMBINATION_COMMANDS:
+        for idx, combine in enumerate(COMBINATION_COMMANDS):
             MRTRIX_COMMANDS.extend([
                 (combine, "Combining injection mif with ROI mif {}".format(idx))
             ])
     if CONNECTOMES:
-        for idx, connectome in CONNECTOME_COMMANDS:
+        for idx, connectome in enumerate(CONNECTOME_COMMANDS):
             MRTRIX_COMMANDS.extend([
                 (connectome, "Creating connectome for injection <-> ROI combination {}".format(idx))
             ])
@@ -386,6 +403,31 @@ def create_connectome_for_each_injection_roi_combination(ARGS):
     # Return the commands
     return (CONNECTOME_COMMANDS)
 
+# Function to combine the injection and atlas
+def combine_injection_atlas(ARGS):
+
+    # Extract arguments needed to define paths
+    ATLAS_STPT = ARGS[0]
+
+    # Get the atlas and atlas labels path
+    NEEDED_FILES_ATLAS = ["atlas"]
+    ATLAS_NEEDED_PATH = extract_from_input_list(ATLAS_STPT, NEEDED_FILES_ATLAS, "atlas_stpt")
+
+    # Get the combined injections path
+    (COMBINED_INJECTIONS_PATH) = get_combined_injections_path()
+
+    # Get the combined injections and atlas path
+    (COMBINED_INJECTIONS_ATLAS_PATH) = get_combined_injection_atlas_path()
+
+    # Combine the injection and atlas
+    COMBINE_INJECTION_ATLAS_CMD = "mrcat {inj}.nii.gz {atlas}.nii.gz {output}.nii.gz".format(
+        inj=COMBINED_INJECTIONS_PATH, atlas=ATLAS_NEEDED_PATH["atlas"], output=COMBINED_INJECTIONS_ATLAS_PATH)
+    
+    # Return the command
+    return (COMBINE_INJECTION_ATLAS_CMD)
+
+    
+
 
 # TODO:
 # 1. Find some way to find streamlines between injection sites and atlas ROIs - atlas only needs to be a mif, not a mask!!
@@ -394,7 +436,7 @@ def create_connectome_for_each_injection_roi_combination(ARGS):
 # 2. Create a function to convert all the individual ROIs in the 140 atlas to mifs ------------------------ DONE 
 # 3. Create a function to convert all the injection sites to mifs ----------------------------------------- DONE 
 # 4. Create a function to combine each injection site mif with each ROI mif ------------------------------- DONE 
-# 5. Create a function to find streamlines between these injection <-> ROI mif combinations
-# 6. Create the connectome of this for each injection <-> ROI mif combination
+# 5. Create a function to find streamlines between these injection <-> ROI mif combinations --------------- DONE
+# 6. Create the connectome of this for each injection <-> ROI mif combination ----------------------------- DONE 
 # 7. Create a function to combine all the connectomes into one big connectome
 
