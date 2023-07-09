@@ -39,7 +39,7 @@ def get_main_paths(hpc):
         else:
             BMINDS_DATA_FOLDER = os.path.realpath(os.path.join(os.getcwd(), "..", "Animal_Data", "Brain-MINDS"))
             BMINDS_OUTPUTS_DMRI_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "processed_dMRI"))
-            BMINDS_OUTPUTS_INJECTIONS_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "processed_tracer"))
+            BMINDS_OUTPUTS_INJECTIONS_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "processed_injections"))
             BMINDS_CORE_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "BMCR_core_data"))
             BMINDS_DWI_FOLDER = os.path.realpath(os.path.join(BMINDS_CORE_FOLDER, "dMRI_raw"))
             BMINDS_METADATA_FOLDER = os.path.realpath(os.path.join(BMINDS_CORE_FOLDER, "meta_data"))
@@ -62,16 +62,19 @@ def get_main_paths(hpc):
        
 
 # Check that output folders with subfolders are in suitable shape
-def check_output_folders(folder, name, wipe=True):
+def check_output_folders(folder, name, wipe=True, verbose=False):
     if not os.path.exists(folder):
-        print("--- {} folder not found. Created folder: {}".format(name, folder))
+        if verbose:
+            print("--- {} folder not found. Created folder: {}".format(name, folder))
         os.makedirs(folder)
     # If it has content, delete it
     else:
         if wipe:
-            print("--- {} folder found. Continuing...".format(name))
+            if verbose:
+                print("--- {} folder found. Continuing...".format(name))
             if len(os.listdir(folder)) != 0:
-                print("{} folder has content. Deleting content...".format(name))
+                if verbose:
+                    print("{} folder has content. Deleting content...".format(name))
                 # Since this can have both folders and files, we need to check if it's a file or folder to remove
                 for filename in os.listdir(folder):
                     file_path = os.path.join(folder, filename)
@@ -79,9 +82,11 @@ def check_output_folders(folder, name, wipe=True):
                         os.unlink(file_path)
                     elif os.path.isdir(file_path):
                         shutil.rmtree(file_path)
-                print("Content deleted. Continuing...")
+                if verbose:
+                    print("Content deleted. Continuing...")
         else:
-            print("--- {} folder found. Continuing without wipe...".format(name))
+            if verbose:
+                print("--- {} folder found. Continuing without wipe...".format(name))
 
 # Retrieve (GLOB) files
 def glob_files(PATH_NAME, file_format):
@@ -91,18 +96,20 @@ def glob_files(PATH_NAME, file_format):
     return INPUT_FILES
 
 # Check that the retrieved (GLOBBED) files are not empty
-def check_globbed_files(files, name):
+def check_globbed_files(files, name, verbose=False):
     if len(files) == 0:
         print("No {} files found. Please add {} files".format(name, name))
         sys.exit('Exiting program')
     else:
-        print("{} files found. Continuing...".format(name))
+        if verbose:
+            print("{} files found. Continuing...".format(name))
 
 # Check that input folders exist
-def check_input_folders(folder, name):
+def check_input_folders(folder, name, verbose=False):
     if not os.path.exists(folder):
         print("--- {} folder not found. Please add folder: {}".format(name, folder))
         sys.exit('Exiting program')
     else:
-        print("--- {} folder found. Continuing...".format(name))
+        if verbose:
+            print("--- {} folder found. Continuing...".format(name))
         

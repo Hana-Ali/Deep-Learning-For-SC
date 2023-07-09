@@ -11,29 +11,23 @@ def parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, AT
 
     print("Started parallel process - {}".format(REGION_ID))
 
-    print("DWI FILES: {}".format(DWI_FILES))
-    print("STREAMLINE FILES: {}".format(STREAMLINE_FILES))
-    print("INJECTION FILES: {}".format(INJECTION_FILES))
-    print("ATLAS/STPT FILES: {}".format(ATLAS_STPT))
-    print("TRANSFORM FILES: {}".format(TRANSFORMS))
-
-
     # --------------- MRTRIX reconstruction commands --------------- #
-
-    # ARGS_MRTRIX = [
-    #     REGION_ID,
-    #     TRANSFORMS,
-    #     ATLAS_STPT
-    # ]
-    # # Get the mrtrix commands array
-    # MRTRIX_COMMANDS = injection_preprocessing_commands(ARGS_MRTRIX)
+    ARGS_MRTRIX = [
+        REGION_ID,
+        DWI_FILES,
+        STREAMLINE_FILES,
+        INJECTION_FILES,
+        ATLAS_STPT
+    ]
+    # Get the mrtrix commands array
+    MRTRIX_COMMANDS = mrtrix_all_region_functions(ARGS_MRTRIX)
 
     # # --------------- Calling subprocesses commands --------------- #
    
-    # # Injection masks and atlas registration commands
-    # for (mrtrix_cmd, cmd_name) in MRTRIX_COMMANDS:
-    #     print("Started {} - {}".format(cmd_name, REGION_ID))
-    #     subprocess.run(mrtrix_cmd, shell=True, check=True) 
+    # Injection masks and atlas registration commands
+    for (mrtrix_cmd, cmd_name) in MRTRIX_COMMANDS:
+        print("Started {} - {}".format(cmd_name, REGION_ID))
+        subprocess.run(mrtrix_cmd, shell=True, check=True) 
 
 # Main function
 def main():
@@ -72,11 +66,13 @@ def main():
     BMINDS_STREAMLINE_FILES = glob_files(BMINDS_METADATA_FOLDER, "tck")
     BMINDS_INJECTION_FILES = glob_files(BMINDS_INJECTIONS_FOLDER, "nii.gz")
     BMINDS_ATLAS_FILES = glob_files(BMINDS_ATLAS_FOLDER, "nii.gz")
+    BMINDS_ATLAS_LABEL_FILES = glob_files(BMINDS_ATLAS_FOLDER, "txt")
     BMINDS_STPT_FILES = glob_files(BMINDS_STPT_TEMPLATE_FOLDER, "nii")
     BMINDS_TRANSFORM_FILES = glob_files(BMINDS_TRANSFORMS_FOLDER, "h5")
 
     # Get the atlas and stpt files - separate from the mix above
     BMINDS_ATLAS_FILE = [file for file in BMINDS_ATLAS_FILES if "140_region_atlas_segmentation" in file]
+    BMINDS_ATLAS_LABEL_FILE = [file for file in BMINDS_ATLAS_LABEL_FILES if "140_region_atlas_labels" in file]
     BMINDS_STPT_FILE = [file for file in BMINDS_STPT_FILES if "STPT_template_unzipped" in file]
     BMINDS_MBCA_TRANSFORM_FILE = [file for file in BMINDS_TRANSFORM_FILES if "MBCA" in file]
 
@@ -87,33 +83,39 @@ def main():
     check_globbed_files(BMINDS_STREAMLINE_FILES, "BMINDS_STREAMLINE_FILES")
     check_globbed_files(BMINDS_INJECTION_FILES, "BMINDS_INJECTION_FILES")
     check_globbed_files(BMINDS_ATLAS_FILE, "BMINDS_ATLAS_FILE")
+    check_globbed_files(BMINDS_ATLAS_LABEL_FILE, "BMINDS_ATLAS_LABEL_FILE")
     check_globbed_files(BMINDS_STPT_FILE, "BMINDS_STPT_FILE")
     check_globbed_files(BMINDS_MBCA_TRANSFORM_FILE, "BMINDS_MBCA_TRANSFORM_FILE")
 
     # --------------- Create list of all data for each zone name --------------- #
     ALL_DATA_LIST = create_data_list(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_FILES, 
                                      BMINDS_STREAMLINE_FILES, BMINDS_INJECTION_FILES, BMINDS_ATLAS_FILE, 
-                                     BMINDS_STPT_FILE, BMINDS_MBCA_TRANSFORM_FILE)
+                                     BMINDS_ATLAS_LABEL_FILE, BMINDS_STPT_FILE, BMINDS_MBCA_TRANSFORM_FILE)
     
     # --------------- Create the common atlas and combined tracts folders --------------- #
-    perform_atlas_registration_and_streamline_combo(ALL_DATA_LIST, BMINDS_MBCA_TRANSFORM_FILE, BMINDS_ATLAS_FILE,
-                                                    BMINDS_STPT_FILE)
+    perform_atlas_streamline_combo(ALL_DATA_LIST, BMINDS_MBCA_TRANSFORM_FILE, BMINDS_ATLAS_FILE,
+                                    BMINDS_STPT_FILE, BMINDS_ATLAS_LABEL_FILE)
 
     # --------------- Preprocessing the data to get the right file formats --------------- #
     if hpc:
-        # Get the current region based on the command-line
-        region_idx = int(sys.argv[1])
+        # # Get the current region based on the command-line
+        # region_idx = int(sys.argv[1])
+        # # Get the data of the indexed region in the list
+        # (REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT, TRANSFORMS) = ALL_DATA_LIST[region_idx]
+        # # Call the parallel process function on this region
+        # parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT, TRANSFORMS)
         # Get the data of the indexed region in the list
-        (REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT, TRANSFORMS) = ALL_DATA_LIST[region_idx]
+        (REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT, TRANSFORMS) = ALL_DATA_LIST[0]
         # Call the parallel process function on this region
         parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT, TRANSFORMS)
+
     else:
         # Call the parallel process function on all regions - serially
         # for region_idx in range(len(ALL_DATA_LIST)):
         #     # Get the region data
-        #     (REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT) = ALL_DATA_LIST[region_idx]
+        #     (REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT, TRANSFORMS) = ALL_DATA_LIST[region_idx]
         #     # Call the parallel process function on this region
-        #     parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT)
+        #     parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT, TRANSFORMS)
         # Get the region data
         (REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT, TRANSFORMS) = ALL_DATA_LIST[0]
         # Call the parallel process function on this region

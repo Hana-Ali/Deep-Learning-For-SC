@@ -7,23 +7,65 @@ from py_helpers.general_helpers import *
 # ------------------------------------------------- CHECKING MISSING FILES AND CHECKPOINTS ------------------------------------------------- #
 
 # Function to check which files are missing from the atlas and streamline registration
-def check_missing_atlas_streamline_registration():
+def check_missing_general_files(ARGS):
+
+    # Extract the arguments
+    ATLAS_STPT = ARGS[0]
     
     # Get the main paths
-    (ATLAS_REG_FOLDER_NAME, COMBINED_TRACTS_FOLDER_NAME) = main_mrtrix_folder_paths()
+    (GENERAL_MRTRIX_FOLDER, SPECIFIC_MRTRIX_FOLDER, ATLAS_REG_FOLDER_NAME, COMBINED_TRACTS_FOLDER_NAME, 
+        COMBINED_INJECTIONS_FOLDER_NAME, INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME, 
+        INDIVIDUAL_ROIS_MIF_FOLDER_NAME, INJECTION_ROI_FOLDER_NAME) = main_mrtrix_folder_paths()
 
     # --------------------- MRTRIX ATLAS REGISTRATION CHECK
-    MRTRIX_ATLAS_REGISTRATION = check_missing_mrtrix_atlas_registration_ants(ATLAS_REG_FOLDER_NAME)
+    MRTRIX_ATLAS_REGISTRATION = check_missing_atlas_registration_ants(ATLAS_REG_FOLDER_NAME)
 
     # --------------------- MRTRIX STREAMLINE COMBINATION CHECK
     MRTRIX_STREAMLINE_COMBINATION = check_missing_mrtrix_streamline_combination(COMBINED_TRACTS_FOLDER_NAME)
 
-    # Return the variables
-    return (MRTRIX_ATLAS_REGISTRATION, MRTRIX_STREAMLINE_COMBINATION)
+    # --------------------- MRTRIX ATLAS ROI CHECK
+    MRTRIX_ATLAS_ROIS = check_missing_atlas_rois(ATLAS_STPT, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME)
 
+    # --------------------- MRTRIX ATLAS MIF CONVERSION CHECK
+    MRTRIX_ATLAS_MIF_CONVERSION = check_missing_atlas_mif_conversion(ATLAS_STPT, INDIVIDUAL_ROIS_MIF_FOLDER_NAME)
+
+    # Return the variables
+    return (MRTRIX_ATLAS_REGISTRATION, MRTRIX_STREAMLINE_COMBINATION, MRTRIX_ATLAS_ROIS, MRTRIX_ATLAS_MIF_CONVERSION)
+
+# Function to check which files are missing from the ENTIRE injection combination
+def check_missing_injection_all():
+
+    # Get the main paths
+    (GENERAL_MRTRIX_FOLDER, SPECIFIC_MRTRIX_FOLDER, ATLAS_REG_FOLDER_NAME, COMBINED_TRACTS_FOLDER_NAME, 
+        COMBINED_INJECTIONS_FOLDER_NAME, INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME, 
+        INDIVIDUAL_ROIS_MIF_FOLDER_NAME, INJECTION_ROI_FOLDER_NAME) = main_mrtrix_folder_paths()
+
+    # --------------------- MRTRIX INJECTION COMBINATION CHECK
+    MRTRIX_INJECTION_COMBINATION = check_missing_mrtrix_injection_combination(COMBINED_INJECTIONS_FOLDER_NAME)
+
+    # Return the variables
+    return (MRTRIX_INJECTION_COMBINATION)
+
+# Function to check which files are missing from the injection mifs
+def check_missing_region_files(REGION_ID, ATLAS_STPT):
+    
+    # Get the main paths
+    (GENERAL_MRTRIX_FOLDER, SPECIFIC_MRTRIX_FOLDER, ATLAS_REG_FOLDER_NAME, COMBINED_TRACTS_FOLDER_NAME, 
+        COMBINED_INJECTIONS_FOLDER_NAME, INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME, 
+        INDIVIDUAL_ROIS_MIF_FOLDER_NAME, INJECTION_ROI_FOLDER_NAME) = main_mrtrix_folder_paths()
+    (REGION_MRTRIX_FOLDER, INJECTION_MIF_FOLDER) = region_mrtrix_folder_paths(REGION_ID)
+
+    # --------------------- MRTRIX INJECTION MIFS CHECK
+    INJECTION_MIFS = check_missing_injection_mifs(REGION_ID, INJECTION_MIF_FOLDER)
+
+    # --------------------- MRTRIX INJECTION <-> ROI COMBINATION CHECK
+    INJECTION_ROI_COMBINATION = check_missing_injection_roi_combination(REGION_ID, ATLAS_STPT, INJECTION_ROI_FOLDER_NAME)
+
+    # Return the variables
+    return (INJECTION_MIFS, INJECTION_ROI_COMBINATION)
 
 # Function to check missing mrtrix atlas registration
-def check_missing_mrtrix_atlas_registration_ants(ATLAS_REG_FOLDER_NAME):
+def check_missing_atlas_registration_ants(ATLAS_REG_FOLDER_NAME):
     # Define variable that stores whether or not we should do MRtrix general processing
     MRTRIX_ATLAS_REGISTRATION = True
     # Get the MRtrix atlas registration paths
@@ -65,3 +107,123 @@ def check_missing_mrtrix_streamline_combination(COMBINED_TRACTS_FOLDER_NAME):
 
     # Return the variable
     return (MRTRIX_STREAMLINE_COMBINATION)
+
+# Function to check if atlas ROIs are missing
+def check_missing_atlas_rois(ATLAS_STPT, INDIVIDUAL_ROIS_NIFTI):
+    # Define the variable that stores whether or not we should do MRtrix general processing
+    MRTRIX_ATLAS_ROIS = False
+    # Get the MRtrix atlas ROIs paths
+    ATLAS_ROIS_PATH = get_individual_rois_from_atlas_path(ATLAS_STPT)
+    # Grab all the nii.gz files
+    EXISTING_ATLAS_ROIS_FILES = glob_files(INDIVIDUAL_ROIS_NIFTI, "nii.gz")
+    # Check that we have all the files we need
+    for roi_path in ATLAS_ROIS_PATH:
+        if not any(roi_path in roi_file for roi_file in EXISTING_ATLAS_ROIS_FILES):
+            MRTRIX_ATLAS_ROIS = True
+            break
+    
+    # If we don't have all the files we need, then we clean the folder and start from scratch
+    if MRTRIX_ATLAS_ROIS:
+        print("--- MRtrix atlas ROIs not found. Cleaning MRtrix atlas ROIs folder.")
+        check_output_folders(INDIVIDUAL_ROIS_NIFTI, "MRtrix atlas ROIs folder", wipe=True)
+    else:
+        print("--- MRtrix atlas ROIs found. Skipping MRtrix atlas ROIs.")
+    
+    # Return the variable
+    return (MRTRIX_ATLAS_ROIS)
+
+# Function to check whether or not we need to do the atlas mif conversion
+def check_missing_atlas_mif_conversion(ATLAS_STPT, INDIVIDUAL_ROIS_MIF):
+    # Define the variable that stores whether or not we should do MRtrix general processing
+    MRTRIX_ATLAS_MIF_CONVERSION = False
+    # Get the MRtrix atlas ROIs paths
+    INDIVIDUAL_ROIS_MIF_PATHS = get_individual_rois_mif_path(ATLAS_STPT)
+    # Grab all the mif files
+    EXISTING_ATLAS_ROIS_MIF_FILES = glob_files(INDIVIDUAL_ROIS_MIF, "mif")
+    # Check that we have all the files we need
+    for mif_path in INDIVIDUAL_ROIS_MIF_PATHS:
+        if not any(mif_path in mif_file for mif_file in EXISTING_ATLAS_ROIS_MIF_FILES):
+            MRTRIX_ATLAS_MIF_CONVERSION = True
+            break
+
+    # If we don't have all the files we need, then we clean the folder and start from scratch
+    if MRTRIX_ATLAS_MIF_CONVERSION:
+        print("--- MRtrix atlas mif conversion not found. Cleaning MRtrix atlas mif conversion folder.")
+        check_output_folders(INDIVIDUAL_ROIS_MIF, "MRtrix atlas mif conversion folder", wipe=True)
+    else:
+        print("--- MRtrix atlas mif conversion found. Skipping MRtrix atlas mif conversion.")
+
+    # Return the variable
+    return (MRTRIX_ATLAS_MIF_CONVERSION)
+
+
+# Function to check missing mrtrix injection combination
+def check_missing_mrtrix_injection_combination(COMBINED_INJECTIONS_FOLDER_NAME):
+    # Define variable that stores whether or not we should do MRtrix general processing
+    MRTRIX_INJECTION_COMBINATION = True
+    # Get the MRtrix injection combination paths
+    COMBINED_INJECTIONS_PATH = get_combined_injections_path()
+    # Grab all the nii.gz files
+    MRTRIX_INJECTION_COMBINATION_NII_FILES = glob_files(COMBINED_INJECTIONS_FOLDER_NAME, "nii.gz")
+    # Check that we have all the files we need
+    if any(COMBINED_INJECTIONS_PATH in injection_file for injection_file in MRTRIX_INJECTION_COMBINATION_NII_FILES):
+        print("--- MRtrix injection combination files found. Skipping MRtrix injection combination.")
+        MRTRIX_INJECTION_COMBINATION = False
+
+    # If we don't have all the files we need, then we clean the folder and start from scratch
+    if MRTRIX_INJECTION_COMBINATION:
+        print("--- MRtrix injection combination files not found. Cleaning MRtrix injection combination folder.")
+        check_output_folders(COMBINED_INJECTIONS_FOLDER_NAME, "MRtrix injection combination folder", wipe=True)
+
+    # Return the variable
+    return (MRTRIX_INJECTION_COMBINATION)
+
+# Function to check if the injection mifs are missing
+def check_missing_injection_mifs(REGION_ID, INJECTION_MIF_FOLDER):
+    # Define variable that stores whether or not we should do MRtrix general processing
+    INJECTION_MIFS = True
+    # Get the MRtrix injection mifs paths
+    INJECTION_MIF_PATH = get_injection_mif_path(REGION_ID)
+    (REGION_MRTRIX_FOLDER, INJECTION_MIF_FOLDER) = region_mrtrix_folder_paths(REGION_ID)
+    # Grab all the mif files
+    INJECTION_MIF_FILES = glob_files(INJECTION_MIF_FOLDER, "mif")
+    # Check that we have all the files we need
+    if any(INJECTION_MIF_PATH in injection_mif_file for injection_mif_file in INJECTION_MIF_FILES):
+        print("--- MRtrix injection mifs found. Skipping MRtrix injection mifs.")
+        INJECTION_MIFS = False
+
+    # If we don't have all the files we need, then we clean the folder and start from scratch
+    if INJECTION_MIFS:
+        print("--- MRtrix injection mifs not found. Cleaning MRtrix injection mifs folder.")
+        check_output_folders(INJECTION_MIF_FOLDER, "MRtrix injection mifs folder", wipe=True)
+
+    # Return the variable
+    return (INJECTION_MIFS)
+
+# Function to check if the injection <-> ROI combination is missing
+def check_missing_injection_roi_combination(REGION_ID, ATLAS_STPT, INJECTION_ROI_FOLDER_NAME):
+    # Define variable that stores whether or not we should do MRtrix general processing
+    INJECTION_ROI_COMBINATION = True
+    # Get all the atlas ROI mif paths
+    (INDIVIDUAL_ROIS_MIF_PATHS) = get_individual_rois_mif_path(ATLAS_STPT)
+    # Grab all the injection <-> ROI combination files, and filter for the ones with the specific region ID
+    INJECTION_ROI_FILES = glob_files(INJECTION_ROI_FOLDER_NAME, "mif")
+    INJECTION_ROI_FILES = [inj_roi_file for inj_roi_file in INJECTION_ROI_FILES if REGION_ID in inj_roi_file]
+    # Check that we have all the files we need - for every ROI, we have a combo from the region files
+    for roi_mif_path in INDIVIDUAL_ROIS_MIF_PATHS:
+        if not any(roi_mif_path in roi_file for roi_file in INJECTION_ROI_FILES):
+            INJECTION_ROI_COMBINATION = True
+            break
+
+    # If we don't have all the files we need, then we clean the folder and start from scratch
+    if INJECTION_ROI_COMBINATION:
+        print("--- MRtrix injection <-> ROI combination not found. Cleaning MRtrix injection <-> ROI combination folder.")
+        check_output_folders(INJECTION_ROI_FOLDER_NAME, "MRtrix injection <-> ROI combination folder", wipe=True)
+    else:
+        print("--- MRtrix injection <-> ROI combination found. Skipping MRtrix injection <-> ROI combination.")
+
+    # Return the variable
+    return (INJECTION_ROI_COMBINATION)
+
+
+

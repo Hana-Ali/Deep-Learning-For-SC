@@ -9,7 +9,8 @@ from numpy import random
 
 # Create a list that associates each subject with its T1 and DWI files
 def create_data_list(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_FILES, BMINDS_STREAMLINE_FILES, 
-                     BMINDS_INJECTION_FILES, BMINDS_ATLAS_FILE, BMINDS_STPT_FILE, BMINDS_MBCA_TRANSFORM_FILE):
+                     BMINDS_INJECTION_FILES, BMINDS_ATLAS_FILE, BMINDS_ATLAS_LABEL_FILE, BMINDS_STPT_FILE, 
+                     BMINDS_MBCA_TRANSFORM_FILE):
     
     # This will hold all of the data lists
     DATA_LISTS = []
@@ -24,16 +25,13 @@ def create_data_list(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_F
 
     # Get list of common and uncommon region IDs
     (COMMON_REGION_IDS, NON_COMMON_REGION_IDS) = common_uncommon_regions_list(CONCATENATED_DWI_LIST, STREAMLINE_LIST, INJECTION_LIST)
-
-    print('Length of common region IDs: ', len(COMMON_REGION_IDS))
-    print('Length of non-common region IDs: ', len(NON_COMMON_REGION_IDS))
     
     # FOR COMMON REGIONS - JOIN THE DWI, STREAMLINE AND INJECTION FILES
     for region_ID in COMMON_REGION_IDS:
         # Get the data from the region list function
         (region_list, dwi_found, streamline_found, injection_found) = create_region_list(region_ID, STREAMLINE_LIST, INJECTION_LIST, 
-                                                            CONCATENATED_DWI_LIST, BMINDS_ATLAS_FILE, BMINDS_STPT_FILE, 
-                                                            BMINDS_MBCA_TRANSFORM_FILE, common_bool=True)
+                                                            CONCATENATED_DWI_LIST, BMINDS_ATLAS_FILE, BMINDS_ATLAS_LABEL_FILE, 
+                                                            BMINDS_STPT_FILE, BMINDS_MBCA_TRANSFORM_FILE, common_bool=True)
         
         # If we didn't find the dwi, streamline or injection files, skip this region
         if not dwi_found or not streamline_found or not injection_found:
@@ -46,8 +44,8 @@ def create_data_list(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_F
     for region_ID in NON_COMMON_REGION_IDS:
         # Get the data from the region list function
         (region_list, dwi_found, streamline_found, injection_found) = create_region_list(region_ID, STREAMLINE_LIST, INJECTION_LIST,
-                                                            CONCATENATED_DWI_LIST, BMINDS_ATLAS_FILE, BMINDS_STPT_FILE, 
-                                                            BMINDS_MBCA_TRANSFORM_FILE, common_bool=False)
+                                                            CONCATENATED_DWI_LIST, BMINDS_ATLAS_FILE, BMINDS_ATLAS_LABEL_FILE,
+                                                            BMINDS_STPT_FILE, BMINDS_MBCA_TRANSFORM_FILE, common_bool=False)
         
         # If we didn't find the dwi, streamline or injection files, skip this region
         if not dwi_found or not streamline_found or not injection_found:
@@ -79,7 +77,7 @@ def common_uncommon_regions_list(CONCATENATED_DWI_LIST, STREAMLINE_LIST, INJECTI
 
 # Create the list for each region in the above function
 def create_region_list(region_ID, STREAMLINE_LIST, INJECTION_LIST, CONCATENATED_DWI_LIST, BMINDS_ATLAS_FILE,
-                       BMINDS_STPT_FILE, BMINDS_MBCA_TRANSFORM_FILE, common_bool=True):
+                       BMINDS_ATLAS_LABEL_FILE, BMINDS_STPT_FILE, BMINDS_MBCA_TRANSFORM_FILE, common_bool=True):
 
     # Booleans for whether we found data or not
     dwi_found = True
@@ -89,8 +87,8 @@ def create_region_list(region_ID, STREAMLINE_LIST, INJECTION_LIST, CONCATENATED_
     # Based on this name, get every streamline and injection that has the same region ID
     streamline_files = [[streamline_file[1], streamline_file[2]] for streamline_file in STREAMLINE_LIST if streamline_file[0] == region_ID]
     injection_files = [[injection_file[1], injection_file[2]] for injection_file in INJECTION_LIST if injection_file[0] == region_ID]
-    # Add the atlas and stpt files
-    atlas_stpt = [BMINDS_ATLAS_FILE[0], BMINDS_STPT_FILE[0]]
+    # Add the atlas, atlas labels and stpt files
+    atlas_stpt = [BMINDS_ATLAS_FILE[0], BMINDS_ATLAS_LABEL_FILE[0], BMINDS_STPT_FILE[0]]
     # Add the transform file
     transforms = [BMINDS_MBCA_TRANSFORM_FILE[0]]
     
@@ -125,31 +123,77 @@ def get_tracer_streamlines_from_all_data_list(ALL_DATA_LIST, streamline_type_lis
     items_to_get = {}
     # Define the allowed types
     allowed_types = ["tracer_tracts_sharp", "dwi_tracts", "tracer_tracts"]
+    # Define the streamline index in the ALL_DATA_LIST
+    streamline_idx = 2
     
     # Define the items to get based on the type of streamline
     for streamline_type in streamline_type_list:
         # Check that the streamline type is allowed - if yes then append it to dictionary
         if streamline_type in allowed_types:
-            items_to_get[streamline_type] = [extract_from_input_list(region[2], [streamline_type], "streamline")[streamline_type][0] for region in ALL_DATA_LIST]
+            items_to_get[streamline_type] = [extract_from_input_list(region[streamline_idx], 
+                                            [streamline_type], "streamline")[streamline_type][0] for region in ALL_DATA_LIST]
         else:
             print("Streamline type {} not allowed. Skipping.".format(streamline_type))
             continue
 
     return items_to_get
 
+# Function to get injections from ALL_DATA_LIST
+def get_tracer_injections_from_all_data_list(ALL_DATA_LIST, injection_type_list):
+    # Define the items to get
+    items_to_get = {}
+    # Define the allowed types
+    allowed_types = ["tracer_signal_normalized", "tracer_positive_voxels", "cell_density",
+                     "streamline_density", "tracer_signal"]
+    # Define the injection index in the ALL_DATA_LIST
+    injection_idx = 3
+    
+    # Define the items to get based on the type of injection
+    for injection_type in injection_type_list:
+        # Check that the injection type is allowed - if yes then append it to dictionary
+        if injection_type in allowed_types:
+            items_to_get[injection_type] = [extract_from_input_list(region[injection_idx], 
+                                            [injection_type], "injection")[injection_type][0] for region in ALL_DATA_LIST]
+        else:
+            print("Injection type {} not allowed. Skipping.".format(injection_type))
+            continue
+
+    return items_to_get
+
 # Function to actually perform the atlas registration and streamline combination commands
-def perform_atlas_registration_and_streamline_combo(ALL_DATA_LIST, BMINDS_MBCA_TRANSFORM_FILE, BMINDS_ATLAS_FILE, 
-                                                    BMINDS_STPT_FILE):
+def perform_atlas_streamline_combo(ALL_DATA_LIST, BMINDS_MBCA_TRANSFORM_FILE, BMINDS_ATLAS_FILE, 
+                                    BMINDS_STPT_FILE, BMINDS_ATLAS_LABEL_FILE):
+    # Grab the streamlines as a list
     STREAMLINE_TYPES_TO_GRAB = ["tracer_tracts"]
     ALL_STREAMLINES_LIST = get_tracer_streamlines_from_all_data_list(ALL_DATA_LIST, STREAMLINE_TYPES_TO_GRAB)
+    # Grab the injections as a list
+    INJECTION_TYPES_TO_GRAB = ["cell_density"]
+    ALL_INJECTIONS_LIST = get_tracer_injections_from_all_data_list(ALL_DATA_LIST, INJECTION_TYPES_TO_GRAB)
+    # Get the transform file
     TRANSFORM_FILE = BMINDS_MBCA_TRANSFORM_FILE[0]
-    ATLAS_STPT = [BMINDS_ATLAS_FILE[0], BMINDS_STPT_FILE[0]]
-    ATLAS_STREAMLINE_ARGS = [ALL_STREAMLINES_LIST["tracer_tracts"], TRANSFORM_FILE, ATLAS_STPT]
+    # Get the atlas and stpt files
+    ATLAS_STPT = [BMINDS_ATLAS_FILE[0], BMINDS_ATLAS_LABEL_FILE[0], BMINDS_STPT_FILE[0]]
+
+    # Define the arguments to the function
+    ATLAS_STREAMLINE_ARGS = [ALL_STREAMLINES_LIST["tracer_tracts"], ALL_INJECTIONS_LIST["cell_density"], TRANSFORM_FILE, ATLAS_STPT]
     # Get the commands
-    STREAMLINE_ATLAS_CMDS = mrtrix_atlas_registration_and_streamline_combination(ATLAS_STREAMLINE_ARGS)
+    MRTRIX_GENERAL_CMDS = mrtrix_all_general_functions(ATLAS_STREAMLINE_ARGS)
+    
     # Run the commands
-    for (cmd, cmd_name) in STREAMLINE_ATLAS_CMDS:
+    for (cmd, cmd_name) in MRTRIX_GENERAL_CMDS:
+        print("Started command: {}".format(cmd_name))
+        subprocess.run(cmd, shell=True, check=True)
+
+# Function to do the injection combination command
+def perform_injection_combo(ALL_DATA_LIST):
+    # Grab the injections as a list
+    INJECTION_TYPES_TO_GRAB = ["cell_density"]
+    ALL_INJECTIONS_LIST = get_tracer_injections_from_all_data_list(ALL_DATA_LIST, INJECTION_TYPES_TO_GRAB)
+    # Define the arguments to the function
+    INJECTION_ARGS = [ALL_INJECTIONS_LIST["cell_density"]]
+    # Get the commands
+    INJECTION_CMDS = mrtrix_injection_combination(INJECTION_ARGS)
+    # Run the commands
+    for (cmd, cmd_name) in INJECTION_CMDS:
         print("Started {} - {}".format(cmd_name, "common"))
         subprocess.run(cmd, shell=True, check=True)
-    
-    

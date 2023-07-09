@@ -143,7 +143,7 @@ def join_dwi_diff_bvals_bvecs(DWI_LIST):
     return ALL_CONCAT_PATHS
 
 # Conversion to MIF
-def convert_to_mif(region_item):
+def convert_to_mif(region_item, verbose=False):
     # Create the MIF path
     if os.name == "nt":
         mif_name = region_item[0].split("\\")[-1].split(".")[0] + "_mif.mif"
@@ -154,7 +154,8 @@ def convert_to_mif(region_item):
     
     # Check if the MIF path already exists
     if os.path.exists(MIF_PATH):
-        print("MIF path {} already exists. Continuing...".format(MIF_PATH))
+        if verbose:
+            print("MIF path {} already exists. Continuing...".format(MIF_PATH))
         return MIF_PATH
     
     # If it doesn't exist, convert to mif
@@ -169,7 +170,7 @@ def convert_to_mif(region_item):
     return MIF_PATH
 
 # Concatenate MIF
-def concatenate_mif(MIF_PATHS, mif_files_string):
+def concatenate_mif(MIF_PATHS, mif_files_string, verbose=False):
     # Define the output concatentated path
     if os.name == "nt":
         CONCAT_FOLDER = os.path.join("\\".join(MIF_PATHS[0].split("\\")[:-2]), "Concatenated_Data")
@@ -182,7 +183,8 @@ def concatenate_mif(MIF_PATHS, mif_files_string):
     
     # Check if the concatenated path already exists
     if os.path.exists(CONCAT_PATH):
-        print("Concatenated path {} already exists. Continuing...".format(CONCAT_PATH))
+        if verbose:
+            print("Concatenated path {} already exists. Continuing...".format(CONCAT_PATH))
         return CONCAT_PATH
     
     # Concatenate mifs command
@@ -194,7 +196,7 @@ def concatenate_mif(MIF_PATHS, mif_files_string):
     return CONCAT_PATH
 
 # Function to convert to nii from MIF
-def convert_to_nii(MIF_PATH):
+def convert_to_nii(MIF_PATH, verbose=False):
     # Define the output nii, bvals and bvecs path
     NII_PATH = MIF_PATH.replace(".mif", ".nii")
     BVALS_PATH = MIF_PATH.replace(".mif", ".bvals")
@@ -202,7 +204,8 @@ def convert_to_nii(MIF_PATH):
 
     # Check if it already exists - if it does, return it
     if os.path.exists(NII_PATH):
-        print("NII path {} already exists. Continuing...".format(NII_PATH))
+        if verbose:
+            print("NII path {} already exists. Continuing...".format(NII_PATH))
         return (NII_PATH, BVALS_PATH, BVECS_PATH)
 
     # Define the conversion command
@@ -223,6 +226,8 @@ def extract_from_input_list(GENERAL_FILES, ITEMS_NEEDED, list_type):
     # Check whether we're passing in a list or a string
     if isinstance(ITEMS_NEEDED, str):
         ITEMS_NEEDED = [ITEMS_NEEDED]
+    if isinstance(GENERAL_FILES, str):
+        GENERAL_FILES = [GENERAL_FILES]
 
     # Extract things differently, depending on the list type being passed
     if list_type == "dwi":
@@ -292,12 +297,15 @@ def extract_from_input_list(GENERAL_FILES, ITEMS_NEEDED, list_type):
     # For atlas and STPT, it's just the index
     elif list_type == "atlas_stpt":
         ATLAS_PATH = 0
-        STPT_PATH = 1
+        ATLAS_LABEL_PATH = 1
+        STPT_PATH = 2
 
         # For every item in items, get the item
         for item in ITEMS_NEEDED:
             if item == "atlas":
                 items_to_get["atlas"] = GENERAL_FILES[ATLAS_PATH]
+            elif item == "atlas_label":
+                items_to_get["atlas_label"] = GENERAL_FILES[ATLAS_LABEL_PATH]
             elif item == "stpt":
                 items_to_get["stpt"] = GENERAL_FILES[STPT_PATH]
             else:
