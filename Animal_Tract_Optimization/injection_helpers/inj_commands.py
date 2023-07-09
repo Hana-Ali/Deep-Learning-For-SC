@@ -157,7 +157,7 @@ def mrtrix_all_general_functions(ARGS):
     # Get the main paths (only one will be used)
     (GENERAL_MRTRIX_FOLDER, SPECIFIC_MRTRIX_FOLDER, ATLAS_REG_FOLDER_NAME, COMBINED_TRACTS_FOLDER_NAME, 
         COMBINED_INJECTIONS_FOLDER_NAME, INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME, 
-        INDIVIDUAL_ROIS_MIF_FOLDER_NAME, INJECTION_ROI_FOLDER_NAME) = main_mrtrix_folder_paths()
+        INDIVIDUAL_ROIS_MIF_FOLDER_NAME, INJECTION_ROI_FOLDER_NAME, INJECTION_ROI_CONNECTOMES_FOLDER_NAME) = main_mrtrix_folder_paths()
 
     # Define the atlas registration commands
     ATLAS_REG_ARGS = [TRANSFORMS_H5, ATLAS_STPT]
@@ -222,9 +222,13 @@ def mrtrix_all_region_functions(ARGS):
     INJECTION_ROI_ARGS = [REGION_ID, ATLAS_STPT]
     (COMBINATION_COMMANDS) = combine_each_injection_site_mif_with_each_roi_mif(INJECTION_ROI_ARGS)
 
+    # Define the connectome creation commands
+    CONNECTOME_ARGS = [REGION_ID, ATLAS_STPT]
+    (CONNECTOME_COMMANDS) = create_connectome_for_each_injection_roi_combination(CONNECTOME_ARGS)
+
     # Check if we need to do the above commands
     CHECKPOINT_ARGS = [REGION_ID, ATLAS_STPT]
-    (INJECTION_MIFS, INJECTION_ROI_COMBINATION) = check_missing_region_files(CHECKPOINT_ARGS)
+    (INJECTION_MIFS, INJECTION_ROI_COMBINATION, CONNECTOMES) = check_missing_region_files(CHECKPOINT_ARGS)
 
     # Create MRTRIX commands, depending on what we need to do
     MRTRIX_COMMANDS = []
@@ -236,6 +240,11 @@ def mrtrix_all_region_functions(ARGS):
         for idx, combine in COMBINATION_COMMANDS:
             MRTRIX_COMMANDS.extend([
                 (combine, "Combining injection mif with ROI mif {}".format(idx))
+            ])
+    if CONNECTOMES:
+        for idx, connectome in CONNECTOME_COMMANDS:
+            MRTRIX_COMMANDS.extend([
+                (connectome, "Creating connectome for injection <-> ROI combination {}".format(idx))
             ])
 
     # Return the commands
@@ -258,9 +267,9 @@ def extract_each_roi_from_atlas(ARGS):
     ATLAS_LABEL_NEEDED_PATH = extract_from_input_list(ATLAS_STPT, NEEDED_FILES_ATLAS, "atlas_stpt")
 
     # Get the main folders
-    (GENERAL_MRTRIX_FOLDER, SPECIFIC_MRTRIX_FOLDER, ATLAS_REG_FOLDER_NAME, COMBINED_TRACTS_FOLDER_NAME, 
+    (GGENERAL_MRTRIX_FOLDER, SPECIFIC_MRTRIX_FOLDER, ATLAS_REG_FOLDER_NAME, COMBINED_TRACTS_FOLDER_NAME, 
         COMBINED_INJECTIONS_FOLDER_NAME, INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME, 
-        INDIVIDUAL_ROIS_MIF_FOLDER_NAME, INJECTION_ROI_FOLDER_NAME) = main_mrtrix_folder_paths()
+        INDIVIDUAL_ROIS_MIF_FOLDER_NAME, INJECTION_ROI_FOLDER_NAME, INJECTION_ROI_CONNECTOMES_FOLDER_NAME) = main_mrtrix_folder_paths()
     # Get the registered atlas path
     REG_ATLAS_PATH_IDX, REG_ATLAS_MIF_PATH_IDX = 0, 1
     REGISTERED_ATLAS_PATH = get_mrtrix_atlas_reg_paths_ants()[REG_ATLAS_PATH_IDX]
@@ -293,7 +302,7 @@ def convert_each_roi_to_mif(ATLAS_STPT):
     # Get the main path for the atlas ROIs
     (GENERAL_MRTRIX_FOLDER, SPECIFIC_MRTRIX_FOLDER, ATLAS_REG_FOLDER_NAME, COMBINED_TRACTS_FOLDER_NAME, 
         COMBINED_INJECTIONS_FOLDER_NAME, INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME, 
-        INDIVIDUAL_ROIS_MIF_FOLDER_NAME, INJECTION_ROI_FOLDER_NAME) = main_mrtrix_folder_paths()
+        INDIVIDUAL_ROIS_MIF_FOLDER_NAME, INJECTION_ROI_FOLDER_NAME, INJECTION_ROI_CONNECTOMES_FOLDER_NAME) = main_mrtrix_folder_paths()
     (INDIVIDUAL_ROIS_FROM_ATLAS_PATH) = get_individual_rois_from_atlas_path(ATLAS_STPT)
     # Get mif paths
     (INDIVIDUAL_ROIS_MIF_PATHS) = get_individual_rois_mif_path(ATLAS_STPT)
@@ -344,6 +353,39 @@ def combine_each_injection_site_mif_with_each_roi_mif(ARGS):
     # Return the command
     return (COMBINATION_COMMANDS)
 
+# Function to create connectome for each injection <-> ROI combination
+def create_connectome_for_each_injection_roi_combination(ARGS):
+
+    # Extract arguments needed to define paths
+    REGION_ID = ARGS[0]
+    ATLAS_STPT = ARGS[1]
+
+    # Get all the atlas ROI mif paths
+    (INDIVIDUAL_ROIS_MIF_PATHS) = get_individual_rois_mif_path(ATLAS_STPT)
+    
+    # Get the concatenated streamlines path
+    (COMBINED_TRACTS_PATH) = get_combined_tracts_path()
+
+    # This will hold all the connectome commands
+    CONNECTOME_COMMANDS = []
+
+    # Create the connectome for each injection <-> ROI combination
+    for roi_mif_filepath in INDIVIDUAL_ROIS_MIF_PATHS:
+        # Get the output filename
+        roi_filename = roi_mif_filepath.split("/")[-1]
+        # Get the injection ROI mif path
+        INJECTION_ROI_MIF_PATH = get_injection_roi_path(REGION_ID, roi_filename)
+        # Get the connectome path
+        INJECTION_ROI_CONNECTOME_PATH = get_injection_roi_connectome_path(REGION_ID, roi_filename)
+        # Create the connectome
+        CREATE_CONNECTOME_CMD = "tck2connectome {input}.tck {nodes}.mif {output}.csv -symmetric -zero_diagonal".format(
+            input=COMBINED_TRACTS_PATH, nodes=INJECTION_ROI_MIF_PATH, output=INJECTION_ROI_CONNECTOME_PATH)
+        # Add the command to the list
+        CONNECTOME_COMMANDS.append(CREATE_CONNECTOME_CMD)
+
+    # Return the commands
+    return (CONNECTOME_COMMANDS)
+
 
 # TODO:
 # 1. Find some way to find streamlines between injection sites and atlas ROIs - atlas only needs to be a mif, not a mask!!
@@ -351,7 +393,7 @@ def combine_each_injection_site_mif_with_each_roi_mif(ARGS):
 # 1. Create a function to extract all the individual ROIs in the 140 atlas -------------------------------- DONE 
 # 2. Create a function to convert all the individual ROIs in the 140 atlas to mifs ------------------------ DONE 
 # 3. Create a function to convert all the injection sites to mifs ----------------------------------------- DONE 
-# 4. Create a function to combine each injection site mif with each ROI mif
+# 4. Create a function to combine each injection site mif with each ROI mif ------------------------------- DONE 
 # 5. Create a function to find streamlines between these injection <-> ROI mif combinations
 # 6. Create the connectome of this for each injection <-> ROI mif combination
 # 7. Create a function to combine all the connectomes into one big connectome

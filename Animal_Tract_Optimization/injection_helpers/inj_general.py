@@ -178,7 +178,7 @@ def perform_atlas_streamline_combo(ALL_DATA_LIST, BMINDS_MBCA_TRANSFORM_FILE, BM
     ATLAS_STREAMLINE_ARGS = [ALL_STREAMLINES_LIST["tracer_tracts"], ALL_INJECTIONS_LIST["cell_density"], TRANSFORM_FILE, ATLAS_STPT]
     # Get the commands
     MRTRIX_GENERAL_CMDS = mrtrix_all_general_functions(ATLAS_STREAMLINE_ARGS)
-    
+
     # Run the commands
     for (cmd, cmd_name) in MRTRIX_GENERAL_CMDS:
         print("Started command: {}".format(cmd_name))
@@ -197,3 +197,9 @@ def perform_injection_combo(ALL_DATA_LIST):
     for (cmd, cmd_name) in INJECTION_CMDS:
         print("Started {} - {}".format(cmd_name, "common"))
         subprocess.run(cmd, shell=True, check=True)
+
+# Function to extract the ROI name from the combination file
+def extract_roi_name_from_combination_file(combination_file):
+    # Get the ROI name from the combination file
+    ROI_NAME = combination_file.split("/")[-1].split("_ROI_")[-1]
+    return ROI_NAME

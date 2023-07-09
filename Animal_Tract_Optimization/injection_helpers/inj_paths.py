@@ -24,6 +24,7 @@ def main_mrtrix_folder_paths():
     INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME = os.path.join(INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, "nifti")
     INDIVIDUAL_ROIS_MIF_FOLDER_NAME = os.path.join(INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, "mif")
     INJECTION_ROI_FOLDER_NAME = os.path.join(SPECIFIC_MRTRIX_FOLDER, "injection_ROI_combined")
+    INJECTION_ROI_CONNECTOMES_FOLDER_NAME = os.path.join(SPECIFIC_MRTRIX_FOLDER, "injection_ROI_connectomes")
     check_output_folders(GENERAL_MRTRIX_FOLDER, "MRtrix general folder", wipe=False)
     check_output_folders(SPECIFIC_MRTRIX_FOLDER, "MRtrix specific folder", wipe=False)
     check_output_folders(ATLAS_REG_FOLDER_NAME, "MRtrix atlas reg folder", wipe=False)
@@ -33,11 +34,12 @@ def main_mrtrix_folder_paths():
     check_output_folders(INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME, "MRtrix individual rois from atlas nifti folder", wipe=False)
     check_output_folders(INDIVIDUAL_ROIS_MIF_FOLDER_NAME, "MRtrix individual rois from atlas to mif folder", wipe=False)
     check_output_folders(INJECTION_ROI_FOLDER_NAME, "MRtrix injection and ROI combination folder", wipe=False)
+    check_output_folders(INJECTION_ROI_CONNECTOMES_FOLDER_NAME, "MRtrix injection and ROI connectomes folder", wipe=False)
 
     # Return the paths
     return (GENERAL_MRTRIX_FOLDER, SPECIFIC_MRTRIX_FOLDER, ATLAS_REG_FOLDER_NAME, COMBINED_TRACTS_FOLDER_NAME, 
             COMBINED_INJECTIONS_FOLDER_NAME, INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME, 
-            INDIVIDUAL_ROIS_MIF_FOLDER_NAME, INJECTION_ROI_FOLDER_NAME)
+            INDIVIDUAL_ROIS_MIF_FOLDER_NAME, INJECTION_ROI_FOLDER_NAME, INJECTION_ROI_CONNECTOMES_FOLDER_NAME)
 
 # Define MRTRIX region-specific folder paths
 def region_mrtrix_folder_paths(REGION_ID):
@@ -45,7 +47,7 @@ def region_mrtrix_folder_paths(REGION_ID):
     # Get the main paths
     (GENERAL_MRTRIX_FOLDER, SPECIFIC_MRTRIX_FOLDER, ATLAS_REG_FOLDER_NAME, COMBINED_TRACTS_FOLDER_NAME, 
         COMBINED_INJECTIONS_FOLDER_NAME, INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME, 
-        INDIVIDUAL_ROIS_MIF_FOLDER_NAME, INJECTION_ROI_FOLDER_NAME) = main_mrtrix_folder_paths()
+        INDIVIDUAL_ROIS_MIF_FOLDER_NAME, INJECTION_ROI_FOLDER_NAME, INJECTION_ROI_CONNECTOMES_FOLDER_NAME) = main_mrtrix_folder_paths()
     
     # Create the region folder
     REGION_MRTRIX_FOLDER = os.path.join(SPECIFIC_MRTRIX_FOLDER, REGION_ID)
@@ -62,7 +64,7 @@ def get_mrtrix_atlas_reg_paths_ants():
     # Get the folder names
     (GENERAL_MRTRIX_FOLDER, SPECIFIC_MRTRIX_FOLDER, ATLAS_REG_FOLDER_NAME, COMBINED_TRACTS_FOLDER_NAME, 
         COMBINED_INJECTIONS_FOLDER_NAME, INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME, 
-        INDIVIDUAL_ROIS_MIF_FOLDER_NAME, INJECTION_ROI_FOLDER_NAME) = main_mrtrix_folder_paths()
+        INDIVIDUAL_ROIS_MIF_FOLDER_NAME, INJECTION_ROI_FOLDER_NAME, INJECTION_ROI_CONNECTOMES_FOLDER_NAME) = main_mrtrix_folder_paths()
 
     # Immediately transform with the transformation matrix
     ATLAS_REG_PATH = os.path.join(ATLAS_REG_FOLDER_NAME, "atlasreg_ANTS")
@@ -77,7 +79,7 @@ def get_combined_tracts_path():
     # Get the folder names and paths
     (GENERAL_MRTRIX_FOLDER, SPECIFIC_MRTRIX_FOLDER, ATLAS_REG_FOLDER_NAME, COMBINED_TRACTS_FOLDER_NAME, 
         COMBINED_INJECTIONS_FOLDER_NAME, INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME, 
-        INDIVIDUAL_ROIS_MIF_FOLDER_NAME, INJECTION_ROI_FOLDER_NAME) = main_mrtrix_folder_paths()
+        INDIVIDUAL_ROIS_MIF_FOLDER_NAME, INJECTION_ROI_FOLDER_NAME, INJECTION_ROI_CONNECTOMES_FOLDER_NAME) = main_mrtrix_folder_paths()
 
     # Define the combined tracts path
     COMBINED_TRACTS_PATH = os.path.join(COMBINED_TRACTS_FOLDER_NAME, "combined_tracts")
@@ -91,7 +93,7 @@ def get_combined_injections_path():
     # Get the folder names and paths
     (GENERAL_MRTRIX_FOLDER, SPECIFIC_MRTRIX_FOLDER, ATLAS_REG_FOLDER_NAME, COMBINED_TRACTS_FOLDER_NAME, 
         COMBINED_INJECTIONS_FOLDER_NAME, INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME, 
-        INDIVIDUAL_ROIS_MIF_FOLDER_NAME, INJECTION_ROI_FOLDER_NAME) = main_mrtrix_folder_paths()
+        INDIVIDUAL_ROIS_MIF_FOLDER_NAME, INJECTION_ROI_FOLDER_NAME, INJECTION_ROI_CONNECTOMES_FOLDER_NAME) = main_mrtrix_folder_paths()
 
     # Define the combined tracts path
     COMBINED_INJECTIONS_PATH = os.path.join(COMBINED_INJECTIONS_FOLDER_NAME, "combined_injections")
@@ -105,7 +107,7 @@ def get_injection_mif_path(REGION_ID):
     # Get the folder names and paths
     (REGION_MRTRIX_FOLDER, INJECTION_MIF_FOLDER) = region_mrtrix_folder_paths(REGION_ID)
 
-    # Define the combined tracts path
+    # Define the injection mif path
     INJECTION_MIF_PATH = os.path.join(INJECTION_MIF_FOLDER, "{}_injection".format(REGION_ID))
 
     # Return the path
@@ -117,7 +119,7 @@ def get_individual_rois_from_atlas_path(ATLAS_STPT):
     # Get the folder names and paths
     (GENERAL_MRTRIX_FOLDER, SPECIFIC_MRTRIX_FOLDER, ATLAS_REG_FOLDER_NAME, COMBINED_TRACTS_FOLDER_NAME, 
         COMBINED_INJECTIONS_FOLDER_NAME, INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME, 
-        INDIVIDUAL_ROIS_MIF_FOLDER_NAME, INJECTION_ROI_FOLDER_NAME) = main_mrtrix_folder_paths()
+        INDIVIDUAL_ROIS_MIF_FOLDER_NAME, INJECTION_ROI_FOLDER_NAME, INJECTION_ROI_CONNECTOMES_FOLDER_NAME) = main_mrtrix_folder_paths()
 
     # Get the atlas and atlas labels path
     NEEDED_FILES_ATLAS = ["atlas", "atlas_label"]
@@ -148,7 +150,7 @@ def get_individual_rois_mif_path(ATLAS_STPT):
     # Get the folder names and paths
     (GENERAL_MRTRIX_FOLDER, SPECIFIC_MRTRIX_FOLDER, ATLAS_REG_FOLDER_NAME, COMBINED_TRACTS_FOLDER_NAME, 
         COMBINED_INJECTIONS_FOLDER_NAME, INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME, 
-        INDIVIDUAL_ROIS_MIF_FOLDER_NAME, INJECTION_ROI_FOLDER_NAME) = main_mrtrix_folder_paths()
+        INDIVIDUAL_ROIS_MIF_FOLDER_NAME, INJECTION_ROI_FOLDER_NAME, INJECTION_ROI_CONNECTOMES_FOLDER_NAME) = main_mrtrix_folder_paths()
     
     # Grab all the ROI paths
     (INDIVIDUAL_ROIS_FROM_ATLAS_PATH) = get_individual_rois_from_atlas_path(ATLAS_STPT)
@@ -172,13 +174,28 @@ def get_individual_rois_mif_path(ATLAS_STPT):
 def get_injection_roi_path(REGION_ID, ROI_ID):
     
     # Get the folder names and paths
-    # Get the folder names and paths
     (GENERAL_MRTRIX_FOLDER, SPECIFIC_MRTRIX_FOLDER, ATLAS_REG_FOLDER_NAME, COMBINED_TRACTS_FOLDER_NAME, 
         COMBINED_INJECTIONS_FOLDER_NAME, INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME, 
-        INDIVIDUAL_ROIS_MIF_FOLDER_NAME, INJECTION_ROI_FOLDER_NAME) = main_mrtrix_folder_paths()
+        INDIVIDUAL_ROIS_MIF_FOLDER_NAME, INJECTION_ROI_FOLDER_NAME, INJECTION_ROI_CONNECTOMES_FOLDER_NAME) = main_mrtrix_folder_paths()
     
     # Define the combined tracts path
     INJECTION_ROI_PATH = os.path.join(INJECTION_ROI_FOLDER_NAME, "INJ_{}_ROI_{}".format(REGION_ID, ROI_ID))
 
     # Return the path
     return (INJECTION_ROI_PATH)
+
+# Function to define the injection roi connectome path
+def get_injection_roi_connectome_path(REGION_ID, ROI_ID):
+
+    # Get the folder names and paths
+    (GENERAL_MRTRIX_FOLDER, SPECIFIC_MRTRIX_FOLDER, ATLAS_REG_FOLDER_NAME, COMBINED_TRACTS_FOLDER_NAME, 
+        COMBINED_INJECTIONS_FOLDER_NAME, INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME, 
+        INDIVIDUAL_ROIS_MIF_FOLDER_NAME, INJECTION_ROI_FOLDER_NAME, INJECTION_ROI_CONNECTOMES_FOLDER_NAME) = main_mrtrix_folder_paths()
+    
+    # Define the combibed connectome paths
+    INJECTION_ROI_CONNECTOME_PATH = os.path.join(INJECTION_ROI_CONNECTOMES_FOLDER_NAME, "INJ_{}_ROI_{}_CONNECTOME".format(REGION_ID, ROI_ID))
+
+    # Return the path
+    return (INJECTION_ROI_CONNECTOME_PATH)
+
+
