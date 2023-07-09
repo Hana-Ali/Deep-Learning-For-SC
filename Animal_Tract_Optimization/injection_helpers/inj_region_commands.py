@@ -19,8 +19,8 @@ def mrtrix_all_region_functions(ARGS):
     # Get the main paths
     (GENERAL_MRTRIX_FOLDER, SPECIFIC_MRTRIX_FOLDER, ATLAS_REG_FOLDER_NAME, COMBINED_TRACTS_FOLDER_NAME, 
         COMBINED_INJECTIONS_FOLDER_NAME, COMBINED_ATLAS_INJECTIONS_FOLDER_NAME, COMBINED_CONNECTOME_FOLDER_NAME,
-        INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME, INDIVIDUAL_ROIS_MIF_FOLDER_NAME, 
-        INJECTION_ROI_FOLDER_NAME, INJECTION_ROI_CONNECTOMES_FOLDER_NAME) = main_mrtrix_folder_paths()
+        INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME, 
+        INDIVIDUAL_ROIS_MIF_FOLDER_NAME) = main_mrtrix_folder_paths()
 
     # Extract the ROIs of each atlas
     ATLAS_ROI_ARGS = [ATLAS_STPT, INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME]
@@ -187,7 +187,7 @@ def combine_each_injection_site_mif_with_each_roi_mif(ARGS):
         # Get the injection ROI mif path
         INJECTION_ROI_MIF_PATH = get_injection_roi_path(REGION_ID, roi_filename)
         # Combine the injection and ROI mifs
-        COMBINE_INJECTION_ROI_MIF_CMD = "mrcat {inj_mif}.mif {roi_mif}.mif {output}.mif".format(
+        COMBINE_INJECTION_ROI_MIF_CMD = "mrcalc {inj_mif}.mif {roi_mif}.mif -or {output}.mif".format(
             inj_mif=INJECTION_MIF_PATH, roi_mif=roi_mif_filepath, output=INJECTION_ROI_MIF_PATH)
         
         # Add the command to the list
