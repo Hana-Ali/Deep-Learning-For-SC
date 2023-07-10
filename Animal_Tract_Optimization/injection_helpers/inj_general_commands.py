@@ -85,87 +85,6 @@ def combine_all_streamline_files(ARGS):
     # Return the command
     return (COMBINE_STREAMLINE_CMD)
 
-# Function to combine all the injection files into one file
-def combine_all_injection_files(ARGS):
-
-    # Extract arguments needed to define paths
-    INJECTION_FILES = ARGS[0]
-
-    # Get the combined injections path
-    (COMBINED_INJECTIONS_PATH, COMBINED_INJECTIONS_MIF_PATH) = get_combined_injections_path()
-
-    # Define the initial string
-    INJECTION_FILES_STRING = " ".join(INJECTION_FILES[0:2])
-    print("INJECTION_FILES_STRING: {}".format(INJECTION_FILES_STRING))
-    print("INJECTION_FILES 0: {}".format(INJECTION_FILES[0]))
-
-    # This will hold the combination commands
-    COMBINE_INJECTION_CMD_LIST = []
-
-    # Combine all the injection files into one file - note that we need to go one by one
-    for injection_idx in range(2, len(INJECTION_FILES)):
-        print("injection_idx: {}".format(injection_idx))
-        # Write the command
-        COMBINE_INJECTION_CMD = "mrcalc {input_string} -or {output} -force".format(input_string=INJECTION_FILES_STRING, 
-                                                                               output=COMBINED_INJECTIONS_PATH)
-        # Update the string
-        INJECTION_FILES_STRING = " ".join([COMBINED_INJECTIONS_PATH, INJECTION_FILES[injection_idx]])
-        print("INJECTION_FILES_STRING: {}".format(INJECTION_FILES_STRING))
-        # Append to the commands list
-        COMBINE_INJECTION_CMD_LIST.append(COMBINE_INJECTION_CMD)
-        
-    # Convert the combined injection file to mif
-    COMBINE_INJECTION_MIF_CMD = "mrconvert {input} {output}.mif".format(input=COMBINED_INJECTIONS_PATH, 
-                                                                        output=COMBINED_INJECTIONS_MIF_PATH)
-
-    # Return the command
-    return (COMBINE_INJECTION_CMD_LIST, COMBINE_INJECTION_MIF_CMD)
-
-# Function to combine the injection and atlas
-def combine_injection_atlas(ARGS):
-
-    # Get the registered atlas path
-    (ATLAS_REG_PATH, ATLAS_REG_MIF_PATH) = get_mrtrix_atlas_reg_paths_ants()
-
-    # Get the combined injections path
-    (COMBINED_INJECTIONS_PATH, COMBINED_INJECTIONS_MIF_PATH) = get_combined_injections_path()
-
-    # Get the combined injections and atlas path
-    (COMBINED_INJECTION_ATLAS_MIF_PATH, COMBINED_INJECTION_ATLAS_NII_PATH) = get_combined_injection_atlas_path()
-
-    # Combine the injection and atlas
-    COMBINE_INJECTION_ATLAS_CMD = "mrcalc {inj}.mif {atlas}.mif -or {output}.mif".format(
-        inj=COMBINED_INJECTIONS_MIF_PATH, atlas=ATLAS_REG_MIF_PATH, output=COMBINED_INJECTION_ATLAS_MIF_PATH)
-    # Convert to nifti
-    CONVERT_INJECTION_ATLAS_CMD = "mrconvert {input}.mif {output}.nii.gz".format(
-        input=COMBINED_INJECTION_ATLAS_MIF_PATH, output=COMBINED_INJECTION_ATLAS_NII_PATH)
-    
-    # Check file shape with nibabel
-    # atlas_reg_nii = nib.load(ATLAS_REG_PATH)
-    # atlas_reg_nii_shape = atlas_reg_nii.shape
-    
-    # Return the command
-    return (COMBINE_INJECTION_ATLAS_CMD, CONVERT_INJECTION_ATLAS_CMD)
-
-# Function to find the connectome from the combined injection <-> atlas
-def create_connectome_for_combined_injection_atlas():
-
-    # Get the concatenated streamlines path
-    (COMBINED_TRACTS_PATH) = get_combined_tracts_path()
-
-    # Get the combined injections and atlas path
-    (COMBINED_INJECTION_ATLAS_MIF_PATH, COMBINED_INJECTION_ATLAS_NII_PATH) = get_combined_injection_atlas_path()
-
-    # Get the injection ROI connectomes path
-    (INJECTION_ROI_CONNECTOMES_PATH) = get_combined_injection_atlas_connectome_path()
-
-    # Create the connectome
-    CONNECTOME_CMD = "tck2connectome {input}.tck {inj_atlas}.mif {output}.csv -zero_diagonal -symmetric \
-        -assignment_all_voxels -force".format(input=COMBINED_TRACTS_PATH, inj_atlas=COMBINED_INJECTION_ATLAS_MIF_PATH, 
-                                              output=INJECTION_ROI_CONNECTOMES_PATH)
-    
-    # Return the command
-    return (CONNECTOME_CMD)
 
 # Function to do the atlas registration and streamline combination
 def mrtrix_all_general_functions(ARGS):
@@ -184,21 +103,10 @@ def mrtrix_all_general_functions(ARGS):
     STREAMLINE_COMBO_ARGS = [STREAMLINE_FILES]
     (COMBINE_STREAMLINE_CMD) = combine_all_streamline_files(STREAMLINE_COMBO_ARGS)
 
-    # Define the injection combination command
-    INJECTION_COMBO_ARGS = [INJECTION_FILES]
-    (COMBINE_INJECTION_CMD, COMBINE_INJECTION_MIF_CMD) = combine_all_injection_files(INJECTION_COMBO_ARGS)
-
-    # Define the injection and atlas combination command
-    INJECTION_ATLAS_ARGS = [ATLAS_STPT]
-    (COMBINE_INJECTION_ATLAS_CMD, CONVERT_INJECTION_ATLAS_CMD) = combine_injection_atlas(INJECTION_ATLAS_ARGS)
-
-    # Define the connectome creation command
-    (CONNECTOME_CMD) = create_connectome_for_combined_injection_atlas()
 
     # Check if we need to do the above commands
     CHECK_MISSING_GENERAL_ARGS = [ATLAS_STPT]
-    (MRTRIX_ATLAS_REGISTRATION, MRTRIX_STREAMLINE_COMBINATION, MRTRIX_INJECTION_COMBINATION, 
-        MRTRIX_INJECTION_ATLAS_COMBINATION, MRTRIX_CONNECTOME) = check_missing_general_files(CHECK_MISSING_GENERAL_ARGS)
+    (MRTRIX_ATLAS_REGISTRATION, MRTRIX_STREAMLINE_COMBINATION) = check_missing_general_files(CHECK_MISSING_GENERAL_ARGS)
 
     # Create MRTRIX commands, depending on what we need to do
     MRTRIX_COMMANDS = []
@@ -211,23 +119,7 @@ def mrtrix_all_general_functions(ARGS):
         MRTRIX_COMMANDS.extend([
             (COMBINE_STREAMLINE_CMD, "Combining all streamline files")
         ])
-    if MRTRIX_INJECTION_COMBINATION:
-        for (idx, cmd) in enumerate(COMBINE_INJECTION_CMD):
-            MRTRIX_COMMANDS.extend([
-                (cmd, "Combining injection file {} with previous combination".format(idx))
-            ])
-        MRTRIX_COMMANDS.extend([
-            (COMBINE_INJECTION_MIF_CMD, "Converting injection file to mif")
-        ])
-    if MRTRIX_INJECTION_ATLAS_COMBINATION:
-        MRTRIX_COMMANDS.extend([
-            (COMBINE_INJECTION_ATLAS_CMD, "Combining injection and atlas mifs"),
-            (CONVERT_INJECTION_ATLAS_CMD, "Converting injection and atlas mifs to mif")
-        ])
-    if MRTRIX_CONNECTOME:
-        MRTRIX_COMMANDS.extend([
-            (CONNECTOME_CMD, "Creating connectome for injection <-> atlas combination")
-        ])
+
     # Return the commands
     return (MRTRIX_COMMANDS)
 
@@ -241,11 +133,3 @@ def mrtrix_all_general_functions(ARGS):
 # 5. Create a function to find streamlines between these injection <-> ROI mif combinations --------------- DONE
 # 6. Create the connectome of this for each injection <-> ROI mif combination ----------------------------- DONE 
 # 7. Create a function to combine all the connectomes into one big connectome
-
-
-
-
-# DIDNT WORK DONT KNOW HOW TO MAKE MY OWN ATLAS INSTEAD JUST FIND THE TCKEDIT BETWEEN EACH INJECTION SITE AND EACH ROI
-# AND THEN USE TCKSTATS TO FIND THE NUMBER OF STREAMLINES BETWEEN EACH INJECTION SITE AND EACH ROI USING COUNT AND THAT
-# MAKES THE CONNECTOME
-

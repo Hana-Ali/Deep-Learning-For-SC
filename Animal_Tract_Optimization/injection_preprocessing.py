@@ -25,10 +25,12 @@ def parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, AT
 
     # --------------- Calling subprocesses commands --------------- #
    
-    # Injection masks and atlas registration commands
+    # Injection masks, atlas registration, tract editing commands
     for (mrtrix_cmd, cmd_name) in MRTRIX_COMMANDS:
         print("Started {} - {}".format(cmd_name, REGION_ID))
         subprocess.run(mrtrix_cmd, shell=True, check=True) 
+
+    # Find stats of the streamline files
 
 # Main function
 def main():
@@ -93,6 +95,8 @@ def main():
                                      BMINDS_STREAMLINE_FILES, BMINDS_INJECTION_FILES, BMINDS_ATLAS_FILE, 
                                      BMINDS_ATLAS_LABEL_FILE, BMINDS_STPT_FILE, BMINDS_MBCA_TRANSFORM_FILE)
     
+    print("Length of all data list: {}".format(len(ALL_DATA_LIST)))
+
     # --------------- Create the common atlas and combined tracts folders --------------- #
     perform_all_general_mrtrix_functions(ALL_DATA_LIST, BMINDS_MBCA_TRANSFORM_FILE, BMINDS_ATLAS_FILE,
                                             BMINDS_STPT_FILE, BMINDS_ATLAS_LABEL_FILE)

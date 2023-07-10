@@ -98,12 +98,18 @@ def main():
                                      BMINDS_STREAMLINE_FILES, BMINDS_INJECTION_FILES, BMINDS_ATLAS_FILE, 
                                      BMINDS_STPT_FILE)
 
+    print("Length of All Data List: {}".format(len(ALL_DATA_LIST)))
+
     # --------------- Preprocessing the data to get the right file formats --------------- #
     if hpc:
-        # Get the current region based on the command-line
-        region_idx = int(sys.argv[1])
+        # # Get the current region based on the command-line
+        # region_idx = int(sys.argv[1])
+        # # Get the data of the indexed region in the list
+        # (REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT) = ALL_DATA_LIST[region_idx]
+        # # Call the parallel process function on this region
+        # parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT)
         # Get the data of the indexed region in the list
-        (REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT) = ALL_DATA_LIST[region_idx]
+        (REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT) = ALL_DATA_LIST[0]
         # Call the parallel process function on this region
         parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT)
     else:

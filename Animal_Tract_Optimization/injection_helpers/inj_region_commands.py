@@ -4,7 +4,7 @@ sys.path.append("..")
 from .inj_paths import *
 from .inj_checkpoints import *
 from py_helpers.shared_helpers import *
-import nibabel as nib
+import numpy as np
 
 # Function to do all the mrtrix commands for each individual file rather than all
 def mrtrix_all_region_functions(ARGS):
@@ -18,8 +18,7 @@ def mrtrix_all_region_functions(ARGS):
 
     # Get the main paths
     (GENERAL_MRTRIX_FOLDER, SPECIFIC_MRTRIX_FOLDER, ATLAS_REG_FOLDER_NAME, COMBINED_TRACTS_FOLDER_NAME, 
-        COMBINED_INJECTIONS_FOLDER_NAME, COMBINED_ATLAS_INJECTIONS_FOLDER_NAME, COMBINED_CONNECTOME_FOLDER_NAME,
-        INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME, 
+        COMBINED_CONNECTOME_FOLDER_NAME, INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME, 
         INDIVIDUAL_ROIS_MIF_FOLDER_NAME) = main_mrtrix_folder_paths()
 
     # Extract the ROIs of each atlas
@@ -34,18 +33,18 @@ def mrtrix_all_region_functions(ARGS):
     INJECTION_MIF_ARGS = [REGION_ID, INJECTION_FILE]
     (CREATE_INJECTION_MIF_CMD) = create_mifs_of_each_injection_site(INJECTION_MIF_ARGS)
 
-    # Define the injection and ROI combination commands
-    INJECTION_ROI_ARGS = [REGION_ID, ATLAS_STPT]
-    (COMBINATION_COMMANDS) = combine_each_injection_site_mif_with_each_roi_mif(INJECTION_ROI_ARGS)
+    # Define the tract editing commands
+    TRACT_EDITING_ARGS = [REGION_ID, ATLAS_STPT]
+    (FIND_STREAMLINES_CMD) = find_number_of_streamlines_between_injection_and_roi(TRACT_EDITING_ARGS)
 
-    # Define the connectome creation commands
-    CONNECTOME_ARGS = [REGION_ID, ATLAS_STPT]
-    (CONNECTOME_COMMANDS) = create_connectome_for_each_injection_roi_combination(CONNECTOME_ARGS)
+    # Define the tract stats commands
+    TRACT_STATS_ARGS = [REGION_ID, ATLAS_STPT]
+    (FIND_STATS_CMD) = call_stats_between_injection_and_roi(TRACT_STATS_ARGS)
 
     # Check if we need to do the above commands
     CHECKPOINT_ARGS = [REGION_ID, ATLAS_STPT]
-    (INJECTION_MIFS, MRTRIX_ATLAS_ROIS, MRTRIX_ATLAS_MIF_CONVERSION, INJECTION_ROI_COMBINATION, 
-     CONNECTOMES) = check_missing_region_files(CHECKPOINT_ARGS)
+    (INJECTION_MIFS, MRTRIX_ATLAS_ROIS, MRTRIX_ATLAS_MIF_CONVERSION, 
+     INJECTION_ROI_TRACTS, INJECTION_ROI_TRACTS_STATS) = check_missing_region_files(CHECKPOINT_ARGS)
 
     # Create MRTRIX commands, depending on what we need to do
     MRTRIX_COMMANDS = []
@@ -63,16 +62,16 @@ def mrtrix_all_region_functions(ARGS):
             MRTRIX_COMMANDS.extend([
                 (conversion, "Converting ROI {} to mif".format(idx))
             ])
-    if INJECTION_ROI_COMBINATION:
-        for idx, combine in enumerate(COMBINATION_COMMANDS):
+    if INJECTION_ROI_TRACTS:
+        for idx, streamline_editing in enumerate(FIND_STREAMLINES_CMD):
             MRTRIX_COMMANDS.extend([
-                (combine, "Combining injection mif with ROI mif {}".format(idx))
+                (streamline_editing, "Finding streamlines between injection site and ROI {}".format(idx))
             ])
-    if CONNECTOMES:
-        for idx, connectome in enumerate(CONNECTOME_COMMANDS):
-            MRTRIX_COMMANDS.extend([
-                (connectome, "Creating connectome for injection <-> ROI combination {}".format(idx))
-            ])
+    # if INJECTION_ROI_TRACTS_STATS:
+    #     for idx, streamline_stats in enumerate(FIND_STATS_CMD):
+    #         MRTRIX_COMMANDS.extend([
+    #             (streamline_stats, "Finding stats of streamlines between injection site and ROI {}".format(idx))
+    #         ])
 
     # Return the commands
     return (MRTRIX_COMMANDS)
@@ -164,67 +163,119 @@ def convert_each_roi_to_mif(ARGS):
     # Return the commands
     return (CONVERSION_COMMANDS)
 
-# Function to combine each injection site mif with each ROI mif
-def combine_each_injection_site_mif_with_each_roi_mif(ARGS):
+# DIDNT WORK DONT KNOW HOW TO MAKE MY OWN ATLAS INSTEAD JUST FIND THE TCKEDIT BETWEEN EACH INJECTION SITE AND EACH ROI
+# AND THEN USE TCKSTATS TO FIND THE NUMBER OF STREAMLINES BETWEEN EACH INJECTION SITE AND EACH ROI USING COUNT AND THAT
+# MAKES THE CONNECTOME
+
+# Function to find the number of streamlines between each injection site and each ROI
+def find_number_of_streamlines_between_injection_and_roi(ARGS):
 
     # Extract arguments needed to define paths
     REGION_ID = ARGS[0]
     ATLAS_STPT = ARGS[1]
 
-    # Get all the injection mif paths
+    # Get the paths we need
+    (INDIVIDUAL_ROIS_MIF_PATHS) = get_individual_rois_mif_path(ATLAS_STPT)
     (INJECTION_MIF_PATH) = get_injection_mif_path(REGION_ID)
-
-    # Get all the atlas ROI mif paths
-    (INDIVIDUAL_ROIS_MIF_PATHS) = get_individual_rois_mif_path(ATLAS_STPT)
-
-    # This will hold all the combination commands
-    COMBINATION_COMMANDS = []
-
-    # Combine the injection and ROI mifs
-    for roi_mif_filepath in INDIVIDUAL_ROIS_MIF_PATHS:
-        # Get the output filename
-        roi_filename = roi_mif_filepath.split("/")[-1]
-        # Get the injection ROI mif path
-        INJECTION_ROI_MIF_PATH = get_injection_roi_path(REGION_ID, roi_filename)
-        # Combine the injection and ROI mifs
-        COMBINE_INJECTION_ROI_MIF_CMD = "mrcalc {inj_mif}.mif {roi_mif}.mif -or {output}.mif".format(
-            inj_mif=INJECTION_MIF_PATH, roi_mif=roi_mif_filepath, output=INJECTION_ROI_MIF_PATH)
-        
-        # Add the command to the list
-        COMBINATION_COMMANDS.append(COMBINE_INJECTION_ROI_MIF_CMD)
-        
-    # Return the command
-    return (COMBINATION_COMMANDS)
-
-# Function to create connectome for each injection <-> ROI combination
-def create_connectome_for_each_injection_roi_combination(ARGS):
-
-    # Extract arguments needed to define paths
-    REGION_ID = ARGS[0]
-    ATLAS_STPT = ARGS[1]
-
-    # Get all the atlas ROI mif paths
-    (INDIVIDUAL_ROIS_MIF_PATHS) = get_individual_rois_mif_path(ATLAS_STPT)
-    
-    # Get the concatenated streamlines path
     (COMBINED_TRACTS_PATH) = get_combined_tracts_path()
+    (ATLAS_REG_PATH, ATLAS_REG_MIF_PATH) = get_mrtrix_atlas_reg_paths_ants()
 
-    # This will hold all the connectome commands
-    CONNECTOME_COMMANDS = []
+    # This will hold all the commands
+    TCKEDIT_COMMANDS = []
 
-    # Create the connectome for each injection <-> ROI combination
-    for roi_mif_filepath in INDIVIDUAL_ROIS_MIF_PATHS:
-        # Get the output filename
-        roi_filename = roi_mif_filepath.split("/")[-1]
-        # Get the injection ROI mif path
-        INJECTION_ROI_MIF_PATH = get_injection_roi_path(REGION_ID, roi_filename)
-        # Get the connectome path
-        INJECTION_ROI_CONNECTOME_PATH = get_injection_roi_connectome_path(REGION_ID, roi_filename)
-        # Create the connectome
-        CREATE_CONNECTOME_CMD = "tck2connectome {input}.tck {nodes}.mif {output}.csv -symmetric -zero_diagonal".format(
-            input=COMBINED_TRACTS_PATH, nodes=INJECTION_ROI_MIF_PATH, output=INJECTION_ROI_CONNECTOME_PATH)
+    # For every ROI, find the number of streamlines between the injection site and the ROI
+    for idx, roi_mif_path in enumerate(INDIVIDUAL_ROIS_MIF_PATHS):
+        # Get the ROI name or ID
+        roi_name = roi_mif_path.split("/")[-1]
+        # Get the injection ROI tracts path
+        (INJECTION_ROI_TRACTS_PATH) = get_injection_roi_tracts_path(REGION_ID, roi_name)
+        # Find the number of streamlines between the injection site and the ROI
+        FIND_STREAMLINES_CMD = "tckedit {all_tracts}.tck -include {inj_site}.mif -include {atlas_roi}.mif {output}.tck".format(
+            all_tracts=COMBINED_TRACTS_PATH, inj_site=INJECTION_MIF_PATH, output=ATLAS_REG_MIF_PATH, output=INJECTION_ROI_TRACTS_PATH)
         # Add the command to the list
-        CONNECTOME_COMMANDS.append(CREATE_CONNECTOME_CMD)
+        TCKEDIT_COMMANDS.append(FIND_STREAMLINES_CMD)
 
     # Return the commands
-    return (CONNECTOME_COMMANDS)    
+    return (TCKEDIT_COMMANDS)
+
+# Function to find the stats of the number of streamlines between each injection site and each ROI
+def call_stats_between_injection_and_roi(ARGS):
+
+    # Extract arguments needed to define paths
+    REGION_ID = ARGS[0]
+    ATLAS_STPT = ARGS[1]
+
+    # Get the paths we need
+    (INDIVIDUAL_ROIS_MIF_PATHS) = get_individual_rois_mif_path(ATLAS_STPT)
+
+    # This will hold all the commands
+    TCKSTATS_COMMANDS = []
+
+    # For every ROI, find the stats of the number of streamlines between the injection site and the ROI
+    for idx, roi_mif_path in enumerate(INDIVIDUAL_ROIS_MIF_PATHS):
+        # Get the ROI name or ID
+        roi_name = roi_mif_path.split("/")[-1]
+        # Get the injection ROI tracts and stats path
+        (INJECTION_ROI_TRACTS_PATH) = get_injection_roi_tracts_path(REGION_ID, roi_name)
+        (INJECTION_ROI_LENGTHS_PATH, INJECTION_ROI_COUNT_PATH, INJECTION_ROI_MEAN_PATH, 
+         INJECTION_ROI_MEDIAN_PATH, INJECTION_ROI_STD_PATH, INJECTION_ROI_MIN_PATH, 
+         INJECTION_ROI_MAX_PATH) = get_injection_roi_tracts_stats_path(REGION_ID, roi_name)
+        # Find the stats of the number of streamlines between the injection site and the ROI. Note that it PRINTS out
+        # everything, but we can grab the count by counting the number of lines in the file
+        # Can also get the mean, median, min, max, std, etc. by doing other modifications on the text file
+        FIND_STATS_CMD = "tckstats {input}.tck -dump {output}".format(input=INJECTION_ROI_TRACTS_PATH, 
+                                                                        output=INJECTION_ROI_LENGTHS_PATH)
+        # Add the command to the list
+        TCKSTATS_COMMANDS.append(FIND_STATS_CMD)
+
+    # Return the commands
+    return (TCKSTATS_COMMANDS)
+
+# Function to actually grab the stats file and get various things
+def grab_stats_between_injection_and_roi(ARGS):
+
+    # Extract arguments needed to define paths
+    REGION_ID = ARGS[0]
+    ATLAS_STPT = ARGS[1]
+
+    # Get the paths we need
+    (INDIVIDUAL_ROIS_MIF_PATHS) = get_individual_rois_mif_path(ATLAS_STPT)
+
+    # For every ROI, find the stats of the number of streamlines between the injection site and the ROI
+    for idx, roi_mif_path in enumerate(INDIVIDUAL_ROIS_MIF_PATHS):
+        # Get the ROI name or ID
+        roi_name = roi_mif_path.split("/")[-1]
+        # Get the injection ROI stats path
+        (INJECTION_ROI_LENGTHS_PATH, INJECTION_ROI_COUNT_PATH, INJECTION_ROI_MEAN_PATH, 
+         INJECTION_ROI_MEDIAN_PATH, INJECTION_ROI_STD_PATH, INJECTION_ROI_MIN_PATH, 
+         INJECTION_ROI_MAX_PATH) = get_injection_roi_tracts_stats_path(REGION_ID, roi_name)
+        # 1- Get the number of lines in the text file of LENGTHS, which is the COUNT
+        # 2- Get the mean, median, min, max, std, etc. by doing other modifications on the text file
+        with open(INJECTION_ROI_LENGTHS_PATH, "r") as lengths_file:
+            # Get the number of lines in the file
+            count_data = len(lengths_file.readlines())
+            lengths_data = [float(ln.rstrip()) for ln in lengths_file.readlines()] 
+            mean_data = float(sum(lengths_data))/len(lengths_data) if len(lengths_data) > 0 else float('nan')
+            median_data = float(sorted(lengths_data)[len(lengths_data)//2]) if len(lengths_data) > 0 else float('nan')
+            min_data = float(min(lengths_data)) if len(lengths_data) > 0 else float('nan')
+            max_data = float(max(lengths_data)) if len(lengths_data) > 0 else float('nan')
+            std_data = np.std(np.array(lengths_data)) if len(lengths_data) > 0 else float('nan')
+
+            # Save the count, mean, median, min, max, std, etc. to the text file
+            with open(INJECTION_ROI_COUNT_PATH, "w") as count_file:
+                count_file.write(str(count_data))
+            with open(INJECTION_ROI_MEAN_PATH, "w") as mean_file:
+                mean_file.write(str(mean_data))
+            with open(INJECTION_ROI_MEDIAN_PATH, "w") as median_file:
+                median_file.write(str(median_data))
+            with open(INJECTION_ROI_MIN_PATH, "w") as min_file:
+                min_file.write(str(min_data))
+            with open(INJECTION_ROI_MAX_PATH, "w") as max_file:
+                max_file.write(str(max_data))
+            with open(INJECTION_ROI_STD_PATH, "w") as std_file:
+                std_file.write(str(std_data))
+
+
+
+                
+        

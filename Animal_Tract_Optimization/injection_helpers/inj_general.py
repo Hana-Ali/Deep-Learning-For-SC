@@ -183,9 +183,3 @@ def perform_all_general_mrtrix_functions(ALL_DATA_LIST, BMINDS_MBCA_TRANSFORM_FI
     for (cmd, cmd_name) in MRTRIX_GENERAL_CMDS:
         print("Started command: {}".format(cmd_name))
         subprocess.run(cmd, shell=True, check=True)
-
-# Function to extract the ROI name from the combination file
-def extract_roi_name_from_combination_file(combination_file):
-    # Get the ROI name from the combination file
-    ROI_NAME = combination_file.split("/")[-1].split("_ROI_")[-1]
-    return ROI_NAME
