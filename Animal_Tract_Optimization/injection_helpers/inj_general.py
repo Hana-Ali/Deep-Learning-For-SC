@@ -6,6 +6,7 @@ from py_helpers.general_helpers import *
 from py_helpers.shared_helpers import *
 from .inj_general_commands import *
 from numpy import random
+import numpy as np
 
 # Create a list that associates each subject with its T1 and DWI files
 def create_data_list(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_FILES, BMINDS_STREAMLINE_FILES, 
@@ -183,3 +184,24 @@ def perform_all_general_mrtrix_functions(ALL_DATA_LIST, BMINDS_MBCA_TRANSFORM_FI
     for (cmd, cmd_name) in MRTRIX_GENERAL_CMDS:
         print("Started command: {}".format(cmd_name))
         subprocess.run(cmd, shell=True, check=True)
+
+# Function to read the stats file and create a list that has every line
+def read_stats_file(STATS_FILES):
+    # Holds the data
+    STATS_DATA = []
+    # Open the file
+    for stats_file in STATS_FILES:
+        with open(stats_file, "r") as stats_file:
+            # Read the lines
+            lines = stats_file.readlines().rstrip("\n")
+            # Turn into floats
+            lines = [float(line) for line in lines]
+            # Append the lines to the data
+            STATS_DATA.append(lines)
+
+    return np.array(STATS_DATA)
+
+# Function to save the stats vectors read above
+def save_stats_vectors(STATS_DATA, STATS_FILE):
+    # Save the data into a txt file using numpy
+    np.savetxt(STATS_FILE, STATS_DATA, delimiter=",")

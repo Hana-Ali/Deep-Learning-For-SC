@@ -53,13 +53,16 @@ def region_mrtrix_folder_paths(REGION_ID):
     INJECTION_MIF_FOLDER = os.path.join(REGION_MRTRIX_FOLDER, "injection_mifs")
     INJECTION_ROI_TRACTS_FOLDER = os.path.join(REGION_MRTRIX_FOLDER, "injection_ROI_tracts")
     INJECTION_ROI_TRACTS_STATS_FOLDER = os.path.join(REGION_MRTRIX_FOLDER, "injection_ROI_tracts_stats")
+    INJECTION_STATS_MATRIX_FOLDER = os.path.join(REGION_MRTRIX_FOLDER, "injection_connectome")
     check_output_folders(REGION_MRTRIX_FOLDER, "REGION MRTRIX PATH", wipe=False)
     check_output_folders(INJECTION_MIF_FOLDER, "INJECTION MIF PATH", wipe=False)
     check_output_folders(INJECTION_ROI_TRACTS_FOLDER, "INJECTION ROI TRACTS PATH", wipe=False)
     check_output_folders(INJECTION_ROI_TRACTS_STATS_FOLDER, "INJECTION ROI TRACTS STATS PATH", wipe=False)
+    check_output_folders(INJECTION_STATS_MATRIX_FOLDER, "INJECTION STATS MATRIX PATH", wipe=False)
 
     # Return the paths
-    return (REGION_MRTRIX_FOLDER, INJECTION_MIF_FOLDER, INJECTION_ROI_TRACTS_FOLDER, INJECTION_ROI_TRACTS_STATS_FOLDER)
+    return (REGION_MRTRIX_FOLDER, INJECTION_MIF_FOLDER, INJECTION_ROI_TRACTS_FOLDER, INJECTION_ROI_TRACTS_STATS_FOLDER,
+            INJECTION_STATS_MATRIX_FOLDER)
 
 # Function to define the atlas registration USING ANTS AND TRANSFORMATION MATRIX files
 def get_mrtrix_atlas_reg_paths_ants():
@@ -94,8 +97,8 @@ def get_combined_tracts_path():
 def get_injection_mif_path(REGION_ID):
     
     # Get the folder names and paths
-    (REGION_MRTRIX_FOLDER, INJECTION_MIF_FOLDER, INJECTION_ROI_TRACTS_FOLDER, 
-     INJECTION_ROI_TRACTS_STATS_FOLDER) = region_mrtrix_folder_paths(REGION_ID)
+    (REGION_MRTRIX_FOLDER, INJECTION_MIF_FOLDER, INJECTION_ROI_TRACTS_FOLDER, INJECTION_ROI_TRACTS_STATS_FOLDER,
+    INJECTION_STATS_MATRIX_FOLDER) = region_mrtrix_folder_paths(REGION_ID)
 
     # Define the injection mif path
     INJECTION_MIF_PATH = os.path.join(INJECTION_MIF_FOLDER, "{}_injection".format(REGION_ID))
@@ -164,8 +167,8 @@ def get_individual_rois_mif_path(ATLAS_STPT):
 def get_injection_roi_tracts_path(REGION_ID, ROI_ID):
 
     # Get the folder names and paths
-    (REGION_MRTRIX_FOLDER, INJECTION_MIF_FOLDER, INJECTION_ROI_TRACTS_FOLDER, 
-     INJECTION_ROI_TRACTS_STATS_FOLDER) = region_mrtrix_folder_paths(REGION_ID)
+    (REGION_MRTRIX_FOLDER, INJECTION_MIF_FOLDER, INJECTION_ROI_TRACTS_FOLDER, INJECTION_ROI_TRACTS_STATS_FOLDER,
+    INJECTION_STATS_MATRIX_FOLDER) = region_mrtrix_folder_paths(REGION_ID)
 
     # Define the injection ROI tracts path
     INJECTION_ROI_TRACTS_PATH = os.path.join(INJECTION_ROI_TRACTS_FOLDER, "ROI_{}_tracts".format(ROI_ID))
@@ -177,8 +180,8 @@ def get_injection_roi_tracts_path(REGION_ID, ROI_ID):
 def get_injection_roi_tracts_stats_path(REGION_ID, ROI_ID):
     
     # Get the folder names and paths
-    (REGION_MRTRIX_FOLDER, INJECTION_MIF_FOLDER, INJECTION_ROI_TRACTS_FOLDER, 
-    INJECTION_ROI_TRACTS_STATS_FOLDER) = region_mrtrix_folder_paths(REGION_ID)
+    (REGION_MRTRIX_FOLDER, INJECTION_MIF_FOLDER, INJECTION_ROI_TRACTS_FOLDER, INJECTION_ROI_TRACTS_STATS_FOLDER,
+    INJECTION_STATS_MATRIX_FOLDER) = region_mrtrix_folder_paths(REGION_ID)
 
     # Define the injection ROI tracts stats path
     INJECTION_ROI_LENGTHS_PATH = os.path.join(INJECTION_ROI_TRACTS_STATS_FOLDER, "ROI_{}_tracts_length.txt".format(ROI_ID))
@@ -193,3 +196,24 @@ def get_injection_roi_tracts_stats_path(REGION_ID, ROI_ID):
     # Return the path
     return (INJECTION_ROI_LENGTHS_PATH, INJECTION_ROI_COUNT_PATH, INJECTION_ROI_MEAN_PATH, INJECTION_ROI_MEDIAN_PATH,
             INJECTION_ROI_STD_PATH, INJECTION_ROI_MIN_PATH, INJECTION_ROI_MAX_PATH)
+
+# Function to define the injection connectome path
+def get_injection_matrices_path(REGION_ID):
+
+    # Get the folder names and paths
+    (REGION_MRTRIX_FOLDER, INJECTION_MIF_FOLDER, INJECTION_ROI_TRACTS_FOLDER, INJECTION_ROI_TRACTS_STATS_FOLDER,
+    INJECTION_CONNECTOME_FOLDER) = region_mrtrix_folder_paths(REGION_ID)
+
+    # Define the injection connectome path
+    INJECTION_LENGTH_MATRIX_PATH = os.path.join(INJECTION_CONNECTOME_FOLDER, "{}_vector_length.txt".format(REGION_ID))
+    INJECTION_COUNT_MATRIX_PATH = os.path.join(INJECTION_CONNECTOME_FOLDER, "{}_vector_count.txt".format(REGION_ID))
+    INJECTION_MEAN_MATRIX_PATH = os.path.join(INJECTION_CONNECTOME_FOLDER, "{}_vector_mean.txt".format(REGION_ID))
+    INJECTION_MEDIAN_MATRIX_PATH = os.path.join(INJECTION_CONNECTOME_FOLDER, "{}_vector_median.txt".format(REGION_ID))
+    INJECTION_STD_MATRIX_PATH = os.path.join(INJECTION_CONNECTOME_FOLDER, "{}_vector_std.txt".format(REGION_ID))
+    INJECTION_MIN_MATRIX_PATH = os.path.join(INJECTION_CONNECTOME_FOLDER, "{}_vector_min.txt".format(REGION_ID))
+    INJECTION_MAX_MATRIX_PATH = os.path.join(INJECTION_CONNECTOME_FOLDER, "{}_vector_max.txt".format(REGION_ID))
+
+    # Return the path
+    return (INJECTION_LENGTH_MATRIX_PATH, INJECTION_COUNT_MATRIX_PATH, INJECTION_MEAN_MATRIX_PATH, INJECTION_MEDIAN_MATRIX_PATH,
+            INJECTION_STD_MATRIX_PATH, INJECTION_MIN_MATRIX_PATH, INJECTION_MAX_MATRIX_PATH)
+

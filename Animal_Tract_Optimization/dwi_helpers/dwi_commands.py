@@ -129,7 +129,7 @@ def define_mrtrix_probtrack_commands(ARGS):
     # Probabilistic tractography command
     PROB_TRACT_CMD = "tckgen {wmfod_norm}.mif {output}.tck -algorithm iFOD2 -seed_image {mask}.nii -mask {mask}.nii \
         -angle {opt_angle} -minlength {opt_minlength} -cutoff {opt_cutoff} \
-        -grad {bvec} {bval} -select 300000 -force".format(wmfod_norm=WM_FOD_NORM_PATH, output=TRACT_TCK_PATH, mask=MASK_NII_PATH,
+        -fslgrad {bvec} {bval} -select 300000 -force".format(wmfod_norm=WM_FOD_NORM_PATH, output=TRACT_TCK_PATH, mask=MASK_NII_PATH,
                                                             opt_angle=32.2, opt_cutoff=0.05, opt_minlength=4.8,
                                                             bvec=DWI_NEEDED_PATHS["bvec"], bval=DWI_NEEDED_PATHS["bval"])
     

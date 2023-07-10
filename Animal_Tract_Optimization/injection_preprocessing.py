@@ -30,12 +30,21 @@ def parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, AT
         print("Started {} - {}".format(cmd_name, REGION_ID))
         subprocess.run(mrtrix_cmd, shell=True, check=True) 
 
+    # --------------- Statistics on the generated tck files --------------- #
+
     # Find stats of the streamline files
     STATS_ARGS = [
         REGION_ID,
         ATLAS_STPT
     ]
     grab_and_find_stats_between_injection_and_roi(STATS_ARGS)
+
+    # Concatenate the results of all the ROIs for each injection into a vector
+    CONCAT_ARGS = [
+        REGION_ID
+    ]
+    concatenate_all_roi_stats(CONCAT_ARGS)
+
 
 # Main function
 def main():

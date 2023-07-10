@@ -38,11 +38,7 @@ def main():
 
     # --------------- Get main folder paths, check inputs/outputs, unzip necessary --------------- #
     # Get whether it's HPC or not
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--hpc', help='Whether or not this is being run on the HPC',
-                        action='store_true')
-    args = parser.parse_args()
-    hpc = args.hpc
+    hpc = int(sys.argv[1])
     # Get the folder paths
     (BMINDS_DATA_FOLDER, BMINDS_OUTPUTS_DMRI_FOLDER, BMINDS_OUTPUTS_INJECTIONS_FOLDER, BMINDS_CORE_FOLDER,
         BMINDS_DWI_FOLDER, BMINDS_METADATA_FOLDER, BMINDS_TEMPLATES_FOLDER, BMINDS_ATLAS_FOLDER, BMINDS_STPT_TEMPLATE_FOLDER, 

@@ -37,8 +37,8 @@ def check_missing_region_files(ARGS):
     (GENERAL_MRTRIX_FOLDER, SPECIFIC_MRTRIX_FOLDER, ATLAS_REG_FOLDER_NAME, COMBINED_TRACTS_FOLDER_NAME, 
         COMBINED_CONNECTOME_FOLDER_NAME, INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME, 
         INDIVIDUAL_ROIS_MIF_FOLDER_NAME) = main_mrtrix_folder_paths()
-    (REGION_MRTRIX_FOLDER, INJECTION_MIF_FOLDER, INJECTION_ROI_TRACTS_FOLDER, 
-     INJECTION_ROI_TRACTS_STATS_FOLDER) = region_mrtrix_folder_paths(REGION_ID)
+    (REGION_MRTRIX_FOLDER, INJECTION_MIF_FOLDER, INJECTION_ROI_TRACTS_FOLDER, INJECTION_ROI_TRACTS_STATS_FOLDER,
+    INJECTION_STATS_MATRIX_FOLDER) = region_mrtrix_folder_paths(REGION_ID)
 
     # --------------------- MRTRIX INJECTION MIFS CHECK
     INJECTION_MIFS = check_missing_injection_mifs(REGION_ID, INJECTION_MIF_FOLDER)
@@ -108,8 +108,8 @@ def check_missing_injection_mifs(REGION_ID, INJECTION_MIF_FOLDER):
     INJECTION_MIFS = True
     # Get the MRtrix injection mifs paths
     INJECTION_MIF_PATH = get_injection_mif_path(REGION_ID)
-    (REGION_MRTRIX_FOLDER, INJECTION_MIF_FOLDER, INJECTION_ROI_TRACTS_FOLDER, 
-     INJECTION_ROI_TRACTS_STATS_FOLDER) = region_mrtrix_folder_paths(REGION_ID)
+    (REGION_MRTRIX_FOLDER, INJECTION_MIF_FOLDER, INJECTION_ROI_TRACTS_FOLDER, INJECTION_ROI_TRACTS_STATS_FOLDER,
+    INJECTION_STATS_MATRIX_FOLDER) = region_mrtrix_folder_paths(REGION_ID)
     # Grab all the mif files
     INJECTION_MIF_FILES = glob_files(INJECTION_MIF_FOLDER, "mif")
     # Check that we have all the files we need
@@ -221,6 +221,12 @@ def not_done_yet_injection_roi_tckedit(REGION_ID, ATLAS_STPT, INJECTION_ROI_TRAC
         if not any(INJECTION_ROI_TRACTS_PATH in injection_roi_tracts_file for injection_roi_tracts_file in INJECTION_ROI_TRACTS_FILES):
             # Add the ROI to the list of ROIs we haven't done yet
             INJECTION_ROIS_NOT_DONE.append(roi_name)
+    
+    # Save them to a file
+    INJECTION_ROIS_NOT_DONE_PATH = os.path.join(INJECTION_ROI_TRACTS_FOLDER, "injection_rois_not_done.txt")
+    with open(INJECTION_ROIS_NOT_DONE_PATH, "w") as f:
+        for roi_name in INJECTION_ROIS_NOT_DONE:
+            f.write(roi_name + "\n")
             
     # Return the variable
     return (INJECTION_ROIS_NOT_DONE)

@@ -3,6 +3,7 @@ import sys
 sys.path.append("..")
 from .inj_paths import *
 from .inj_checkpoints import *
+from .inj_general import *
 from py_helpers.shared_helpers import *
 import numpy as np
 
@@ -172,8 +173,8 @@ def find_number_of_streamlines_between_injection_and_roi(ARGS):
     ATLAS_STPT = ARGS[1]
 
     # Get the paths we need
-    (REGION_MRTRIX_FOLDER, INJECTION_MIF_FOLDER, INJECTION_ROI_TRACTS_FOLDER, 
-     INJECTION_ROI_TRACTS_STATS_FOLDER) = region_mrtrix_folder_paths(REGION_ID)
+    (REGION_MRTRIX_FOLDER, INJECTION_MIF_FOLDER, INJECTION_ROI_TRACTS_FOLDER, INJECTION_ROI_TRACTS_STATS_FOLDER,
+    INJECTION_STATS_MATRIX_FOLDER) = region_mrtrix_folder_paths(REGION_ID)
     (INDIVIDUAL_ROIS_MIF_PATHS) = get_individual_rois_mif_path(ATLAS_STPT)
     (INJECTION_MIF_PATH) = get_injection_mif_path(REGION_ID)
     (COMBINED_TRACTS_PATH) = get_combined_tracts_path()
@@ -185,12 +186,15 @@ def find_number_of_streamlines_between_injection_and_roi(ARGS):
     # This will tell us which ROIs are yet to be done
     (ROIS_TO_DO) = not_done_yet_injection_roi_tckedit(REGION_ID, ATLAS_STPT, INJECTION_ROI_TRACTS_FOLDER)
 
+    print("For region {}, we have {} ROIs to do".format(REGION_ID, len(ROIS_TO_DO)))
+
     # For every ROI, find the number of streamlines between the injection site and the ROI
     for idx, roi_mif_path in enumerate(INDIVIDUAL_ROIS_MIF_PATHS):
         # Get the ROI name or ID
         roi_name = roi_mif_path.split("/")[-1]
         # Check if we need to do this ROI
         if roi_name not in ROIS_TO_DO:
+            print("Skipping ROI {}".format(roi_name))
             continue
         # Get the injection ROI tracts path
         (INJECTION_ROI_TRACTS_PATH) = get_injection_roi_tracts_path(REGION_ID, roi_name)
@@ -211,8 +215,8 @@ def call_stats_between_injection_and_roi(ARGS):
     ATLAS_STPT = ARGS[1]
 
     # Get the paths we need
-    (REGION_MRTRIX_FOLDER, INJECTION_MIF_FOLDER, INJECTION_ROI_TRACTS_FOLDER, 
-     INJECTION_ROI_TRACTS_STATS_FOLDER) = region_mrtrix_folder_paths(REGION_ID)
+    (REGION_MRTRIX_FOLDER, INJECTION_MIF_FOLDER, INJECTION_ROI_TRACTS_FOLDER, INJECTION_ROI_TRACTS_STATS_FOLDER,
+        INJECTION_STATS_MATRIX_FOLDER) = region_mrtrix_folder_paths(REGION_ID)
     (INDIVIDUAL_ROIS_MIF_PATHS) = get_individual_rois_mif_path(ATLAS_STPT)
 
     # This will hold all the commands
@@ -288,7 +292,58 @@ def grab_and_find_stats_between_injection_and_roi(ARGS):
             with open(INJECTION_ROI_STD_PATH, "w") as std_file:
                 std_file.write(str(std_data))
 
+# Function to concatenate the results of the stats for ALL regions of each injection to make the connectome
+def concatenate_all_roi_stats(ARGS):
+
+    # Extract arguments needed to define paths
+    REGION_ID = ARGS[0]
+
+    # Get the paths we need
+    (REGION_MRTRIX_FOLDER, INJECTION_MIF_FOLDER, INJECTION_ROI_TRACTS_FOLDER, INJECTION_ROI_TRACTS_STATS_FOLDER,
+    INJECTION_STATS_MATRIX_FOLDER) = region_mrtrix_folder_paths(REGION_ID)
+    (INJECTION_LENGTH_MATRIX_PATH, INJECTION_COUNT_MATRIX_PATH, INJECTION_MEAN_MATRIX_PATH, INJECTION_MEDIAN_MATRIX_PATH,
+    INJECTION_STD_MATRIX_PATH, INJECTION_MIN_MATRIX_PATH, INJECTION_MAX_MATRIX_PATH) = get_injection_matrices_path(REGION_ID)
+
+    # Get all the txt files in the stats folder
+    STATS_FILES = glob_files(INJECTION_ROI_TRACTS_STATS_FOLDER, "txt")
+
+    # Filter files according to name
+    LENGTH_FILES = [file for file in STATS_FILES if "length" in file]
+    COUNT_FILES = [file for file in STATS_FILES if "count" in file]
+    MEAN_FILES = [file for file in STATS_FILES if "mean" in file]
+    MEDIAN_FILES = [file for file in STATS_FILES if "median" in file]
+    STD_FILES = [file for file in STATS_FILES if "std" in file]
+    MIN_FILES = [file for file in STATS_FILES if "min" in file]
+    MAX_FILES = [file for file in STATS_FILES if "max" in file]
+
+    # Make sure files aren't empty
+    check_globbed_files(LENGTH_FILES, "LENGTH_FILES")
+    check_globbed_files(COUNT_FILES, "COUNT_FILES")
+    check_globbed_files(MEAN_FILES, "MEAN_FILES")
+    check_globbed_files(MEDIAN_FILES, "MEDIAN_FILES")
+    check_globbed_files(STD_FILES, "STD_FILES")
+    check_globbed_files(MIN_FILES, "MIN_FILES")
+    check_globbed_files(MAX_FILES, "MAX_FILES")
+
+    # For every file, concatenate the stats into a list
+    LENGTHS_DATA = read_stats_file(LENGTH_FILES)    
+    COUNT_DATA = read_stats_file(COUNT_FILES)
+    MEAN_DATA = read_stats_file(MEAN_FILES)
+    MEDIAN_DATA = read_stats_file(MEDIAN_FILES)
+    STD_DATA = read_stats_file(STD_FILES)
+    MIN_DATA = read_stats_file(MIN_FILES)
+    MAX_DATA = read_stats_file(MAX_FILES)
+
+    # Save the data to the stats files
+    save_stats_vectors(LENGTHS_DATA, INJECTION_LENGTH_MATRIX_PATH)
+    save_stats_vectors(COUNT_DATA, INJECTION_COUNT_MATRIX_PATH)
+    save_stats_vectors(MEAN_DATA, INJECTION_MEAN_MATRIX_PATH)
+    save_stats_vectors(MEDIAN_DATA, INJECTION_MEDIAN_MATRIX_PATH)
+    save_stats_vectors(STD_DATA, INJECTION_STD_MATRIX_PATH)
+    save_stats_vectors(MIN_DATA, INJECTION_MIN_MATRIX_PATH)
+    save_stats_vectors(MAX_DATA, INJECTION_MAX_MATRIX_PATH)
 
 
-                
-        
+
+
+
