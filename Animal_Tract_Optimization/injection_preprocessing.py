@@ -31,6 +31,11 @@ def parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, AT
         subprocess.run(mrtrix_cmd, shell=True, check=True) 
 
     # Find stats of the streamline files
+    STATS_ARGS = [
+        REGION_ID,
+        ATLAS_STPT
+    ]
+    grab_and_find_stats_between_injection_and_roi(STATS_ARGS)
 
 # Main function
 def main():

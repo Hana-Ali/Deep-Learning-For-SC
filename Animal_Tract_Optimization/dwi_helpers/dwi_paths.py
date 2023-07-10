@@ -90,7 +90,7 @@ def get_mrtrix_fod_paths(REGION_ID):
                 WM_FOD_PATH, GM_FOD_PATH, CSF_FOD_PATH, VF_FOD_PATH, WM_FOD_NORM_PATH, GM_FOD_NORM_PATH, CSF_FOD_NORM_PATH)
 
 # Define MRtrix Registration paths
-def get_mrtrix_registration_paths(REGION_ID, ATLAS):
+def get_mrtrix_registration_paths(REGION_ID, ATLAS_NEEDED_PATH):
     
     # Get the folder names
     (REGION_MRTRIX_PATH, GENERAL_FOLDER_NAME, RESPONSE_FOLDER_NAME, FOD_FOLDER_NAME, 
@@ -105,7 +105,8 @@ def get_mrtrix_registration_paths(REGION_ID, ATLAS):
     ATLAS_DWI_CONVERT_INV = os.path.join(ATLAS_REG_FOLDER_NAME, "{}_atlas2dwi_mrtrix".format(REGION_ID))
     ATLAS_REG_PATH = os.path.join(ATLAS_REG_FOLDER_NAME, "{}_atlasreg".format(REGION_ID))
     # Getting the name of the atlas without .nii.gz
-    ATLAS_NAME = ATLAS["atlas"].split("/")[-1].split(".")[0]
+    print("ATLAS_NEEDED_PATH IN PATHS: {}".format(ATLAS_NEEDED_PATH))
+    ATLAS_NAME = ATLAS_NEEDED_PATH["atlas"].split("/")[-1].split(".")[0]
     ATLAS_MIF_PATH = os.path.join(ATLAS_REG_FOLDER_NAME, "{}_atlas_mif".format(ATLAS_NAME))
 
     # Return the paths

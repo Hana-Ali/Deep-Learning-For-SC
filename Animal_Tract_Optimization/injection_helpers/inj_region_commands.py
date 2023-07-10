@@ -43,8 +43,7 @@ def mrtrix_all_region_functions(ARGS):
 
     # Check if we need to do the above commands
     CHECKPOINT_ARGS = [REGION_ID, ATLAS_STPT]
-    (INJECTION_MIFS, MRTRIX_ATLAS_ROIS, MRTRIX_ATLAS_MIF_CONVERSION, 
-     INJECTION_ROI_TRACTS, INJECTION_ROI_TRACTS_STATS) = check_missing_region_files(CHECKPOINT_ARGS)
+    (INJECTION_MIFS, MRTRIX_ATLAS_ROIS, MRTRIX_ATLAS_MIF_CONVERSION) = check_missing_region_files(CHECKPOINT_ARGS)
 
     # Create MRTRIX commands, depending on what we need to do
     MRTRIX_COMMANDS = []
@@ -62,16 +61,14 @@ def mrtrix_all_region_functions(ARGS):
             MRTRIX_COMMANDS.extend([
                 (conversion, "Converting ROI {} to mif".format(idx))
             ])
-    if INJECTION_ROI_TRACTS:
-        for idx, streamline_editing in enumerate(FIND_STREAMLINES_CMD):
-            MRTRIX_COMMANDS.extend([
-                (streamline_editing, "Finding streamlines between injection site and ROI {}".format(idx))
-            ])
-    # if INJECTION_ROI_TRACTS_STATS:
-    #     for idx, streamline_stats in enumerate(FIND_STATS_CMD):
-    #         MRTRIX_COMMANDS.extend([
-    #             (streamline_stats, "Finding stats of streamlines between injection site and ROI {}".format(idx))
-    #         ])
+    for idx, streamline_editing in enumerate(FIND_STREAMLINES_CMD):
+        MRTRIX_COMMANDS.extend([
+            (streamline_editing, "Finding streamlines between injection site and ROI {}".format(idx))
+        ])
+    for idx, streamline_stats in enumerate(FIND_STATS_CMD):
+        MRTRIX_COMMANDS.extend([
+            (streamline_stats, "Finding stats of streamlines between injection site and ROI {}".format(idx))
+        ])
 
     # Return the commands
     return (MRTRIX_COMMANDS)
@@ -175,6 +172,8 @@ def find_number_of_streamlines_between_injection_and_roi(ARGS):
     ATLAS_STPT = ARGS[1]
 
     # Get the paths we need
+    (REGION_MRTRIX_FOLDER, INJECTION_MIF_FOLDER, INJECTION_ROI_TRACTS_FOLDER, 
+     INJECTION_ROI_TRACTS_STATS_FOLDER) = region_mrtrix_folder_paths(REGION_ID)
     (INDIVIDUAL_ROIS_MIF_PATHS) = get_individual_rois_mif_path(ATLAS_STPT)
     (INJECTION_MIF_PATH) = get_injection_mif_path(REGION_ID)
     (COMBINED_TRACTS_PATH) = get_combined_tracts_path()
@@ -183,10 +182,16 @@ def find_number_of_streamlines_between_injection_and_roi(ARGS):
     # This will hold all the commands
     TCKEDIT_COMMANDS = []
 
+    # This will tell us which ROIs are yet to be done
+    (ROIS_TO_DO) = not_done_yet_injection_roi_tckedit(REGION_ID, ATLAS_STPT, INJECTION_ROI_TRACTS_FOLDER)
+
     # For every ROI, find the number of streamlines between the injection site and the ROI
     for idx, roi_mif_path in enumerate(INDIVIDUAL_ROIS_MIF_PATHS):
         # Get the ROI name or ID
         roi_name = roi_mif_path.split("/")[-1]
+        # Check if we need to do this ROI
+        if roi_name not in ROIS_TO_DO:
+            continue
         # Get the injection ROI tracts path
         (INJECTION_ROI_TRACTS_PATH) = get_injection_roi_tracts_path(REGION_ID, roi_name)
         # Find the number of streamlines between the injection site and the ROI
@@ -206,15 +211,23 @@ def call_stats_between_injection_and_roi(ARGS):
     ATLAS_STPT = ARGS[1]
 
     # Get the paths we need
+    (REGION_MRTRIX_FOLDER, INJECTION_MIF_FOLDER, INJECTION_ROI_TRACTS_FOLDER, 
+     INJECTION_ROI_TRACTS_STATS_FOLDER) = region_mrtrix_folder_paths(REGION_ID)
     (INDIVIDUAL_ROIS_MIF_PATHS) = get_individual_rois_mif_path(ATLAS_STPT)
 
     # This will hold all the commands
     TCKSTATS_COMMANDS = []
 
+    # This will tell us which ROIs are yet to be done
+    (ROIS_TO_DO) = not_done_yet_injection_roi_stats(REGION_ID, ATLAS_STPT, INJECTION_ROI_TRACTS_STATS_FOLDER)
+
     # For every ROI, find the stats of the number of streamlines between the injection site and the ROI
     for idx, roi_mif_path in enumerate(INDIVIDUAL_ROIS_MIF_PATHS):
         # Get the ROI name or ID
         roi_name = roi_mif_path.split("/")[-1]
+        # Check if we need to do this ROI
+        if roi_name not in ROIS_TO_DO:
+            continue
         # Get the injection ROI tracts and stats path
         (INJECTION_ROI_TRACTS_PATH) = get_injection_roi_tracts_path(REGION_ID, roi_name)
         (INJECTION_ROI_LENGTHS_PATH, INJECTION_ROI_COUNT_PATH, INJECTION_ROI_MEAN_PATH, 
@@ -232,7 +245,7 @@ def call_stats_between_injection_and_roi(ARGS):
     return (TCKSTATS_COMMANDS)
 
 # Function to actually grab the stats file and get various things
-def grab_stats_between_injection_and_roi(ARGS):
+def grab_and_find_stats_between_injection_and_roi(ARGS):
 
     # Extract arguments needed to define paths
     REGION_ID = ARGS[0]

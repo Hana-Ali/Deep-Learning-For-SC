@@ -50,13 +50,13 @@ def check_missing_region_files(ARGS):
     MRTRIX_ATLAS_MIF_CONVERSION = check_missing_atlas_mif_conversion(ATLAS_STPT, INDIVIDUAL_ROIS_MIF_FOLDER_NAME)
 
     # --------------------- MRTRIX INJECTION ROI TRACTS CHECK
-    INJECTION_ROI_TRACTS = check_missing_injection_roi_tracts(REGION_ID, ATLAS_STPT, INJECTION_ROI_TRACTS_FOLDER)
+    # INJECTION_ROI_TRACTS = check_missing_injection_roi_tracts(REGION_ID, ATLAS_STPT, INJECTION_ROI_TRACTS_FOLDER)
 
     # --------------------- MRTRIX INJECTION ROI TRACTS STATS CHECK
-    INJECTION_ROI_TRACTS_STATS = check_missing_injection_roi_tracts_stats(REGION_ID, ATLAS_STPT, INJECTION_ROI_TRACTS_STATS_FOLDER)
+    # INJECTION_ROI_TRACTS_STATS = check_missing_injection_roi_tracts_stats(REGION_ID, ATLAS_STPT, INJECTION_ROI_TRACTS_STATS_FOLDER)
 
     # Return the variables
-    return (INJECTION_MIFS, MRTRIX_ATLAS_ROIS, MRTRIX_ATLAS_MIF_CONVERSION, INJECTION_ROI_TRACTS, INJECTION_ROI_TRACTS_STATS)
+    return (INJECTION_MIFS, MRTRIX_ATLAS_ROIS, MRTRIX_ATLAS_MIF_CONVERSION)
 
 # Function to check missing mrtrix atlas registration
 def check_missing_atlas_registration_ants(ATLAS_REG_FOLDER_NAME):
@@ -202,6 +202,29 @@ def check_missing_injection_roi_tracts(REGION_ID, ATLAS_STPT, INJECTION_ROI_TRAC
     # Return the variable
     return (INJECTION_ROI_TRACTS)
 
+# This function returns which rois have not been done yet
+# Check missing injection ROI tracts - only the ones that haven't been done before
+def not_done_yet_injection_roi_tckedit(REGION_ID, ATLAS_STPT, INJECTION_ROI_TRACTS_FOLDER):
+    # Get the paths we need
+    (INDIVIDUAL_ROIS_MIF_PATHS) = get_individual_rois_mif_path(ATLAS_STPT)
+    # This holds which ROIs we haven't done yet
+    INJECTION_ROIS_NOT_DONE = []
+    # For every ROI, check whether or not we need to redo processing
+    for idx, roi_mif_path in enumerate(INDIVIDUAL_ROIS_MIF_PATHS):
+        # Get the ROI name or ID
+        roi_name = roi_mif_path.split("/")[-1]
+        # Get the injection ROI tracts and stats path
+        (INJECTION_ROI_TRACTS_PATH) = get_injection_roi_tracts_path(REGION_ID, roi_name)
+        # Grab all the tck files
+        INJECTION_ROI_TRACTS_FILES = glob_files(INJECTION_ROI_TRACTS_FOLDER, "tck")
+        # Check that we have all the files we need
+        if not any(INJECTION_ROI_TRACTS_PATH in injection_roi_tracts_file for injection_roi_tracts_file in INJECTION_ROI_TRACTS_FILES):
+            # Add the ROI to the list of ROIs we haven't done yet
+            INJECTION_ROIS_NOT_DONE.append(roi_name)
+            
+    # Return the variable
+    return (INJECTION_ROIS_NOT_DONE)
+
 # Check missing injection ROI tracts stats
 def check_missing_injection_roi_tracts_stats(REGION_ID, ATLAS_STPT, INJECTION_ROI_TRACTS_STATS_FOLDER):
     # Define variable that stores whether or not we should do MRtrix general processing
@@ -238,3 +261,33 @@ def check_missing_injection_roi_tracts_stats(REGION_ID, ATLAS_STPT, INJECTION_RO
 
     # Return the variable
     return (INJECTION_ROI_TRACTS_STATS)
+
+# Check which injection ROIs haven't been done yet for stats
+def not_done_yet_injection_roi_stats(REGION_ID, ATLAS_STPT, INJECTION_ROI_TRACTS_STATS_FOLDER):
+    # Get the paths we need
+    (INDIVIDUAL_ROIS_MIF_PATHS) = get_individual_rois_mif_path(ATLAS_STPT)
+    # This holds which ROIs we haven't done yet
+    INJECTION_ROIS_NOT_DONE = []
+    # For every ROI, check whether or not we need to redo processing
+    for idx, roi_mif_path in enumerate(INDIVIDUAL_ROIS_MIF_PATHS):
+        # Get the ROI name or ID
+        roi_name = roi_mif_path.split("/")[-1]
+        # Get the injection ROI tracts and stats path
+        (INJECTION_ROI_LENGTHS_PATH, INJECTION_ROI_COUNT_PATH, INJECTION_ROI_MEAN_PATH,
+            INJECTION_ROI_MEDIAN_PATH, INJECTION_ROI_STD_PATH, INJECTION_ROI_MIN_PATH,
+            INJECTION_ROI_MAX_PATH) = get_injection_roi_tracts_stats_path(REGION_ID, roi_name)
+        # Grab all the txt files
+        INJECTION_ROI_STATS_FILES = glob_files(INJECTION_ROI_TRACTS_STATS_FOLDER, "txt")
+        # Check that we have all the files we need
+        if (not any(INJECTION_ROI_LENGTHS_PATH in injection_roi_stats_file for injection_roi_stats_file in INJECTION_ROI_STATS_FILES)
+            or not any(INJECTION_ROI_COUNT_PATH in injection_roi_stats_file for injection_roi_stats_file in INJECTION_ROI_STATS_FILES)
+            or not any(INJECTION_ROI_MEAN_PATH in injection_roi_stats_file for injection_roi_stats_file in INJECTION_ROI_STATS_FILES)
+            or not any(INJECTION_ROI_MEDIAN_PATH in injection_roi_stats_file for injection_roi_stats_file in INJECTION_ROI_STATS_FILES)
+            or not any(INJECTION_ROI_STD_PATH in injection_roi_stats_file for injection_roi_stats_file in INJECTION_ROI_STATS_FILES)
+            or not any(INJECTION_ROI_MIN_PATH in injection_roi_stats_file for injection_roi_stats_file in INJECTION_ROI_STATS_FILES)
+            or not any(INJECTION_ROI_MAX_PATH in injection_roi_stats_file for injection_roi_stats_file in INJECTION_ROI_STATS_FILES)):
+            # Add the ROI to the list of ROIs we haven't done yet
+            INJECTION_ROIS_NOT_DONE.append(roi_name)
+
+    # Return the variable
+    return (INJECTION_ROIS_NOT_DONE)
