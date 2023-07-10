@@ -195,7 +195,7 @@ def find_number_of_streamlines_between_injection_and_roi(ARGS):
         # Get the injection ROI tracts path
         (INJECTION_ROI_TRACTS_PATH) = get_injection_roi_tracts_path(REGION_ID, roi_name)
         # Find the number of streamlines between the injection site and the ROI
-        FIND_STREAMLINES_CMD = "tckedit {all_tracts}.tck -include {inj_site}.mif -include {atlas_roi}.mif {output}.tck".format(
+        FIND_STREAMLINES_CMD = "tckedit {all_tracts}.tck -include {inj_site}.mif -include {atlas_roi}.mif {output}.tck -force".format(
             all_tracts=COMBINED_TRACTS_PATH, inj_site=INJECTION_MIF_PATH, atlas_roi=ATLAS_REG_MIF_PATH, output=INJECTION_ROI_TRACTS_PATH)
         # Add the command to the list
         TCKEDIT_COMMANDS.append(FIND_STREAMLINES_CMD)
@@ -236,7 +236,7 @@ def call_stats_between_injection_and_roi(ARGS):
         # Find the stats of the number of streamlines between the injection site and the ROI. Note that it PRINTS out
         # everything, but we can grab the count by counting the number of lines in the file
         # Can also get the mean, median, min, max, std, etc. by doing other modifications on the text file
-        FIND_STATS_CMD = "tckstats {input}.tck -dump {output}".format(input=INJECTION_ROI_TRACTS_PATH, 
+        FIND_STATS_CMD = "tckstats {input}.tck -dump {output} -force".format(input=INJECTION_ROI_TRACTS_PATH, 
                                                                         output=INJECTION_ROI_LENGTHS_PATH)
         # Add the command to the list
         TCKSTATS_COMMANDS.append(FIND_STATS_CMD)

@@ -6,7 +6,7 @@ import shutil
 # Get the main paths
 def get_main_paths(hpc):
     # Depending on whether we're in HPC or not, paths change
-    if hpc == True:
+    if hpc:
         BMINDS_DATA_FOLDER = "/rds/general/user/hsa22/ephemeral/Brain_MINDS"
         BMINDS_OUTPUTS_DMRI_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "processed_dMRI"))
         BMINDS_OUTPUTS_INJECTIONS_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "processed_injections"))        

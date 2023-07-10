@@ -122,7 +122,7 @@ def define_mrtrix_probtrack_commands(ARGS):
             CSF_FOD_NORM_PATH) = get_mrtrix_fod_paths(REGION_ID)
     # Get the registration paths
     (DWI_B0_PATH, DWI_B0_NII, ATLAS_DWI_MAP_MAT, ATLAS_DWI_CONVERT_INV, 
-     ATLAS_REG_PATH, ATLAS_MIF_PATH) = get_mrtrix_registration_paths(REGION_ID, ATLAS_NEEDED_PATH["atlas"])
+     ATLAS_REG_PATH, ATLAS_MIF_PATH) = get_mrtrix_registration_paths(REGION_ID, ATLAS_NEEDED_PATH)
     # Get the probabilistic tracking paths
     (GM_WM_SEED_PATH, TRACT_TCK_PATH) = get_mrtrix_probtrack_paths(REGION_ID)
     
@@ -150,7 +150,7 @@ def define_mrtrix_connectome_commands(ARGS):
 
     # Get the registration paths
     (DWI_B0_PATH, DWI_B0_NII, ATLAS_DWI_MAP_MAT, ATLAS_DWI_CONVERT_INV, 
-     ATLAS_REG_PATH, ATLAS_MIF_PATH) = get_mrtrix_registration_paths(REGION_ID, ATLAS_NEEDED_PATH["atlas"])
+     ATLAS_REG_PATH, ATLAS_MIF_PATH) = get_mrtrix_registration_paths(REGION_ID, ATLAS_NEEDED_PATH)
     # Get the probabilistic tracking paths
     (GM_WM_SEED_PATH, TRACT_TCK_PATH) = get_mrtrix_probtrack_paths(REGION_ID)
     # Get the connectivity paths

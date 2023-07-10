@@ -41,11 +41,7 @@ def parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, AT
 def main():
     # --------------- Get main folder paths, check inputs/outputs, unzip necessary --------------- #
     # Get whether it's HPC or not
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--hpc', help='Whether or not this is being run on the HPC',
-                        action='store_true')
-    args = parser.parse_args()
-    hpc = args.hpc
+    hpc = int(sys.argv[1])
     (BMINDS_DATA_FOLDER, BMINDS_OUTPUTS_DMRI_FOLDER, BMINDS_OUTPUTS_INJECTIONS_FOLDER, BMINDS_CORE_FOLDER,
         BMINDS_DWI_FOLDER, BMINDS_METADATA_FOLDER, BMINDS_TEMPLATES_FOLDER, BMINDS_ATLAS_FOLDER, BMINDS_STPT_TEMPLATE_FOLDER, 
         BMINDS_TRANSFORMS_FOLDER, BMINDS_INJECTIONS_FOLDER, BMINDS_UNZIPPED_DWI_FOLDER, MAIN_MRTRIX_FOLDER_DMRI, 
@@ -108,16 +104,16 @@ def main():
 
     # --------------- Preprocessing the data to get the right file formats --------------- #
     if hpc:
-        # # Get the current region based on the command-line
-        # region_idx = int(sys.argv[1])
-        # # Get the data of the indexed region in the list
-        # (REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT, TRANSFORMS) = ALL_DATA_LIST[region_idx]
-        # # Call the parallel process function on this region
-        # parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT, TRANSFORMS)
+        # Get the current region based on the command-line
+        region_idx = int(sys.argv[2])
         # Get the data of the indexed region in the list
-        (REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT, TRANSFORMS) = ALL_DATA_LIST[0]
+        (REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT, TRANSFORMS) = ALL_DATA_LIST[region_idx]
         # Call the parallel process function on this region
         parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT, TRANSFORMS)
+        # Get the data of the indexed region in the list
+        # (REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT, TRANSFORMS) = ALL_DATA_LIST[0]
+        # # Call the parallel process function on this region
+        # parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT, TRANSFORMS)
 
     else:
         # Call the parallel process function on all regions - serially
