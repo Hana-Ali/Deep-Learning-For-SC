@@ -191,7 +191,7 @@ def find_number_of_streamlines_between_injection_and_roi(ARGS):
         (INJECTION_ROI_TRACTS_PATH) = get_injection_roi_tracts_path(REGION_ID, roi_name)
         # Find the number of streamlines between the injection site and the ROI
         FIND_STREAMLINES_CMD = "tckedit {all_tracts}.tck -include {inj_site}.mif -include {atlas_roi}.mif {output}.tck".format(
-            all_tracts=COMBINED_TRACTS_PATH, inj_site=INJECTION_MIF_PATH, output=ATLAS_REG_MIF_PATH, output=INJECTION_ROI_TRACTS_PATH)
+            all_tracts=COMBINED_TRACTS_PATH, inj_site=INJECTION_MIF_PATH, atlas_roi=ATLAS_REG_MIF_PATH, output=INJECTION_ROI_TRACTS_PATH)
         # Add the command to the list
         TCKEDIT_COMMANDS.append(FIND_STREAMLINES_CMD)
 

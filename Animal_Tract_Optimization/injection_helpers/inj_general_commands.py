@@ -103,7 +103,6 @@ def mrtrix_all_general_functions(ARGS):
     STREAMLINE_COMBO_ARGS = [STREAMLINE_FILES]
     (COMBINE_STREAMLINE_CMD) = combine_all_streamline_files(STREAMLINE_COMBO_ARGS)
 
-
     # Check if we need to do the above commands
     CHECK_MISSING_GENERAL_ARGS = [ATLAS_STPT]
     (MRTRIX_ATLAS_REGISTRATION, MRTRIX_STREAMLINE_COMBINATION) = check_missing_general_files(CHECK_MISSING_GENERAL_ARGS)
