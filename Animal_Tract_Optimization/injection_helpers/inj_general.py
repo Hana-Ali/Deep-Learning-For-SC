@@ -392,17 +392,3 @@ def get_stats_from_file(STATS_FILE, TYPE="count"):
     else:
         print("Type {} not allowed. Exiting.".format(TYPE))
         sys.exit()
-
-# Function to save the injections done and not done files
-def record_done_injection_ROIs(INJECTION_ROI_TRACTS_FOLDER, INJECTION_ROI_TRACTS_NAMES, FOUND=True):
-    # Save with different path depending on if found or not
-    if FOUND:
-        INJECTION_ROI_TRACTS_STATUS_PATH = os.path.join(INJECTION_ROI_TRACTS_FOLDER, "injection_ROIs_done.txt")
-    else:
-        INJECTION_ROI_TRACTS_STATUS_PATH = os.path.join(INJECTION_ROI_TRACTS_FOLDER, "injection_ROIs_not_done.txt")
-
-    # Save the injection ROIs done to a text file
-    with open(INJECTION_ROI_TRACTS_STATUS_PATH, "w") as f:
-        for injection_roi_tracts_name_file in INJECTION_ROI_TRACTS_NAMES:
-            f.write(injection_roi_tracts_name_file + "\n")    
-    

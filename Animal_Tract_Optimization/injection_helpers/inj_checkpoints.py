@@ -2,7 +2,7 @@ import sys
 sys.path.append("..")
 from py_helpers.general_helpers import *
 from .inj_paths import *
-from .inj_general import *
+
 # ------------------------------------------------- CHECKING MISSING FILES AND CHECKPOINTS ------------------------------------------------- #
 
 # Function to check which files are missing from the atlas and streamline registration
@@ -239,3 +239,17 @@ def not_done_yet_injection_roi_tckstats(REGION_ID, ATLAS_STPT, INJECTION_ROI_TRA
 
     # Return the variable
     return (INJECTION_ROIS_NOT_DONE)
+
+# Function to save the injections done and not done files
+def record_done_injection_ROIs(INJECTION_ROI_TRACTS_FOLDER, INJECTION_ROI_TRACTS_NAMES, FOUND=True):
+    # Save with different path depending on if found or not
+    if FOUND:
+        INJECTION_ROI_TRACTS_STATUS_PATH = os.path.join(INJECTION_ROI_TRACTS_FOLDER, "injection_ROIs_done.txt")
+    else:
+        INJECTION_ROI_TRACTS_STATUS_PATH = os.path.join(INJECTION_ROI_TRACTS_FOLDER, "injection_ROIs_not_done.txt")
+
+    # Save the injection ROIs done to a text file
+    with open(INJECTION_ROI_TRACTS_STATUS_PATH, "w") as f:
+        for injection_roi_tracts_name_file in INJECTION_ROI_TRACTS_NAMES:
+            f.write(injection_roi_tracts_name_file + "\n")    
+    
