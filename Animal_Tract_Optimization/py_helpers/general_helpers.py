@@ -95,6 +95,14 @@ def glob_files(PATH_NAME, file_format):
         INPUT_FILES.append(file)
     return INPUT_FILES
 
+def glob_files2(PATH_NAME, file_format):
+    INPUT_FILES = []
+    print("Globbing files")
+    for file in glob.glob(os.path.join(PATH_NAME, "*.{}".format(file_format)), recursive=True):
+        INPUT_FILES.append(file)
+    print("Done globbing files")
+    return INPUT_FILES
+
 # Check that the retrieved (GLOBBED) files are not empty
 def check_globbed_files(files, name, verbose=False):
     if len(files) == 0:

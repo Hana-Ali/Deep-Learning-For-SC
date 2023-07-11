@@ -175,6 +175,10 @@ def find_number_of_streamlines_between_injection_and_roi(ARGS):
     ATLAS_STPT = ARGS[1]
     STREAMLINE_FILE = ARGS[2]
 
+    # Extract the tracer_tracts from the streamline file
+    TO_EXTRACT = ["tracer_tracts"]
+    TRACER_TRACTS_FILE = extract_from_input_list(STREAMLINE_FILE, TO_EXTRACT, "streamline")["tracer_tracts"][0]
+
     # This will hold all the commands
     TCKEDIT_COMMANDS = {}
 
@@ -190,7 +194,7 @@ def find_number_of_streamlines_between_injection_and_roi(ARGS):
         (ROIS_TO_DO) = not_done_yet_injection_roi_tckedit(REGION_ID, ATLAS_STPT, CHOSEN_TRACTS_FOLDER, TYPE=tckedit_type)
 
         # Get the commands array and append it to the TCKEDIT_COMMANDS dictionary
-        TCKEDIT_COMMANDS[tckedit_type] = get_tckedit_command(ATLAS_STPT, REGION_ID, ROIS_TO_DO, STREAMLINE_FILE, TYPE=tckedit_type)
+        TCKEDIT_COMMANDS[tckedit_type] = get_tckedit_command(ATLAS_STPT, REGION_ID, ROIS_TO_DO, TRACER_TRACTS_FILE, TYPE=tckedit_type)
 
     # Return the commands
     return (TCKEDIT_COMMANDS)
@@ -303,16 +307,69 @@ def move_existing_data_to_includes_both(ARGS):
      INJECTION_CONNECTOME_INCLUDES_ENDS_ONLY_FOLDER) = region_mrtrix_folder_paths(REGION_ID)
     
     # Grab all tck and txt files in the injection_ROI_tracts folder
-    INJECTION_ROI_TRACTS_TCK_FILES = glob_files(INJECTION_ROI_TRACTS_FOLDER, "tck")
-    INJECTION_ROI_TRACTS_TXT_FILES = glob_files(INJECTION_ROI_TRACTS_FOLDER, "txt")
+    INJECTION_ROI_TRACTS_TCK_FILES = glob_files2(INJECTION_ROI_TRACTS_FOLDER, "tck")
+    INJECTION_ROI_TRACTS_TXT_FILES = glob_files2(INJECTION_ROI_TRACTS_FOLDER, "txt")
+
+    # Make sure files aren't empty
+    print("Checking if files are empty")
+    print("Length of tck files: {}".format(len(INJECTION_ROI_TRACTS_TCK_FILES)))
+    print("Length of txt files: {}".format(len(INJECTION_ROI_TRACTS_TXT_FILES)))
 
     # Move all the tck and txt files to the includes_both folder
     if not os.path.exists(INJECTION_ROI_TRACTS_INCLUDES_BOTH_FOLDER):
         os.makedirs(INJECTION_ROI_TRACTS_INCLUDES_BOTH_FOLDER, exist_ok=True)
+
+    print("Moving files")
     
     # Move all the tck files
     for tck_file in INJECTION_ROI_TRACTS_TCK_FILES:
+        # New path of file
+        new_path = os.path.join(INJECTION_ROI_TRACTS_INCLUDES_BOTH_FOLDER, tck_file.split("/")[-1])
+        # Don't move if it exists
+        if os.path.exists(new_path):
+            continue
+        print("Moving {} to {}".format(tck_file, INJECTION_ROI_TRACTS_INCLUDES_BOTH_FOLDER))
         shutil.move(tck_file, INJECTION_ROI_TRACTS_INCLUDES_BOTH_FOLDER)
     # Move all the txt files
     for txt_file in INJECTION_ROI_TRACTS_TXT_FILES:
+        # New path of file
+        new_path = os.path.join(INJECTION_ROI_TRACTS_INCLUDES_BOTH_FOLDER, txt_file.split("/")[-1])
+        # Don't move if it exists
+        if os.path.exists(new_path):
+            continue
+        print("Moving {} to {}".format(tck_file, INJECTION_ROI_TRACTS_INCLUDES_BOTH_FOLDER))
         shutil.move(txt_file, INJECTION_ROI_TRACTS_INCLUDES_BOTH_FOLDER)
+
+# Function to remove all the injection_roi_found and injection_rois_not_done
+def remove_injection_roi_found_and_not_done(ARGS):
+        # Extract arguments needed to define paths
+    REGION_ID = ARGS[0]
+
+    # Get the paths we need
+    (REGION_MRTRIX_FOLDER, INJECTION_MIF_FOLDER, INJECTION_ROI_TRACTS_FOLDER, INJECTION_ROI_TRACTS_STATS_FOLDER, 
+     INJECTION_CONNECTOME_FOLDER, INJECTION_ROI_TRACTS_INCLUDES_BOTH_FOLDER, INJECTION_ROI_TRACTS_INCLUDES_ROI_ONLY_FOLDER, 
+     INJECTION_ROI_TRACTS_INCLUDES_ENDS_ONLY_FOLDER, INJECTION_ROI_TRACTS_STATS_INCLUDES_BOTH_FOLDER, 
+     INJECTION_ROI_TRACTS_STATS_INCLUDES_ROI_ONLY_FOLDER, INJECTION_ROI_TRACTS_STATS_INCLUDES_ENDS_ONLY_FOLDER,
+     INJECTION_CONNECTOME_INCLUDES_BOTH_FOLDER, INJECTION_CONNECTOME_INCLUDES_ROI_ONLY_FOLDER, 
+     INJECTION_CONNECTOME_INCLUDES_ENDS_ONLY_FOLDER) = region_mrtrix_folder_paths(REGION_ID)
+    
+    # Grab all tck and txt files in the injection_ROI_tracts folder
+    INJECTION_ROI_TRACTS_TXT_FILES = glob_files2(INJECTION_ROI_TRACTS_INCLUDES_BOTH_FOLDER, "txt")
+    # Find the injection_roi_found and injection_rois_not_done files
+    INJECTION_ROI_FOUND_FILES = [file for file in INJECTION_ROI_TRACTS_TXT_FILES if "injection_roi_found" in file]
+    INJECTION_ROIS_NOT_DONE_FILES = [file for file in INJECTION_ROI_TRACTS_TXT_FILES if "injection_rois_not_done" in file]
+
+    # Make sure files aren't empty
+    print("Checking if files are empty")
+    print("Length of txt files: {}".format(len(INJECTION_ROI_FOUND_FILES)))
+    print("Length of txt files: {}".format(len(INJECTION_ROIS_NOT_DONE_FILES)))
+
+    # Remove all the injection_roi_found and injection_rois_not_done files
+    print("Removing files")
+    for file in INJECTION_ROI_FOUND_FILES:
+        print("Removing {}".format(file))
+        os.remove(file)
+    for file in INJECTION_ROIS_NOT_DONE_FILES:
+        print("Removing {}".format(file))
+        os.remove(file)
+
