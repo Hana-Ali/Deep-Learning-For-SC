@@ -223,7 +223,7 @@ def not_done_yet_injection_roi_tckstats(REGION_ID, ATLAS_STPT, INJECTION_ROI_TRA
         # Get the injection ROI tracts and stats path
         (INJECTION_ROI_LENGTHS_PATH, INJECTION_ROI_COUNT_PATH, INJECTION_ROI_MEAN_PATH,
             INJECTION_ROI_MEDIAN_PATH, INJECTION_ROI_STD_PATH, INJECTION_ROI_MIN_PATH,
-            INJECTION_ROI_MAX_PATH) = get_injection_roi_tracts_stats_path(REGION_ID, roi_name)
+            INJECTION_ROI_MAX_PATH) = get_injection_roi_tracts_stats_path(REGION_ID, roi_name, TYPE)
         # Grab all the txt files
         INJECTION_ROI_STATS_FILES = glob_files(INJECTION_ROI_TRACTS_STATS_FOLDER, "txt")
         # Check that we have all the files we need
