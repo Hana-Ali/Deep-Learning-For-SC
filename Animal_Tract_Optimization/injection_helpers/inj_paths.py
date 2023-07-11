@@ -217,3 +217,16 @@ def get_injection_matrices_path(REGION_ID):
     return (INJECTION_LENGTH_MATRIX_PATH, INJECTION_COUNT_MATRIX_PATH, INJECTION_MEAN_MATRIX_PATH, INJECTION_MEDIAN_MATRIX_PATH,
             INJECTION_STD_MATRIX_PATH, INJECTION_MIN_MATRIX_PATH, INJECTION_MAX_MATRIX_PATH)
 
+# Function to define the final major connectome path
+def get_combined_connectome_path():
+
+    # Get the folder names and paths
+    (GENERAL_MRTRIX_FOLDER, SPECIFIC_MRTRIX_FOLDER, ATLAS_REG_FOLDER_NAME, COMBINED_TRACTS_FOLDER_NAME,
+    COMBINED_CONNECTOME_FOLDER_NAME, INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME,
+    INDIVIDUAL_ROIS_MIF_FOLDER_NAME) = main_mrtrix_folder_paths()
+
+    # Define the combined connectome path
+    COMBINED_CONNECTOME_PATH = os.path.join(COMBINED_CONNECTOME_FOLDER_NAME, "combined_connectome.csv")
+
+    # Return the path
+    return (COMBINED_CONNECTOME_PATH)

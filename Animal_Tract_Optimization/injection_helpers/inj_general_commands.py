@@ -37,7 +37,7 @@ sys.path.append("..")
 from .inj_paths import *
 from .inj_checkpoints import *
 from py_helpers.shared_helpers import *
-import nibabel as nib
+import numpy as np
 
 # Function to use the transforms h5 file given, with ants
 def use_transforms_h5_file(ARGS):
@@ -121,6 +121,39 @@ def mrtrix_all_general_functions(ARGS):
 
     # Return the commands
     return (MRTRIX_COMMANDS)
+
+# Function to take all the matrices in each region file and combine them into one big matrix
+def combine_all_region_stats():
+
+    # Get the main paths
+    (GENERAL_MRTRIX_FOLDER, SPECIFIC_MRTRIX_FOLDER, ATLAS_REG_FOLDER_NAME, COMBINED_TRACTS_FOLDER_NAME, 
+        COMBINED_CONNECTOME_FOLDER_NAME, INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME, 
+        INDIVIDUAL_ROIS_MIF_FOLDER_NAME) = main_mrtrix_folder_paths()
+    
+    # Get all the text names in SPECIFIC_MRTRIX_FOLDER and filter for ones with vector in the name
+    REGION_FOLDER_NAMES = glob_files(SPECIFIC_MRTRIX_FOLDER, "txt")
+    REGION_FOLDER_NAMES = [file for file in REGION_FOLDER_NAMES if "vector" in file]
+    # Ensure it isn't empty and that its length is 52 (we have 52 injections)
+    check_globbed_files(REGION_FOLDER_NAMES, "region files")
+    if len(REGION_FOLDER_NAMES) != 52:
+        print("Not all region files were found. Please check that all 52 region files are in the folder")
+        sys.exit('Exiting program')
+
+    # Get the combined connectome path
+    (COMBINED_CONNECTOME_PATH) = get_combined_connectome_path()
+
+    # Load the data from all the txt files into a numpy array
+    ALL_REGION_DATA = []
+    for region_file in REGION_FOLDER_NAMES:
+        REGION_DATA = np.loadtxt(region_file)
+        ALL_REGION_DATA.append(REGION_DATA)
+    
+    # Combine all the data into one big matrix
+    ALL_REGION_DATA = np.concatenate(ALL_REGION_DATA, axis=1)
+
+    # Save the data into a csv file
+    np.savetxt(COMBINED_CONNECTOME_PATH, ALL_REGION_DATA, delimiter=",")
+
 
 # TODO:
 # 1. Find some way to find streamlines between injection sites and atlas ROIs - atlas only needs to be a mif, not a mask!!

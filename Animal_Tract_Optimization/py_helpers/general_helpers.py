@@ -66,7 +66,7 @@ def check_output_folders(folder, name, wipe=True, verbose=False):
     if not os.path.exists(folder):
         if verbose:
             print("--- {} folder not found. Created folder: {}".format(name, folder))
-        os.makedirs(folder)
+        os.makedirs(folder, exist_ok=True)
     # If it has content, delete it
     else:
         if wipe:

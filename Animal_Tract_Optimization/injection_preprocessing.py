@@ -6,7 +6,6 @@ from py_helpers.general_helpers import *
 from injection_helpers.inj_general import *
 from injection_helpers.inj_general_commands import *
 from injection_helpers.inj_region_commands import *
-import argparse
 
 def parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT, TRANSFORMS):
 
@@ -135,6 +134,9 @@ def main():
         (REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT, TRANSFORMS) = ALL_DATA_LIST[0]
         # Call the parallel process function on this region
         parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT, TRANSFORMS)
+
+    # --------------- Combine all the region stats into one big matrix --------------- #
+    combine_all_region_stats()
     
 
 if __name__ == "__main__":

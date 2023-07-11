@@ -217,6 +217,11 @@ def not_done_yet_injection_roi_tckedit(REGION_ID, ATLAS_STPT, INJECTION_ROI_TRAC
         (INJECTION_ROI_TRACTS_PATH) = get_injection_roi_tracts_path(REGION_ID, roi_name)
         # Grab all the tck files
         INJECTION_ROI_TRACTS_FILES = glob_files(INJECTION_ROI_TRACTS_FOLDER, "tck")
+        # Save the globbed files to a text file
+        INJECTION_ROI_TRACTS_FILES_PATH = os.path.join(INJECTION_ROI_TRACTS_FOLDER, "injection_roi_found.txt")
+        with open(INJECTION_ROI_TRACTS_FILES_PATH, "w") as f:
+            for injection_roi_tracts_file in INJECTION_ROI_TRACTS_FILES:
+                f.write(injection_roi_tracts_file + "\n")
         # Check that we have all the files we need
         if not any(INJECTION_ROI_TRACTS_PATH in injection_roi_tracts_file for injection_roi_tracts_file in INJECTION_ROI_TRACTS_FILES):
             # Add the ROI to the list of ROIs we haven't done yet
