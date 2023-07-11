@@ -276,11 +276,11 @@ def define_tckedit_command(COMBINED_TRACTS_PATH, STREAMLINE_FILE, INJECTION_MIF_
             all_tracts=COMBINED_TRACTS_PATH, inj_site=INJECTION_MIF_PATH, atlas_roi=ATLAS_REG_MIF_PATH, 
             output=CHOSEN_TRACTS_PATH)
     elif TYPE == "includes_roi":
-        FIND_STREAMLINES_CMD = "tckedit {individual_tract}.tck -include {atlas_roi}.mif {output}.tck -force".format(
+        FIND_STREAMLINES_CMD = "tckedit {individual_tract} -include {atlas_roi}.mif {output}.tck -force".format(
             individual_tract=STREAMLINE_FILE, inj_site=INJECTION_MIF_PATH, atlas_roi=ATLAS_REG_MIF_PATH, 
             output=CHOSEN_TRACTS_PATH)
     elif TYPE == "includes_ends_only":
-        FIND_STREAMLINES_CMD = "tckedit {individual_tract}.tck -include {inj_site}.mif {output}.tck -ends_only -force".format(
+        FIND_STREAMLINES_CMD = "tckedit {individual_tract} -include {inj_site}.mif {output}.tck -ends_only -force".format(
             individual_tract=STREAMLINE_FILE, inj_site=INJECTION_MIF_PATH, atlas_roi=ATLAS_REG_MIF_PATH, 
             output=CHOSEN_TRACTS_PATH)
     else:
