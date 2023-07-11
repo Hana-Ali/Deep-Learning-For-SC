@@ -201,7 +201,197 @@ def read_stats_file(STATS_FILES):
 
     return np.array(STATS_DATA)
 
-# Function to save the stats vectors read above
-def save_stats_vectors(STATS_DATA, STATS_FILE):
-    # Save the data into a txt file using numpy
-    np.savetxt(STATS_FILE, STATS_DATA, delimiter=",")
+# Function to get the chosen path for the tracts file
+def get_chosen_tracts_stats_folder(REGION_ID, TYPE="includes_both", STATS=False):
+    (REGION_MRTRIX_FOLDER, INJECTION_MIF_FOLDER, INJECTION_ROI_TRACTS_FOLDER, INJECTION_ROI_TRACTS_STATS_FOLDER, 
+     INJECTION_CONNECTOME_FOLDER, INJECTION_ROI_TRACTS_INCLUDES_BOTH_FOLDER, INJECTION_ROI_TRACTS_INCLUDES_ROI_ONLY_FOLDER, 
+     INJECTION_ROI_TRACTS_INCLUDES_ENDS_ONLY_FOLDER, INJECTION_ROI_TRACTS_STATS_INCLUDES_BOTH_FOLDER, 
+     INJECTION_ROI_TRACTS_STATS_INCLUDES_ROI_ONLY_FOLDER, INJECTION_ROI_TRACTS_STATS_INCLUDES_ENDS_ONLY_FOLDER,
+     INJECTION_CONNECTOME_INCLUDES_BOTH_FOLDER, INJECTION_CONNECTOME_INCLUDES_ROI_ONLY_FOLDER, 
+     INJECTION_CONNECTOME_INCLUDES_ENDS_ONLY_FOLDER) = region_mrtrix_folder_paths(REGION_ID)
+    
+    # If finding folder for tracts (NOT STATS)
+    if not STATS:
+        if TYPE == "includes_both":
+            CHOSEN_TRACTS_FOLDER = INJECTION_ROI_TRACTS_INCLUDES_BOTH_FOLDER
+        elif TYPE == "includes_roi":
+            CHOSEN_TRACTS_FOLDER = INJECTION_ROI_TRACTS_INCLUDES_ROI_ONLY_FOLDER
+        elif TYPE == "includes_ends_only":
+            CHOSEN_TRACTS_FOLDER = INJECTION_ROI_TRACTS_INCLUDES_ENDS_ONLY_FOLDER
+        else:
+            print("Type {} not allowed. Exiting.".format(TYPE))
+            sys.exit()
+    # If finding folder for stats
+    else:
+        if TYPE == "includes_both":
+            CHOSEN_TRACTS_FOLDER = INJECTION_ROI_TRACTS_STATS_INCLUDES_BOTH_FOLDER
+        elif TYPE == "includes_roi":
+            CHOSEN_TRACTS_FOLDER = INJECTION_ROI_TRACTS_STATS_INCLUDES_ROI_ONLY_FOLDER
+        elif TYPE == "includes_ends_only":
+            CHOSEN_TRACTS_FOLDER = INJECTION_ROI_TRACTS_STATS_INCLUDES_ENDS_ONLY_FOLDER
+        else:
+            print("Type {} not allowed. Exiting.".format(TYPE))
+            sys.exit()
+
+    return CHOSEN_TRACTS_FOLDER
+
+# Function to find the number of streamlines command
+def get_tckedit_command(ATLAS_STPT, REGION_ID, ROIS_TO_DO, STREAMLINE_FILE, TYPE="includes_both"):
+    # Get the paths to the files
+    (INDIVIDUAL_ROIS_MIF_PATHS) = get_individual_rois_mif_path(ATLAS_STPT)
+    (COMBINED_TRACTS_PATH) = get_combined_tracts_path()
+    (ATLAS_REG_PATH, ATLAS_REG_MIF_PATH) = get_mrtrix_atlas_reg_paths_ants()
+    (INJECTION_MIF_PATH) = get_injection_mif_path(REGION_ID)
+
+    # This will store the commands
+    TCKEDIT_COMMANDS = []
+
+    # For every ROI, find the number of streamlines between the injection site and the ROI
+    for idx, roi_mif_path in enumerate(INDIVIDUAL_ROIS_MIF_PATHS):
+
+        # Get the ROI name or ID
+        roi_name = roi_mif_path.split("/")[-1]
+        # Check if we need to do this ROI
+        if roi_name not in ROIS_TO_DO:
+            continue
+
+        # Get the injection ROI tracts path
+        (CHOSEN_TRACTS_PATH) = get_injection_roi_tracts_path(REGION_ID, roi_name, TYPE)
+
+        # Find the number of streamlines between the injection site and the ROI
+        FIND_STREAMLINES_CMD = define_tckedit_command(COMBINED_TRACTS_PATH, STREAMLINE_FILE, INJECTION_MIF_PATH, ATLAS_REG_MIF_PATH,
+                                                        CHOSEN_TRACTS_PATH, TYPE)
+
+        # Add the command to the list
+        TCKEDIT_COMMANDS.append(FIND_STREAMLINES_CMD)
+
+    # Return the commands
+    return TCKEDIT_COMMANDS
+
+# Function to define the tckedit command depending on the type
+def define_tckedit_command(COMBINED_TRACTS_PATH, STREAMLINE_FILE, INJECTION_MIF_PATH, ATLAS_REG_MIF_PATH, 
+                           CHOSEN_TRACTS_PATH, TYPE="includes_both"):
+    # Get the paths
+
+    # Define the command depending on the type
+    if TYPE == "includes_both":
+        FIND_STREAMLINES_CMD = "tckedit {all_tracts}.tck -include {inj_site}.mif -include {atlas_roi}.mif {output}.tck -force".format(
+            all_tracts=COMBINED_TRACTS_PATH, inj_site=INJECTION_MIF_PATH, atlas_roi=ATLAS_REG_MIF_PATH, 
+            output=CHOSEN_TRACTS_PATH)
+    elif TYPE == "includes_roi":
+        FIND_STREAMLINES_CMD = "tckedit {individual_tract}.tck -include {atlas_roi}.mif {output}.tck -force".format(
+            individual_tract=STREAMLINE_FILE, inj_site=INJECTION_MIF_PATH, atlas_roi=ATLAS_REG_MIF_PATH, 
+            output=CHOSEN_TRACTS_PATH)
+    elif TYPE == "includes_ends_only":
+        FIND_STREAMLINES_CMD = "tckedit {individual_tract}.tck -include {inj_site}.mif {output}.tck -ends_only -force".format(
+            individual_tract=STREAMLINE_FILE, inj_site=INJECTION_MIF_PATH, atlas_roi=ATLAS_REG_MIF_PATH, 
+            output=CHOSEN_TRACTS_PATH)
+    else:
+        print("Type {} not allowed. Exiting.".format(TYPE))
+        sys.exit()
+
+    return FIND_STREAMLINES_CMD
+    
+# Function to find the stats command
+def get_tckstats_command(ATLAS_STPT, REGION_ID, ROIS_TO_DO, TYPE="includes_both"):
+
+    # Get the paths
+    (INDIVIDUAL_ROIS_MIF_PATHS) = get_individual_rois_mif_path(ATLAS_STPT)
+
+    # This will hold all the commands
+    TCKSTATS_COMMANDS = []
+
+    # For every ROI, find the stats of the number of streamlines between the injection site and the ROI
+    for idx, roi_mif_path in enumerate(INDIVIDUAL_ROIS_MIF_PATHS):
+
+        # Get the ROI name or ID
+        roi_name = roi_mif_path.split("/")[-1]
+        # Check if we need to do this ROI
+        if roi_name not in ROIS_TO_DO:
+            continue
+
+        # Get the injection ROI tracts and stats path
+        (CHOSEN_TRACTS_PATH) = get_injection_roi_tracts_path(REGION_ID, roi_name, TYPE)
+        (INJECTION_ROI_LENGTHS_PATH, INJECTION_ROI_COUNT_PATH, INJECTION_ROI_MEAN_PATH, 
+         INJECTION_ROI_MEDIAN_PATH, INJECTION_ROI_STD_PATH, INJECTION_ROI_MIN_PATH, 
+         INJECTION_ROI_MAX_PATH) = get_injection_roi_tracts_stats_path(REGION_ID, roi_name, TYPE="includes_both")
+
+        # Find the stats of the number of streamlines between the injection site and the ROI. Note that it PRINTS out
+        # everything, but we can grab the count by counting the number of lines in the file
+        # Can also get the mean, median, min, max, std, etc. by doing other modifications on the text file
+        FIND_STATS_CMD = "tckstats {input}.tck -dump {output} -force".format(input=CHOSEN_TRACTS_PATH, 
+                                                                        output=INJECTION_ROI_LENGTHS_PATH)
+        
+        # Add the command to the list
+        TCKSTATS_COMMANDS.append(FIND_STATS_CMD)
+
+    # Return the commands
+    return TCKSTATS_COMMANDS
+
+# Function to actually call the stats and save them to files
+def find_and_save_stats_results(ATLAS_STPT, REGION_ID, TYPE="includes_both"):
+
+    # Get the paths
+    (INDIVIDUAL_ROIS_MIF_PATHS) = get_individual_rois_mif_path(ATLAS_STPT)
+
+    # For every ROI, find the stats of the number of streamlines between the injection site and the ROI
+    for idx, roi_mif_path in enumerate(INDIVIDUAL_ROIS_MIF_PATHS):
+        
+        # Get the ROI name or ID
+        roi_name = roi_mif_path.split("/")[-1]
+        # Get the injection ROI stats path
+        (INJECTION_ROI_LENGTHS_PATH, INJECTION_ROI_COUNT_PATH, INJECTION_ROI_MEAN_PATH, 
+         INJECTION_ROI_MEDIAN_PATH, INJECTION_ROI_STD_PATH, INJECTION_ROI_MIN_PATH, 
+         INJECTION_ROI_MAX_PATH) = get_injection_roi_tracts_stats_path(REGION_ID, roi_name, TYPE)
+        
+        # 1- Get the number of lines in the text file of LENGTHS, which is the COUNT
+        # 2- Get the mean, median, min, max, std, etc. by doing other modifications on the text file
+        with open(INJECTION_ROI_LENGTHS_PATH, "r") as lengths_file:
+        
+            # Get the number of lines in the file
+            count_data = get_stats_from_file(lengths_file, TYPE="count")
+            mean_data = get_stats_from_file(lengths_file, TYPE="mean")
+            median_data = get_stats_from_file(lengths_file, TYPE="median")
+            min_data = get_stats_from_file(lengths_file, TYPE="min")
+            max_data = get_stats_from_file(lengths_file, TYPE="max")
+            std_data = get_stats_from_file(lengths_file, TYPE="std")
+
+            # Save the count, mean, median, min, max, std, etc. to the text file using numpy
+            np.savetxt(INJECTION_ROI_COUNT_PATH, count_data, delimiter=",")
+            np.savetxt(INJECTION_ROI_MEAN_PATH, mean_data, delimiter=",")
+            np.savetxt(INJECTION_ROI_MEDIAN_PATH, median_data, delimiter=",")
+            np.savetxt(INJECTION_ROI_MIN_PATH, min_data, delimiter=",")
+            np.savetxt(INJECTION_ROI_MAX_PATH, max_data, delimiter=",")
+            np.savetxt(INJECTION_ROI_STD_PATH, std_data, delimiter=",")
+            
+
+# Function to get the stats (median, mean, etc) from a file
+def get_stats_from_file(STATS_FILE, TYPE="count"):
+
+    # Get the data from the file - used by almost everything
+    lengths_data = [float(ln.rstrip()) for ln in STATS_FILE.readlines()] 
+
+    # Get the stats from the file, depending on the type
+    if TYPE == "count":
+        count_data = len(STATS_FILE.readlines())
+        return count_data
+    elif TYPE == "lengths":
+        return lengths_data
+    elif TYPE == "mean":
+        mean_data = float(sum(lengths_data))/len(lengths_data) if len(lengths_data) > 0 else float('nan')
+        return mean_data
+    elif TYPE == "median":
+        median_data = float(sorted(lengths_data)[len(lengths_data)//2]) if len(lengths_data) > 0 else float('nan')
+        return median_data
+    elif TYPE == "min":
+        min_data = float(min(lengths_data)) if len(lengths_data) > 0 else float('nan')
+        return min_data
+    elif TYPE == "max":
+        max_data = float(max(lengths_data)) if len(lengths_data) > 0 else float('nan')
+        return max_data
+    elif TYPE == "std":
+        std_data = np.std(np.array(lengths_data)) if len(lengths_data) > 0 else float('nan')
+        return std_data
+    else:
+        print("Type {} not allowed. Exiting.".format(TYPE))
+        sys.exit()
