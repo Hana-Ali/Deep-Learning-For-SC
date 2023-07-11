@@ -187,7 +187,7 @@ def find_number_of_streamlines_between_injection_and_roi(ARGS):
         CHOSEN_TRACTS_FOLDER = get_chosen_tracts_stats_folder(REGION_ID, TYPE=tckedit_type, STATS=False)
 
         # This will tell us which ROIs are yet to be done
-        (ROIS_TO_DO) = not_done_yet_injection_roi_tckedit(REGION_ID, ATLAS_STPT, CHOSEN_TRACTS_FOLDER)
+        (ROIS_TO_DO) = not_done_yet_injection_roi_tckedit(REGION_ID, ATLAS_STPT, CHOSEN_TRACTS_FOLDER, TYPE=tckedit_type)
 
         # Get the commands array and append it to the TCKEDIT_COMMANDS dictionary
         TCKEDIT_COMMANDS[tckedit_type] = get_tckedit_command(ATLAS_STPT, REGION_ID, ROIS_TO_DO, STREAMLINE_FILE, TYPE=tckedit_type)
@@ -214,7 +214,7 @@ def call_stats_between_injection_and_roi(ARGS):
         CHOSEN_TRACTS_FOLDER = get_chosen_tracts_stats_folder(REGION_ID, TYPE=tckstats_type, STATS=True)
 
         # This will tell us which ROIs are yet to be done
-        (ROIS_TO_DO) = not_done_yet_injection_roi_tckedit(REGION_ID, ATLAS_STPT, CHOSEN_TRACTS_FOLDER)
+        (ROIS_TO_DO) = not_done_yet_injection_roi_tckstats(REGION_ID, ATLAS_STPT, CHOSEN_TRACTS_FOLDER, TYPE=tckstats_type)
 
         # Get the commands array and append it to the TCKSTATS_COMMANDS dictionary
         TCKSTATS_COMMANDS[tckstats_type] = get_tckstats_command(ATLAS_STPT, REGION_ID, ROIS_TO_DO, TYPE=tckstats_type)
@@ -249,6 +249,7 @@ def concatenate_all_roi_stats(ARGS):
     for stats_type in TYPES:
         # Get the chosen tracts stats folder
         CHOSEN_TRACTS_STATS_FOLDER = get_chosen_tracts_stats_folder(REGION_ID, TYPE=stats_type, STATS=True)
+        # Get the injection matrices paths - these hold the stats
         (INJECTION_LENGTH_MATRIX_PATH, INJECTION_COUNT_MATRIX_PATH, INJECTION_MEAN_MATRIX_PATH, 
          INJECTION_MEDIAN_MATRIX_PATH, INJECTION_STD_MATRIX_PATH, INJECTION_MIN_MATRIX_PATH, 
          INJECTION_MAX_MATRIX_PATH) = get_injection_matrices_path(REGION_ID, TYPE=stats_type)
@@ -287,3 +288,31 @@ def concatenate_all_roi_stats(ARGS):
         np.savetxt(INJECTION_MIN_MATRIX_PATH, MIN_DATA, delimiter=",")
         np.savetxt(INJECTION_MAX_MATRIX_PATH, MAX_DATA, delimiter=",")
 
+# Function to move all the existing data in injection_ROI_tracts to includes_both
+def move_existing_data_to_includes_both(ARGS):
+
+    # Extract arguments needed to define paths
+    REGION_ID = ARGS[0]
+
+    # Get the paths we need
+    (REGION_MRTRIX_FOLDER, INJECTION_MIF_FOLDER, INJECTION_ROI_TRACTS_FOLDER, INJECTION_ROI_TRACTS_STATS_FOLDER, 
+     INJECTION_CONNECTOME_FOLDER, INJECTION_ROI_TRACTS_INCLUDES_BOTH_FOLDER, INJECTION_ROI_TRACTS_INCLUDES_ROI_ONLY_FOLDER, 
+     INJECTION_ROI_TRACTS_INCLUDES_ENDS_ONLY_FOLDER, INJECTION_ROI_TRACTS_STATS_INCLUDES_BOTH_FOLDER, 
+     INJECTION_ROI_TRACTS_STATS_INCLUDES_ROI_ONLY_FOLDER, INJECTION_ROI_TRACTS_STATS_INCLUDES_ENDS_ONLY_FOLDER,
+     INJECTION_CONNECTOME_INCLUDES_BOTH_FOLDER, INJECTION_CONNECTOME_INCLUDES_ROI_ONLY_FOLDER, 
+     INJECTION_CONNECTOME_INCLUDES_ENDS_ONLY_FOLDER) = region_mrtrix_folder_paths(REGION_ID)
+    
+    # Grab all tck and txt files in the injection_ROI_tracts folder
+    INJECTION_ROI_TRACTS_TCK_FILES = glob_files(INJECTION_ROI_TRACTS_FOLDER, "tck")
+    INJECTION_ROI_TRACTS_TXT_FILES = glob_files(INJECTION_ROI_TRACTS_FOLDER, "txt")
+
+    # Move all the tck and txt files to the includes_both folder
+    if not os.path.exists(INJECTION_ROI_TRACTS_INCLUDES_BOTH_FOLDER):
+        os.makedirs(INJECTION_ROI_TRACTS_INCLUDES_BOTH_FOLDER, exist_ok=True)
+    
+    # Move all the tck files
+    for tck_file in INJECTION_ROI_TRACTS_TCK_FILES:
+        shutil.move(tck_file, INJECTION_ROI_TRACTS_INCLUDES_BOTH_FOLDER)
+    # Move all the txt files
+    for txt_file in INJECTION_ROI_TRACTS_TXT_FILES:
+        shutil.move(txt_file, INJECTION_ROI_TRACTS_INCLUDES_BOTH_FOLDER)

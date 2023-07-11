@@ -1,9 +1,8 @@
-from .inj_paths import *
-
 import sys
 sys.path.append("..")
 from py_helpers.general_helpers import *
-
+from .inj_paths import *
+from .inj_general import *
 # ------------------------------------------------- CHECKING MISSING FILES AND CHECKPOINTS ------------------------------------------------- #
 
 # Function to check which files are missing from the atlas and streamline registration
@@ -181,111 +180,38 @@ def check_missing_atlas_mif_conversion(ATLAS_STPT, INDIVIDUAL_ROIS_MIF):
     # Return the variable
     return (MRTRIX_ATLAS_MIF_CONVERSION)
 
-# Check missing injection ROI tracts
-def check_missing_injection_roi_tracts(REGION_ID, ATLAS_STPT, INJECTION_ROI_TRACTS_FOLDER):
-    # Define variable that stores whether or not we should do MRtrix general processing
-    INJECTION_ROI_TRACTS = False
-    # Get the paths we need
-    (INDIVIDUAL_ROIS_MIF_PATHS) = get_individual_rois_mif_path(ATLAS_STPT)
-    # For every ROI, check whether or not we need to redo processing
-    for idx, roi_mif_path in enumerate(INDIVIDUAL_ROIS_MIF_PATHS):
-        # Get the ROI name or ID
-        roi_name = roi_mif_path.split("/")[-1]
-        # Get the injection ROI tracts and stats path
-        (INJECTION_ROI_TRACTS_PATH) = get_injection_roi_tracts_path(REGION_ID, roi_name)
-        # Grab all the tck files
-        INJECTION_ROI_TRACTS_FILES = glob_files(INJECTION_ROI_TRACTS_FOLDER, "tck")
-        # Check that we have all the files we need
-        if not any(INJECTION_ROI_TRACTS_PATH in injection_roi_tracts_file for injection_roi_tracts_file in INJECTION_ROI_TRACTS_FILES):
-            INJECTION_ROI_TRACTS = True
-            break
-
-    # If we don't have all the files we need, then we clean the folder and start from scratch
-    if INJECTION_ROI_TRACTS:
-        print("--- MRtrix injection ROI tracts not found. Cleaning MRtrix injection ROI tracts folder.")
-        check_output_folders(INJECTION_ROI_TRACTS_FOLDER, "MRtrix injection ROI tracts folder", wipe=True)
-    else:
-        print("--- MRtrix injection ROI tracts found. Skipping MRtrix injection ROI tracts.")
-
-    # Return the variable
-    return (INJECTION_ROI_TRACTS)
-
-# This function returns which rois have not been done yet
 # Check missing injection ROI tracts - only the ones that haven't been done before
-def not_done_yet_injection_roi_tckedit(REGION_ID, ATLAS_STPT, INJECTION_ROI_TRACTS_FOLDER):
+def not_done_yet_injection_roi_tckedit(REGION_ID, ATLAS_STPT, INJECTION_ROI_TRACTS_FOLDER, TYPE="includes_both"):
     # Get the paths we need
     (INDIVIDUAL_ROIS_MIF_PATHS) = get_individual_rois_mif_path(ATLAS_STPT)
     # This holds which ROIs we haven't done yet
-    INJECTION_ROIS_NOT_DONE = []
+    INJECTION_ROIS_NOT_DONE_NAMES = []
     # For every ROI, check whether or not we need to redo processing
     for idx, roi_mif_path in enumerate(INDIVIDUAL_ROIS_MIF_PATHS):
         # Get the ROI name or ID
         roi_name = roi_mif_path.split("/")[-1]
         # Get the injection ROI tracts and stats path
-        (INJECTION_ROI_TRACTS_PATH) = get_injection_roi_tracts_path(REGION_ID, roi_name)
+        (INJECTION_ROI_TRACTS_PATH) = get_injection_roi_tracts_path(REGION_ID, roi_name, TYPE)
         
         # Grab all the tck files and rename them to the ROI name
         INJECTION_ROI_TRACTS_FOUND = glob_files(INJECTION_ROI_TRACTS_FOLDER, "tck")
         INJECTION_ROI_TRACTS_FOUND_NAMES = [injection_roi_tracts_file.split('/')[-1].split('ROI_')[1].split('_tracts')[0] for injection_roi_tracts_file in INJECTION_ROI_TRACTS_FOUND]
         # Save the globbed files to a text file
-        INJECTION_ROI_TRACTS_FOUND_PATH = os.path.join(INJECTION_ROI_TRACTS_FOLDER, "injection_roi_found.txt")
-        with open(INJECTION_ROI_TRACTS_FOUND_PATH, "w") as f:
-            for injection_roi_tracts_name_file in INJECTION_ROI_TRACTS_FOUND_NAMES:
-                f.write(injection_roi_tracts_name_file + "\n")
+        record_done_injection_ROIs(INJECTION_ROI_TRACTS_FOLDER, INJECTION_ROI_TRACTS_FOUND_NAMES, FOUND=True)
         
         # Check that we have all the files we need
         if not any(INJECTION_ROI_TRACTS_PATH in injection_roi_tracts_file for injection_roi_tracts_file in INJECTION_ROI_TRACTS_FOUND):
             # Add the ROI to the list of ROIs we haven't done yet
-            INJECTION_ROIS_NOT_DONE.append(roi_name)
+            INJECTION_ROIS_NOT_DONE_NAMES.append(roi_name)
     
     # Save them to a file
-    INJECTION_ROIS_NOT_DONE_PATH = os.path.join(INJECTION_ROI_TRACTS_FOLDER, "injection_rois_not_done.txt")
-    with open(INJECTION_ROIS_NOT_DONE_PATH, "w") as f:
-        for roi_name in INJECTION_ROIS_NOT_DONE:
-            f.write(roi_name + "\n")
+    record_done_injection_ROIs(INJECTION_ROI_TRACTS_FOLDER, INJECTION_ROIS_NOT_DONE_NAMES, FOUND=False)
             
     # Return the variable
-    return (INJECTION_ROIS_NOT_DONE)
-
-# Check missing injection ROI tracts stats
-def check_missing_injection_roi_tracts_stats(REGION_ID, ATLAS_STPT, INJECTION_ROI_TRACTS_STATS_FOLDER):
-    # Define variable that stores whether or not we should do MRtrix general processing
-    INJECTION_ROI_TRACTS_STATS = False
-    # Get the paths we need
-    (INDIVIDUAL_ROIS_MIF_PATHS) = get_individual_rois_mif_path(ATLAS_STPT)
-    # For every ROI, check whether or not we need to redo processing
-    for idx, roi_mif_path in enumerate(INDIVIDUAL_ROIS_MIF_PATHS):
-        # Get the ROI name or ID
-        roi_name = roi_mif_path.split("/")[-1]
-        # Get the injection ROI tracts and stats path
-        (INJECTION_ROI_LENGTHS_PATH, INJECTION_ROI_COUNT_PATH, INJECTION_ROI_MEAN_PATH, 
-         INJECTION_ROI_MEDIAN_PATH, INJECTION_ROI_STD_PATH, INJECTION_ROI_MIN_PATH, 
-         INJECTION_ROI_MAX_PATH) = get_injection_roi_tracts_stats_path(REGION_ID, roi_name)
-        # Grab all the txt files 
-        INJECTION_ROI_STATS_FILES = glob_files(INJECTION_ROI_TRACTS_STATS_FOLDER, "txt")
-        # Check that we have all the files we need
-        if (not any(INJECTION_ROI_LENGTHS_PATH in injection_roi_stats_file for injection_roi_stats_file in INJECTION_ROI_STATS_FILES)
-            or not any(INJECTION_ROI_COUNT_PATH in injection_roi_stats_file for injection_roi_stats_file in INJECTION_ROI_STATS_FILES)
-            or not any(INJECTION_ROI_MEAN_PATH in injection_roi_stats_file for injection_roi_stats_file in INJECTION_ROI_STATS_FILES)
-            or not any(INJECTION_ROI_MEDIAN_PATH in injection_roi_stats_file for injection_roi_stats_file in INJECTION_ROI_STATS_FILES)
-            or not any(INJECTION_ROI_STD_PATH in injection_roi_stats_file for injection_roi_stats_file in INJECTION_ROI_STATS_FILES)
-            or not any(INJECTION_ROI_MIN_PATH in injection_roi_stats_file for injection_roi_stats_file in INJECTION_ROI_STATS_FILES)
-            or not any(INJECTION_ROI_MAX_PATH in injection_roi_stats_file for injection_roi_stats_file in INJECTION_ROI_STATS_FILES)):
-            INJECTION_ROI_TRACTS_STATS = True
-            break
-
-    # If we don't have all the files we need, then we clean the folder and start from scratch
-    if INJECTION_ROI_TRACTS_STATS:
-        print("--- MRtrix injection ROI tracts stats not found. Cleaning MRtrix injection ROI tracts stats folder.")
-        check_output_folders(INJECTION_ROI_TRACTS_STATS_FOLDER, "MRtrix injection ROI tracts stats folder", wipe=True)
-    else:
-        print("--- MRtrix injection ROI tracts stats found. Skipping MRtrix injection ROI tracts stats.")
-
-    # Return the variable
-    return (INJECTION_ROI_TRACTS_STATS)
+    return (INJECTION_ROIS_NOT_DONE_NAMES)
 
 # Check which injection ROIs haven't been done yet for stats
-def not_done_yet_injection_roi_stats(REGION_ID, ATLAS_STPT, INJECTION_ROI_TRACTS_STATS_FOLDER):
+def not_done_yet_injection_roi_tckstats(REGION_ID, ATLAS_STPT, INJECTION_ROI_TRACTS_STATS_FOLDER, TYPE="includes_both"):
     # Get the paths we need
     (INDIVIDUAL_ROIS_MIF_PATHS) = get_individual_rois_mif_path(ATLAS_STPT)
     # This holds which ROIs we haven't done yet

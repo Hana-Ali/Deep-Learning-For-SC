@@ -37,7 +37,7 @@ def get_main_paths(hpc):
             ATLAS_FOLDER = os.path.realpath(os.path.join(ALL_DATA_FOLDER, "atlas"))
 
         else:
-            BMINDS_DATA_FOLDER = os.path.realpath(os.path.join(os.getcwd(), "..", "Animal_Data", "Brain-MINDS"))
+            BMINDS_DATA_FOLDER = "/mnt/d/Brain-MINDS"
             BMINDS_OUTPUTS_DMRI_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "processed_dMRI"))
             BMINDS_OUTPUTS_INJECTIONS_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "processed_injections"))
             BMINDS_CORE_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "BMCR_core_data"))
