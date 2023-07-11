@@ -215,15 +215,18 @@ def not_done_yet_injection_roi_tckedit(REGION_ID, ATLAS_STPT, INJECTION_ROI_TRAC
         roi_name = roi_mif_path.split("/")[-1]
         # Get the injection ROI tracts and stats path
         (INJECTION_ROI_TRACTS_PATH) = get_injection_roi_tracts_path(REGION_ID, roi_name)
-        # Grab all the tck files
-        INJECTION_ROI_TRACTS_FILES = glob_files(INJECTION_ROI_TRACTS_FOLDER, "tck")
+        
+        # Grab all the tck files and rename them to the ROI name
+        INJECTION_ROI_TRACTS_FOUND = glob_files(INJECTION_ROI_TRACTS_FOLDER, "tck")
+        INJECTION_ROI_TRACTS_FOUND_NAMES = [injection_roi_tracts_file.split('/')[-1].split('ROI_')[1].split('_tracts')[0] for injection_roi_tracts_file in INJECTION_ROI_TRACTS_FOUND]
         # Save the globbed files to a text file
-        INJECTION_ROI_TRACTS_FILES_PATH = os.path.join(INJECTION_ROI_TRACTS_FOLDER, "injection_roi_found.txt")
-        with open(INJECTION_ROI_TRACTS_FILES_PATH, "w") as f:
-            for injection_roi_tracts_file in INJECTION_ROI_TRACTS_FILES:
-                f.write(injection_roi_tracts_file + "\n")
+        INJECTION_ROI_TRACTS_FOUND_PATH = os.path.join(INJECTION_ROI_TRACTS_FOLDER, "injection_roi_found.txt")
+        with open(INJECTION_ROI_TRACTS_FOUND_PATH, "w") as f:
+            for injection_roi_tracts_name_file in INJECTION_ROI_TRACTS_FOUND_NAMES:
+                f.write(injection_roi_tracts_name_file + "\n")
+        
         # Check that we have all the files we need
-        if not any(INJECTION_ROI_TRACTS_PATH in injection_roi_tracts_file for injection_roi_tracts_file in INJECTION_ROI_TRACTS_FILES):
+        if not any(INJECTION_ROI_TRACTS_PATH in injection_roi_tracts_file for injection_roi_tracts_file in INJECTION_ROI_TRACTS_FOUND):
             # Add the ROI to the list of ROIs we haven't done yet
             INJECTION_ROIS_NOT_DONE.append(roi_name)
     
