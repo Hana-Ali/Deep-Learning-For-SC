@@ -340,37 +340,33 @@ def find_and_save_stats_results(ATLAS_STPT, REGION_ID, TYPE="includes_both"):
         (INJECTION_ROI_LENGTHS_PATH, INJECTION_ROI_COUNT_PATH, INJECTION_ROI_MEAN_PATH, 
          INJECTION_ROI_MEDIAN_PATH, INJECTION_ROI_STD_PATH, INJECTION_ROI_MIN_PATH, 
          INJECTION_ROI_MAX_PATH) = get_injection_roi_tracts_stats_path(REGION_ID, roi_name, TYPE)
-        
-        # 1- Get the number of lines in the text file of LENGTHS, which is the COUNT
-        # 2- Get the mean, median, min, max, std, etc. by doing other modifications on the text file
-        with open(INJECTION_ROI_LENGTHS_PATH, "r") as lengths_file:
-        
-            # Get the number of lines in the file
-            count_data = get_stats_from_file(lengths_file, TYPE="count")
-            mean_data = get_stats_from_file(lengths_file, TYPE="mean")
-            median_data = get_stats_from_file(lengths_file, TYPE="median")
-            min_data = get_stats_from_file(lengths_file, TYPE="min")
-            max_data = get_stats_from_file(lengths_file, TYPE="max")
-            std_data = get_stats_from_file(lengths_file, TYPE="std")
+            
+        # Get all the stats about the file
+        count_data = get_stats_from_file(INJECTION_ROI_LENGTHS_PATH, TYPE="count")
+        mean_data = get_stats_from_file(INJECTION_ROI_LENGTHS_PATH, TYPE="mean")
+        median_data = get_stats_from_file(INJECTION_ROI_LENGTHS_PATH, TYPE="median")
+        min_data = get_stats_from_file(INJECTION_ROI_LENGTHS_PATH, TYPE="min")
+        max_data = get_stats_from_file(INJECTION_ROI_LENGTHS_PATH, TYPE="max")
+        std_data = get_stats_from_file(INJECTION_ROI_LENGTHS_PATH, TYPE="std")
 
-            # Save the count, mean, median, min, max, std, etc. to the text file using numpy
-            np.savetxt(INJECTION_ROI_COUNT_PATH, count_data, delimiter=",")
-            np.savetxt(INJECTION_ROI_MEAN_PATH, mean_data, delimiter=",")
-            np.savetxt(INJECTION_ROI_MEDIAN_PATH, median_data, delimiter=",")
-            np.savetxt(INJECTION_ROI_MIN_PATH, min_data, delimiter=",")
-            np.savetxt(INJECTION_ROI_MAX_PATH, max_data, delimiter=",")
-            np.savetxt(INJECTION_ROI_STD_PATH, std_data, delimiter=",")
+        # Save the count, mean, median, min, max, std, etc. to the text file using numpy
+        np.savetxt(INJECTION_ROI_COUNT_PATH, count_data, delimiter=",")
+        np.savetxt(INJECTION_ROI_MEAN_PATH, mean_data, delimiter=",")
+        np.savetxt(INJECTION_ROI_MEDIAN_PATH, median_data, delimiter=",")
+        np.savetxt(INJECTION_ROI_MIN_PATH, min_data, delimiter=",")
+        np.savetxt(INJECTION_ROI_MAX_PATH, max_data, delimiter=",")
+        np.savetxt(INJECTION_ROI_STD_PATH, std_data, delimiter=",")
             
 
 # Function to get the stats (median, mean, etc) from a file
 def get_stats_from_file(STATS_FILE, TYPE="count"):
 
-    # Get the data from the file - used by almost everything
-    lengths_data = [float(ln.rstrip()) for ln in STATS_FILE.readlines()] 
+    # Load the file with numpy
+    lengths_data = np.loadtxt(STATS_FILE)
 
     # Get the stats from the file, depending on the type
     if TYPE == "count":
-        count_data = len(STATS_FILE.readlines())
+        count_data = len(lengths_data)
         return count_data
     elif TYPE == "lengths":
         return lengths_data
@@ -387,7 +383,7 @@ def get_stats_from_file(STATS_FILE, TYPE="count"):
         max_data = float(max(lengths_data)) if len(lengths_data) > 0 else float('nan')
         return max_data
     elif TYPE == "std":
-        std_data = np.std(np.array(lengths_data)) if len(lengths_data) > 0 else float('nan')
+        std_data = np.std(lengths_data) if len(lengths_data) > 0 else float('nan')
         return std_data
     else:
         print("Type {} not allowed. Exiting.".format(TYPE))
