@@ -122,16 +122,32 @@ def check_unzipping(BMINDS_DWI_FOLDER, BMINDS_UNZIPPED_DWI_FOLDER):
 def create_data_list(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_FILES, BMINDS_STREAMLINE_FILES, 
                      BMINDS_INJECTION_FILES, BMINDS_ATLAS_FILE, BMINDS_ATLAS_LABEL_FILE, BMINDS_STPT_FILE):
     DATA_LISTS = []
+    RESIZED_DATA_LISTS = []
     # Get the initial lists
     (DWI_LIST, STREAMLINE_LIST, INJECTION_LIST) = create_initial_lists(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES,
                                                                         BMINDS_BVEC_FILES, BMINDS_STREAMLINE_FILES,
                                                                         BMINDS_INJECTION_FILES)
     
     # Join all DWIs with the same region name but different bvals and bvecs using mrtrix
-    CONCATENATED_DWI_LIST = join_dwi_diff_bvals_bvecs(DWI_LIST)   
+    (CONCATENATED_DWI_LIST, RESIZED_CONCAT_DWI_LIST) = join_dwi_diff_bvals_bvecs(DWI_LIST)   
 
     # Join the two lists based on common subject name
-    for dwi_list in CONCATENATED_DWI_LIST:
+    DATA_LISTS = concatenate_common_subject_name(CONCATENATED_DWI_LIST, STREAMLINE_LIST, INJECTION_LIST,
+                                                    BMINDS_ATLAS_FILE, BMINDS_ATLAS_LABEL_FILE, BMINDS_STPT_FILE)
+    RESIZED_DATA_LISTS = concatenate_common_subject_name(RESIZED_CONCAT_DWI_LIST, STREAMLINE_LIST, INJECTION_LIST,
+                                                            BMINDS_ATLAS_FILE, BMINDS_ATLAS_LABEL_FILE, BMINDS_STPT_FILE)
+            
+    return (DATA_LISTS, RESIZED_DATA_LISTS)     
+
+# Function to join based on common subject name
+def concatenate_common_subject_name(DWI_LIST, STREAMLINE_LIST, INJECTION_LIST, BMINDS_ATLAS_FILE, 
+                                    BMINDS_ATLAS_LABEL_FILE, BMINDS_STPT_FILE):
+
+    # Lists to hold the data
+    DATA_LISTS = []
+
+    # Join the two lists based on common subject name
+    for dwi_list in DWI_LIST:
         # Get the region, or common element ID
         if os.name == "nt":
             region_ID = dwi_list[0].split("\\")[-3]
@@ -154,5 +170,5 @@ def create_data_list(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_F
             continue
         # Append the subject name, dwi, bval, bvec, streamline and injection to the list
         DATA_LISTS.append([region_ID, dwi_data, streamline_files, injection_files, atlas_stpt])
-            
-    return DATA_LISTS     
+
+    return DATA_LISTS

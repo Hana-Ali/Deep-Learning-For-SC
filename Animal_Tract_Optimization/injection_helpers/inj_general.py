@@ -22,7 +22,7 @@ def create_data_list(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_F
                                                                         BMINDS_INJECTION_FILES)
 
     # Join all DWIs with the same region name but different bvals and bvecs using mrtrix
-    CONCATENATED_DWI_LIST = join_dwi_diff_bvals_bvecs(DWI_LIST)
+    (CONCATENATED_DWI_LIST, RESIZED_CONCAT_DWI_LIST) = join_dwi_diff_bvals_bvecs(DWI_LIST)
 
     # Get list of common and uncommon region IDs
     (COMMON_REGION_IDS, NON_COMMON_REGION_IDS) = common_uncommon_regions_list(CONCATENATED_DWI_LIST, STREAMLINE_LIST, INJECTION_LIST)
@@ -388,3 +388,8 @@ def get_stats_from_file(STATS_FILE, TYPE="count"):
     else:
         print("Type {} not allowed. Exiting.".format(TYPE))
         sys.exit()
+
+
+# TO MAKE ATLAS
+# LOAD EACH NIFTI COPY TO MAKE "ATLAS" THEN FOR LOOP AND WHEREVER THE NIFTI IS NON-ZERO SET THAT REGION IN "ATLAS" TO I
+#MRICRO MAKE ACTUAL ATLAS w injections if ya 

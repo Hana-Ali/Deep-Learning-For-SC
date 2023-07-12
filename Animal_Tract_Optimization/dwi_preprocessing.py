@@ -41,9 +41,9 @@ def main():
     hpc = int(sys.argv[1])
     # Get the folder paths
     (BMINDS_DATA_FOLDER, BMINDS_OUTPUTS_DMRI_FOLDER, BMINDS_OUTPUTS_INJECTIONS_FOLDER, BMINDS_CORE_FOLDER,
-        BMINDS_DWI_FOLDER, BMINDS_METADATA_FOLDER, BMINDS_TEMPLATES_FOLDER, BMINDS_ATLAS_FOLDER, BMINDS_STPT_TEMPLATE_FOLDER, 
-        BMINDS_TRANSFORMS_FOLDER, BMINDS_INJECTIONS_FOLDER, BMINDS_UNZIPPED_DWI_FOLDER, MAIN_MRTRIX_FOLDER_DMRI, 
-        MAIN_MRTRIX_FOLDER_INJECTIONS) = get_main_paths(hpc)
+    BMINDS_DWI_FOLDER, BMINDS_METADATA_FOLDER, BMINDS_TEMPLATES_FOLDER, BMINDS_ATLAS_FOLDER, BMINDS_STPT_TEMPLATE_FOLDER, 
+    BMINDS_TRANSFORMS_FOLDER, BMINDS_INJECTIONS_FOLDER, BMINDS_UNZIPPED_DWI_FOLDER, BMINDS_UNZIPPED_DWI_RESIZED_FOLDER,
+    MAIN_MRTRIX_FOLDER_DMRI, MAIN_MRTRIX_FOLDER_INJECTIONS) = get_main_paths(hpc)
     
     # Check the input folders
     check_input_folders(BMINDS_DATA_FOLDER, "BMINDS_DATA_FOLDER")
@@ -59,6 +59,7 @@ def main():
     # Check the output folders
     check_output_folders(BMINDS_OUTPUTS_DMRI_FOLDER, "BMINDS_OUTPUTS_FOLDER", wipe=False)
     check_output_folders(BMINDS_UNZIPPED_DWI_FOLDER, "BMINDS_UNZIPPED_DWI_FOLDER", wipe=False)
+    check_output_folders(BMINDS_UNZIPPED_DWI_RESIZED_FOLDER, "BMINDS_UNZIPPED_DWI_RESIZED_FOLDER", wipe=False)
     check_output_folders(MAIN_MRTRIX_FOLDER_DMRI, "MAIN_MRTRIX_FOLDER", wipe=False)
 
     # Unzip all input files
@@ -93,24 +94,27 @@ def main():
     check_globbed_files(BMINDS_MBCA_TRANSFORM_FILE, "BMINDS_MBCA_TRANSFORM_FILE")
 
     # --------------- Create list of all data for each zone name --------------- #
-    ALL_DATA_LIST = create_data_list(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_FILES, 
-                                     BMINDS_STREAMLINE_FILES, BMINDS_INJECTION_FILES, BMINDS_ATLAS_FILE, 
-                                     BMINDS_ATLAS_LABEL_FILE, BMINDS_STPT_FILE)
+    (ALL_DATA_LIST, RESIZED_ALL_DATA_LIST) = create_data_list(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_FILES, 
+                                                                BMINDS_STREAMLINE_FILES, BMINDS_INJECTION_FILES, BMINDS_ATLAS_FILE, 
+                                                                BMINDS_ATLAS_LABEL_FILE, BMINDS_STPT_FILE)
 
     print("Length of All Data List: {}".format(len(ALL_DATA_LIST)))
+    print("Length of Resized All Data List: {}".format(len(RESIZED_ALL_DATA_LIST)))
+    print("All resized data list: {}".format(RESIZED_ALL_DATA_LIST))
 
     # --------------- Preprocessing the data to get the right file formats --------------- #
     if hpc:
         # # Get the current region based on the command-line
-        # region_idx = int(sys.argv[1])
+        # region_idx = int(sys.argv[2])
         # # Get the data of the indexed region in the list
         # (REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT) = ALL_DATA_LIST[region_idx]
         # # Call the parallel process function on this region
         # parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT)
-        # Get the data of the indexed region in the list
-        (REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT) = ALL_DATA_LIST[0]
-        # Call the parallel process function on this region
-        parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT)
+        # # Get the data of the indexed region in the list
+        # (REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT) = ALL_DATA_LIST[0]
+        # # Call the parallel process function on this region
+        # parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT)
+        pass
     else:
         # Call the parallel process function on all regions - serially
         for region_idx in range(len(ALL_DATA_LIST)):

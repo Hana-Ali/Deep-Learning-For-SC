@@ -19,6 +19,7 @@ def get_main_paths(hpc):
         BMINDS_TRANSFORMS_FOLDER = os.path.realpath(os.path.join(BMINDS_TEMPLATES_FOLDER, "ANTS_transforms"))
         BMINDS_INJECTIONS_FOLDER = os.path.realpath(os.path.join(BMINDS_CORE_FOLDER, "processed_tracer_data"))
         BMINDS_UNZIPPED_DWI_FOLDER = os.path.realpath(os.path.join(BMINDS_OUTPUTS_DMRI_FOLDER, "dMRI_unzipped"))
+        BMINDS_UNZIPPED_DWI_RESIZED_FOLDER = os.path.realpath(os.path.join(BMINDS_OUTPUTS_DMRI_FOLDER, "dMRI_unzipped_resized"))
 
     else:
         # Define paths based on whether we're Windows or Linux
@@ -49,6 +50,7 @@ def get_main_paths(hpc):
             BMINDS_TRANSFORMS_FOLDER = os.path.realpath(os.path.join(BMINDS_TEMPLATES_FOLDER, "ANTS_transforms"))
             BMINDS_INJECTIONS_FOLDER = os.path.realpath(os.path.join(BMINDS_CORE_FOLDER, "processed_tracer_data"))
             BMINDS_UNZIPPED_DWI_FOLDER = os.path.realpath(os.path.join(BMINDS_OUTPUTS_DMRI_FOLDER, "dMRI_unzipped"))
+            BMINDS_UNZIPPED_DWI_RESIZED_FOLDER = os.path.realpath(os.path.join(BMINDS_OUTPUTS_DMRI_FOLDER, "dMRI_unzipped_resized"))
 
     # Create main MRTRIX folder
     MAIN_MRTRIX_FOLDER_DMRI = os.path.join(BMINDS_OUTPUTS_DMRI_FOLDER, "MRTRIX")
@@ -57,8 +59,8 @@ def get_main_paths(hpc):
     # Return folder names
     return (BMINDS_DATA_FOLDER, BMINDS_OUTPUTS_DMRI_FOLDER, BMINDS_OUTPUTS_INJECTIONS_FOLDER, BMINDS_CORE_FOLDER,
             BMINDS_DWI_FOLDER, BMINDS_METADATA_FOLDER, BMINDS_TEMPLATES_FOLDER, BMINDS_ATLAS_FOLDER, BMINDS_STPT_TEMPLATE_FOLDER, 
-            BMINDS_TRANSFORMS_FOLDER, BMINDS_INJECTIONS_FOLDER, BMINDS_UNZIPPED_DWI_FOLDER, MAIN_MRTRIX_FOLDER_DMRI, 
-            MAIN_MRTRIX_FOLDER_INJECTIONS)
+            BMINDS_TRANSFORMS_FOLDER, BMINDS_INJECTIONS_FOLDER, BMINDS_UNZIPPED_DWI_FOLDER, BMINDS_UNZIPPED_DWI_RESIZED_FOLDER,
+            MAIN_MRTRIX_FOLDER_DMRI, MAIN_MRTRIX_FOLDER_INJECTIONS)
        
 
 # Check that output folders with subfolders are in suitable shape
