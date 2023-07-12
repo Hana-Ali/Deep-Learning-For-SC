@@ -5,9 +5,9 @@ This Python file contains the main pipeline used for tractography
 # Import libraries
 import multiprocessing as mp
 from py_helpers.general_helpers import *
-from py_helpers.SC_checkpoints import *
-from py_helpers.SC_commands import *
-from py_helpers.SC_paths import *
+from dwi_helpers.SC_checkpoints import *
+from dwi_helpers.SC_commands import *
+from dwi_helpers.SC_paths import *
 import regex as re
 import subprocess
 import os
