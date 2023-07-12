@@ -3,11 +3,6 @@ import sys
 import shutil
 import glob
 import numpy as np
-import regex as re
-import nipype.interfaces.io as nio
-from nipype import Node
-from nipype.interfaces.utility import IdentityInterface
-from nipype.pipeline.engine import Workflow
 
 # -------------------------------------------------- MAIN FUNCTION MODULES -------------------------------------------------- #
 

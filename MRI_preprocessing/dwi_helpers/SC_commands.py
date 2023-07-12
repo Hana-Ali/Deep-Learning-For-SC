@@ -1,7 +1,11 @@
-from .general_helpers import *
+import os
+
+import sys
+sys.path.append("..")
+from py_helpers.general_helpers import *
+
 from .SC_paths import *
 from .SC_checkpoints import *
-import os
 
 # ------------------------------------------------- COMMANDS ------------------------------------------------- #
 # Define FSL commands
