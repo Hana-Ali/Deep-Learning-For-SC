@@ -14,12 +14,12 @@ from nipype.pipeline.engine import Workflow
 def get_main_paths(hpc):
     # Depending on whether we're in HPC or not, paths change
     if hpc == True:
-        ALL_DATA_FOLDER = "/rds/general/user/hsa22/home/dissertation"
+        ALL_DATA_FOLDER = "/rds/general/user/hsa22/ephemeral/CAMCAN"
         SUBJECTS_FOLDER = "" # Empty in the case of HPC
-        TRACTOGRAPHY_OUTPUT_FOLDER = os.path.join(ALL_DATA_FOLDER, "output_data")
-        NIPYPE_OUTPUT_FOLDER = os.path.join(ALL_DATA_FOLDER, "nipype_outputs")
+        TRACTOGRAPHY_OUTPUT_FOLDER = os.path.join(ALL_DATA_FOLDER, "dMRI_outputs")
+        NIPYPE_OUTPUT_FOLDER = os.path.join(ALL_DATA_FOLDER, "Nipype_outputs")
         FMRI_MAIN_FOLDER = os.path.join(ALL_DATA_FOLDER, "camcan_parcellated_acompcor/jubrain/fmri700/rest")
-        ATLAS_FOLDER = os.path.join(ALL_DATA_FOLDER, "atlas")
+        ATLAS_FOLDER = os.path.join(ALL_DATA_FOLDER, "Atlas")
 
         PEDRO_MAIN_FOLDER = "/rds/general/user/pam213/home/Data/CAMCAN/"
         DWI_MAIN_FOLDER = os.path.join(PEDRO_MAIN_FOLDER, "dwi")

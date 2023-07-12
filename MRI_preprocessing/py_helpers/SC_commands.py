@@ -220,6 +220,8 @@ def define_mrtrix_registration_commands(ARGS):
     (T1_MIF_PATH, FIVETT_NOREG_PATH, DWI_B0_PATH, DWI_B0_NII, FIVETT_GEN_NII, T1_DWI_MAP_MAT,
         T1_DWI_CONVERT_INV, FIVETT_REG_PATH, ATLAS_DWI_MAP_MAT, ATLAS_DWI_CONVERT_INV, ATLAS_REG_PATH, 
             ATLAS_MIF_PATH) = get_mrtrix_registration_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, ATLAS)
+    
+    print("ATLAS IN REGISTRATION: {}".format(ATLAS))
 
     # T1 nii -> mif command
     MIF_T1_CMD = "mrconvert {input_nii} {output}.mif".format(input_nii=STRIPPED_T1_PATH, output=T1_MIF_PATH)
@@ -377,15 +379,15 @@ def probabilistic_tractography(ARGS):
     # Define the commands array, depending on what's been done
     MRTRIX_COMMANDS = []
     if MRTRIX_FOD:
-        MRTRIX_COMMANDS.append(
+        MRTRIX_COMMANDS.extend([
                                 (MIF_CMD, "Convert DWI nii -> mif"), (MASK_CMD, "Create DWI brain mask"),
                                 (RESPONSE_EST_CMD, "Estimate response function of WM, GM, CSF from DWI"),
                                 (MULTISHELL_CSD_CMD, "Spherical deconvolution to estimate fODs"),
                                 (COMBINE_FODS_CMD, "Combining fODs into a VF"),
                                 (NORMALIZE_FODS_CMD, "Normalizing fODs")
-                        )
+                        ])
     if MRTRIX_REGISTRATION:
-        MRTRIX_COMMANDS.append(
+        MRTRIX_COMMANDS.extend([
                                 (MIF_T1_CMD, "Convert T1 nii -> mif"), (FIVETT_NOREG_CMD, "5ttgen creation with no registration"),
                                 (DWI_B0_CMD, "Extracting mean B0 and transforming to NII"), (DWI_B0_NII_CMD, "DWI B0 mif -> NII"),
                                 (FIVETT_GEN_NII_CMD, "5ttgen mif -> nii"), (REGISTER_T1_DWI_CMD, "Begin registering T1 to DWI space"),
@@ -394,20 +396,20 @@ def probabilistic_tractography(ARGS):
                                 (REGISTER_ATLAS_DWI_CMD, "Begin registering atlas to DWI space"),
                                 (TRANSFORMATION_ATLAS_DWI_CMD, "Initial transformation of atlas to DWI space"),
                                 (ATLAS_MIF_CMD, "Convert atlas nii -> mif"), (FINAL_ATLAS_TRANSFORM_CMD, "Final transformation of atlas to DWI space"),
-                            )
+                            ])
     if MRTRIX_PROBTRACK:
-        MRTRIX_COMMANDS.append(
+        MRTRIX_COMMANDS.extend([
                                 (GM_WM_SEED_CMD, "Preparing mask for streamline seeding"), (PROB_TRACT_CMD, "Probabilistic tractography"),
-                            )
+                            ])
     if MRTRIX_GLOBAL_TRACKING:
-        MRTRIX_COMMANDS.append(
+        MRTRIX_COMMANDS.extend([
                                 (GLOBAL_TRACT_CMD, "Global tractography"),
-                            )
+                            ])
     if MRTRIX_CONNECTOME:
-        MRTRIX_COMMANDS.append(
+        MRTRIX_COMMANDS.extend([
                                 (CONNECTIVITY_PROB_CMD, "Creating connectivity matrix - probabilistic"),
                                 (CONNECTIVITY_GLOBAL_CMD, "Creating connectivity matrix - global")
-                            )
+                            ])
 
     # Return the commands array
     return MRTRIX_COMMANDS

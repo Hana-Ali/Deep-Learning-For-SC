@@ -23,6 +23,8 @@ def parallel_process(SUBJECT_FILES, ATLAS, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, M
     STRIPPED_MASK_INDEX = 1
     STRIPPED_OVERLAY_INDEX = 2
 
+    print("ATLAS IN PARALLEL: {}".format(ATLAS))
+
     # Get the filename for this specific process
     dwi_filename = extract_dwi_filename(get_filename(SUBJECT_FILES, "filename")["filename"])
     t1_filename = extract_t1_filename(get_filename(SUBJECT_FILES, "t1")["t1"])
@@ -120,7 +122,7 @@ def parallel_process(SUBJECT_FILES, ATLAS, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, M
 
 def main():
     # Get paths, depending on whether we're in HPC or not
-    hpc = False
+    hpc =  int(sys.argv[1])
     (ALL_DATA_FOLDER, SUBJECTS_FOLDER, TRACTOGRAPHY_OUTPUT_FOLDER, NIPYPE_OUTPUT_FOLDER, 
         DWI_MAIN_FOLDER, T1_MAIN_FOLDER, FMRI_MAIN_FOLDER, DSI_COMMAND, ATLAS_FOLDER, 
             MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH) = get_main_paths(hpc)
@@ -179,17 +181,12 @@ def main():
     # --------------- Mapping subject inputs to the HPC job --------------- #
     if hpc:
         # Get the current subject based on the command-line argument
-        subject_idx = int(sys.argv[1])
+        subject_idx = int(sys.argv[2])
         # Get the index of the subject in the filtered list
         subject = FILTERED_SUBJECT_LIST[subject_idx]
         # Call the parallel process function on this subject
         parallel_process(subject, ATLAS_CHOSEN, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH,
-                            DSI_COMMAND)
-        # for subject in FILTERED_SUBJECT_LIST:
-        #     parallel_process(subject, ATLAS_CHOSEN, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH,
-        #                         DSI_COMMAND)
-        # parallel_process(FILTERED_SUBJECT_LIST[0], ATLAS_CHOSEN, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH,
-                            # DSI_COMMAND)
+                        DSI_COMMAND)
     else:
         # Get the mapping as a list for multiprocessing to work
         mapping_inputs = list(zip(FILTERED_SUBJECT_LIST, [ATLAS_CHOSEN]*len(FILTERED_SUBJECT_LIST), 

@@ -100,7 +100,7 @@ def get_injection_type(file):
 
 # mrresize and dwiextract shell
 # Function to resize the DWI and extract only the first K shells
-def resize_dwi_by_scale(region_item, scale=0.5, verbose=False):
+def resize_dwi_by_scale(region_item, scale_x=0.5, scale_y=0.5, scale_z=0.5, verbose=False):
 
     # Define the resized DWI path
     if os.name == "nt":
@@ -117,7 +117,8 @@ def resize_dwi_by_scale(region_item, scale=0.5, verbose=False):
         return RESIZED_PATH
 
     # Resize the DWI and save under resized
-    MRRESIZE_CMD = "mrresize -scale {scale} {input} {output}".format(input=region_item, scale=scale, output=RESIZED_PATH)
+    MRRESIZE_CMD = "mrgrid {input} regrid -scale {scale_x},{scale_y},{scale_z} {output}".format(input=region_item[0], 
+                    scale_x=scale_x, scale_y=scale_y, scale_z=scale_z, output=RESIZED_PATH)
     
     print("Running command: {}".format(MRRESIZE_CMD))
     subprocess.run(MRRESIZE_CMD, shell=True)
@@ -213,7 +214,7 @@ def get_resized_bval_bvec_lists(same_region_list, verbose=False):
     # Resize and extract the first K shells for all the DWIs
     for region_item in same_region_list:
         # Resize the DWI and extract the first K shells
-        RESIZE_PATHS.append(resize_dwi_by_scale(region_item, scale=0.5))
+        RESIZE_PATHS.append(resize_dwi_by_scale(region_item, scale_x=0.5, scale_y=0.5, scale_z=0.5))
         FIRST_K_SHELL_BVALS_BVECS.append(extract_K_shells_bvals_bvecs(region_item, K=3))
         # Create a new list with the resized and first K shells
         resized_region_list.append([RESIZE_PATHS[-1], FIRST_K_SHELL_BVALS_BVECS[-1][0], FIRST_K_SHELL_BVALS_BVECS[-1][1]])

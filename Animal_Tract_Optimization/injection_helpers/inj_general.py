@@ -364,26 +364,33 @@ def get_stats_from_file(STATS_FILE, TYPE="count"):
     # Load the file with numpy
     lengths_data = np.loadtxt(STATS_FILE)
 
+    if len(lengths_data) == 0:
+        print("Lengths data {} is empty. Exiting.".format(STATS_FILE))
+        # Save to file that it's empty
+        EMPTY_FILE = STATS_FILE.replace(".txt", "_empty.txt")
+        np.savetxt(EMPTY_FILE, lengths_data, delimiter=",")
+        sys.exit()
+
     # Get the stats from the file, depending on the type
     if TYPE == "count":
-        count_data = len(lengths_data)
+        count_data = np.array(len(lengths_data))
         return count_data
     elif TYPE == "lengths":
         return lengths_data
     elif TYPE == "mean":
-        mean_data = float(sum(lengths_data))/len(lengths_data) if len(lengths_data) > 0 else float('nan')
+        mean_data = np.array(float(sum(lengths_data))/len(lengths_data) if len(lengths_data) > 0 else float('nan'))
         return mean_data
     elif TYPE == "median":
-        median_data = float(sorted(lengths_data)[len(lengths_data)//2]) if len(lengths_data) > 0 else float('nan')
+        median_data = np.array(float(sorted(lengths_data)[len(lengths_data)//2]) if len(lengths_data) > 0 else float('nan'))
         return median_data
     elif TYPE == "min":
-        min_data = float(min(lengths_data)) if len(lengths_data) > 0 else float('nan')
+        min_data = np.array(float(min(lengths_data)) if len(lengths_data) > 0 else float('nan'))
         return min_data
     elif TYPE == "max":
-        max_data = float(max(lengths_data)) if len(lengths_data) > 0 else float('nan')
+        max_data = np.array(float(max(lengths_data)) if len(lengths_data) > 0 else float('nan'))
         return max_data
     elif TYPE == "std":
-        std_data = np.std(lengths_data) if len(lengths_data) > 0 else float('nan')
+        std_data = np.array(np.std(lengths_data) if len(lengths_data) > 0 else float('nan'))
         return std_data
     else:
         print("Type {} not allowed. Exiting.".format(TYPE))
