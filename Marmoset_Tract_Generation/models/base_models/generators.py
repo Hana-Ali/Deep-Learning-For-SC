@@ -11,7 +11,10 @@ Architectures to try:
 """
 
 import torch.nn as nn
-from .network_helpers.network_blocks import *
+
+import sys
+sys.path.append('..')
+from network_helpers.network_blocks import *
 
 ##############################################################
 ###################### ResNet Generator ######################
