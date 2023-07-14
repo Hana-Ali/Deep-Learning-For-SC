@@ -9,8 +9,12 @@ def extract_region_ID(file):
     # Extract the filename
     if os.name == "nt":
         region_name = file.split("\\")[-3]
+        if "resized" in region_name:
+            region_name = region_name.replace("_resized", "")
     else:
         region_name = file.split("/")[-3]
+        if "resized" in region_name:
+            region_name = region_name.replace("_resized", "")
     # Return the filename
     return region_name
 
@@ -98,7 +102,6 @@ def get_injection_type(file):
         print("Unknown injection file type for {}. Name is {}".format(file, injection_name))
         sys.exit('Exiting program')
 
-# mrresize and dwiextract shell
 # Function to resize the DWI and extract only the first K shells
 def resize_dwi_by_scale(region_item, scale_x=0.5, scale_y=0.5, scale_z=0.5, verbose=False):
 
@@ -131,13 +134,13 @@ def extract_K_shells_bvals_bvecs(region_item, K=3, verbose=False):
 
         # Define the resized DWI path
     if os.name == "nt":
-        bval_shell_name = region_item[1].split("\\")[-1].split(".")[0] + "{}_shell_bval.bval".format(K)
-        bvec_shell_name = region_item[2].split("\\")[-1].split(".")[0] + "{}_shell_bvec.bvec".format(K)
+        bval_shell_name = region_item[1].split("\\")[-1].split(".")[0] + "_{}_shell_bval.bval".format(K)
+        bvec_shell_name = region_item[2].split("\\")[-1].split(".")[0] + "_{}_shell_bvec.bvec".format(K)
         BVAL_SHELL_PATH = os.path.join("\\".join(region_item[1].split("\\")[:-1]), bval_shell_name)
         BVEC_SHELL_PATH = os.path.join("\\".join(region_item[2].split("\\")[:-1]), bvec_shell_name)
     else:
-        bval_shell_name = region_item[1].split("/")[-1].split(".")[0] + "{}_shell_bval.bval".format(K)
-        bvec_shell_name = region_item[2].split("/")[-1].split(".")[0] + "{}_shell_bvec.bvec".format(K)
+        bval_shell_name = region_item[1].split("/")[-1].split(".")[0] + "_{}_shell_bval.bval".format(K)
+        bvec_shell_name = region_item[2].split("/")[-1].split(".")[0] + "_{}_shell_bvec.bvec".format(K)
         BVAL_SHELL_PATH = os.path.join("/".join(region_item[1].split("/")[:-1]), bval_shell_name)
         BVEC_SHELL_PATH = os.path.join("/".join(region_item[2].split("/")[:-1]), bvec_shell_name)
 
@@ -151,9 +154,11 @@ def extract_K_shells_bvals_bvecs(region_item, K=3, verbose=False):
     bval_text = np.loadtxt(region_item[1])
     bvec_text = np.loadtxt(region_item[2])
 
+    print("bvec shape: {}".format(bvec_text.shape))
+
     # Get the first K shells
     bval_shell = bval_text[:K]
-    bvec_shell = bvec_text[:K]
+    bvec_shell = bvec_text[:][:K]
 
     # Save the first K shells
     np.savetxt(BVAL_SHELL_PATH, bval_shell, fmt='%i')
@@ -442,8 +447,8 @@ def create_initial_lists(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BV
     # For each DWI file
     for dwi_file in BMINDS_UNZIPPED_DWI_FILES:
 
-        # Check that it's not a concat file - skip if it is
-        if "concat" in dwi_file:
+        # Check that it's not a concat or resized file - skip if it is
+        if "concat" in dwi_file or "resized" in dwi_file:
             continue
 
         # Get the region ID

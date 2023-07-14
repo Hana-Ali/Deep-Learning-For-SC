@@ -46,8 +46,6 @@ def use_transforms_h5_file(ARGS):
     TRANSFORMS_H5 = ARGS[0]
     ATLAS_STPT = ARGS[1]
 
-    print("TRANSFORM_H5: {}".format(TRANSFORMS_H5))
-
     # Define what's needed for the commands
     NEEDED_FILES_TRANSFORM = ["mbca_transform"]
     TRANSFORM_NEEDED_PATH = extract_from_input_list(TRANSFORMS_H5, NEEDED_FILES_TRANSFORM, "transforms")
@@ -100,8 +98,12 @@ def mrtrix_all_general_functions(ARGS):
     (REGISTER_ATLAS_DWI_CMD, CONVERT_ATLAS_TO_MIF_CMD) = use_transforms_h5_file(ATLAS_REG_ARGS)
 
     # Define the streamline combination command
-    STREAMLINE_COMBO_ARGS = [STREAMLINE_FILES]
+    STREAMLINE_COMBO_ARGS = [STREAMLINE_FILES["tracer_tracts"]]
     (COMBINE_STREAMLINE_CMD) = combine_all_streamline_files(STREAMLINE_COMBO_ARGS)
+
+    # Define the streamline -> TDI command
+    STREAMLINE_TDI_ARGS = [STREAMLINE_FILES, INJECTION_FILES["streamline_density"]]
+    (STREAMLINE_TDI_CMD) = create_tdi_from_streamlines(STREAMLINE_TDI_ARGS)
 
     # Check if we need to do the above commands
     CHECK_MISSING_GENERAL_ARGS = [ATLAS_STPT]
@@ -127,8 +129,8 @@ def combine_all_region_stats():
 
     # Get the main paths
     (GENERAL_MRTRIX_FOLDER, SPECIFIC_MRTRIX_FOLDER, ATLAS_REG_FOLDER_NAME, COMBINED_TRACTS_FOLDER_NAME, 
-        COMBINED_CONNECTOME_FOLDER_NAME, INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME, 
-        INDIVIDUAL_ROIS_MIF_FOLDER_NAME) = main_mrtrix_folder_paths()
+    COMBINED_CONNECTOME_FOLDER_NAME, DENSITY_MAPS_FOLDER_NAME, INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, 
+    INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME, INDIVIDUAL_ROIS_MIF_FOLDER_NAME) = main_mrtrix_folder_paths()
     
     # Get all the text names in SPECIFIC_MRTRIX_FOLDER and filter for ones with vector in the name
     REGION_FOLDER_NAMES = glob_files(SPECIFIC_MRTRIX_FOLDER, "txt")
@@ -153,6 +155,88 @@ def combine_all_region_stats():
 
     # Save the data into a csv file
     np.savetxt(COMBINED_CONNECTOME_PATH, ALL_REGION_DATA, delimiter=",")
+
+# Function to make the tracer type
+def get_tracer_type(streamline_file):
+    if os.name == "nt":
+        return streamline_file.split("\\")[-1]
+    else:
+        return streamline_file.split("/")[-1]
+
+# Function to convert all tracer, tracer_sharp, and dwi tracts to TDI
+def create_tdi_from_streamlines(ARGS):
+
+    # Get the arguments
+    STREAMLINE_FILES = ARGS[0]
+    INJECTION_FILES = ARGS[1]
+
+    # Get the different streamline files
+    TRACER_STREAMLINE_FILES = STREAMLINE_FILES["tracer_tracts"]
+    TRACER_SHARP_STREAMLINE_FILES = STREAMLINE_FILES["tracer_sharp_tracts"]
+    DWI_STREAMLINE_FILES = STREAMLINE_FILES["dwi_tracts"]
+
+    # Get the first one as a template
+    TEMPLATE = INJECTION_FILES[0]
+
+    print("template is: ", TEMPLATE)
+
+    # This stores the commands as a dictionary
+    TDI_COMMANDS = {}
+
+    # For every tracer streamline file, create a TDI
+    for tracer_streamline in TRACER_STREAMLINE_FILES:
+        # Get the type
+        TRACER_TYPE = get_tracer_type(tracer_streamline)
+        # Get the TDI path
+        (TDI_REGION_FOLDER, TDI_PATH) = get_tdi_path(tracer_streamline)
+        # Create the TDI command
+        TDI_CMD = "tckmap {input} {output}.nii.gz -template {template}".format(input=tracer_streamline, 
+                                                                               output=TDI_PATH, 
+                                                                               template=TEMPLATE)
+        # Append the command to the dictionary
+        TDI_COMMANDS[TRACER_TYPE] = TDI_CMD
+
+    # For every tracer_sharp streamline file, create a TDI
+    for tracer_sharp_streamline in TRACER_SHARP_STREAMLINE_FILES:
+        # Get the type
+        TRACER_TYPE = get_tracer_type(tracer_sharp_streamline)
+        # Get the TDI path
+        (TDI_REGION_FOLDER, TDI_PATH) = get_tdi_path(tracer_sharp_streamline)
+        # Create the TDI command
+        TDI_CMD = "tckmap {input} {output}.nii.gz -template {template}".format(input=tracer_sharp_streamline, 
+                                                                               output=TDI_PATH, 
+                                                                               template=TEMPLATE)
+        # Append the command to the dictionary
+        TDI_COMMANDS[TRACER_TYPE] = TDI_CMD
+
+    # For every dwi streamline file, create a TDI
+    for dwi_streamline in DWI_STREAMLINE_FILES:
+        # Get the type
+        TRACER_TYPE = get_tracer_type(dwi_streamline)
+        # Get the TDI path
+        (TDI_REGION_FOLDER, TDI_PATH) = get_tdi_path(dwi_streamline)
+        # Create the TDI command
+        TDI_CMD = "tckmap {input} {output}.nii.gz -template {template}".format(input=dwi_streamline, 
+                                                                               output=TDI_PATH, 
+                                                                               template=TEMPLATE)
+        # Append the command to the dictionary
+        TDI_COMMANDS[TRACER_TYPE] = TDI_CMD
+
+    # Return the commands
+    return (TDI_COMMANDS)
+    
+
+
+# Function to symmetrize all the tracer, tracer_sharp, and dwi tracts TDIs
+
+
+
+
+
+
+
+
+
 
 
 # TODO:

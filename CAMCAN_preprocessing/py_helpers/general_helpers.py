@@ -13,7 +13,7 @@ def get_main_paths(hpc):
         SUBJECTS_FOLDER = "" # Empty in the case of HPC
         TRACTOGRAPHY_OUTPUT_FOLDER = os.path.join(ALL_DATA_FOLDER, "dMRI_outputs")
         NIPYPE_OUTPUT_FOLDER = os.path.join(ALL_DATA_FOLDER, "Nipype_outputs")
-        FMRI_MAIN_FOLDER = os.path.join(ALL_DATA_FOLDER, "camcan_parcellated_acompcor/jubrain/fmri700/rest")
+        FMRI_MAIN_FOLDER = os.path.join(ALL_DATA_FOLDER, "camcan_parcellated_acompcor/glasser360/fmri700/rest")
         ATLAS_FOLDER = os.path.join(ALL_DATA_FOLDER, "Atlas")
 
         PEDRO_MAIN_FOLDER = "/rds/general/user/pam213/home/Data/CAMCAN/"
@@ -62,26 +62,30 @@ def get_main_paths(hpc):
             MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH)
 
 # Check that input folders exist
-def check_input_folders(folder, name):
+def check_input_folders(folder, name, verbose=False):
     if not os.path.exists(folder):
         print("--- {} folder not found. Please add folder: {}".format(name, folder))
         sys.exit('Exiting program')
     else:
-        print("--- {} folder found. Continuing...".format(name))
+        if verbose:
+            print("--- {} folder found. Continuing...".format(name))
 
 # Check that output folders are in suitable shape
-def check_output_folders(folder, name, wipe=True):
+def check_output_folders(folder, name, wipe=True, verbose=False):
     if not os.path.exists(folder):
-        print("--- {} folder not found. Created folder: {}".format(name, folder))
+        if verbose:
+            print("--- {} folder not found. Created folder: {}".format(name, folder))
         os.makedirs(folder)
     # If it has no content, either continue or delete, depending on wipe
     else:
         # If it has content, delete it
         if wipe:
-            print("--- {} folder found. Wiping...".format(name))
+            if verbose:
+                print("--- {} folder found. Wiping...".format(name))
             # If the folder has content, delete it
             if len(os.listdir(folder)) != 0:
-                print("{} folder has content. Deleting content...".format(name))
+                if verbose:
+                    print("{} folder has content. Deleting content...".format(name))
                 # Since this can have both folders and files, we need to check if it's a file or folder to remove
                 for filename in os.listdir(folder):
                     file_path = os.path.join(folder, filename)
@@ -89,9 +93,11 @@ def check_output_folders(folder, name, wipe=True):
                         os.unlink(file_path)
                     elif os.path.isdir(file_path):
                         shutil.rmtree(file_path)
-                print("Content deleted. Continuing...")
+                if verbose:
+                    print("Content deleted. Continuing...")
         else:
-            print("--- {} folder found. Continuing without wipe...".format(name))
+            if verbose:
+                print("--- {} folder found. Continuing without wipe...".format(name))
             
 # Retrieve (GLOB) files
 def glob_files(PATH_NAME, file_format):
@@ -101,12 +107,13 @@ def glob_files(PATH_NAME, file_format):
     return INPUT_FILES
 
 # Check that the retrieved (GLOBBED) files are not empty
-def check_globbed_files(files, name):
+def check_globbed_files(files, name, verbose=False):
     if len(files) == 0:
         print("No {} files found. Please add {} files".format(name, name))
         sys.exit('Exiting program')
     else:
-        print("{} files found. Continuing...".format(name))
+        if verbose:
+            print("{} files found. Continuing...".format(name))
 
 # Function to filter the subjects list based on quality checks done by Pedro
 def filter_subjects_list(SUBJECT_LISTS, SUBJECTS_DATA_PATH):
@@ -154,7 +161,8 @@ def extract_fmri_filename(fmri_file):
     return fmri_filename
 
 # Create a list that associates each subject with its T1 and DWI files
-def create_subject_list(DWI_INPUT_FILES, DWI_JSON_HEADERS, B_VAL_FILES, B_VEC_FILES, T1_INPUT_FILES, FMRI_INPUT_FILES):
+def create_subject_list(DWI_INPUT_FILES, DWI_JSON_HEADERS, B_VAL_FILES, B_VEC_FILES, T1_INPUT_FILES, FMRI_INPUT_FILES,
+                        verbose=False):
     SUBJECT_LISTS = []
     DWI_LIST = []
     JSON_LIST = []
@@ -213,25 +221,30 @@ def create_subject_list(DWI_INPUT_FILES, DWI_JSON_HEADERS, B_VAL_FILES, B_VEC_FI
 
         # CHECK THAT SUBJECT HAS ALL FILES
         if not len(json):
-            print("Subject {} does not have JSON file. Not appending to subjects".format(dwi_name))
+            if verbose:
+                print("Subject {} does not have JSON file. Not appending to subjects".format(dwi_name))
             continue
         if not len(bval):
-            print("Subject {} does not have BVAL file. Not appending to subjects".format(dwi_name))
+            if verbose:
+                print("Subject {} does not have BVAL file. Not appending to subjects".format(dwi_name))
             continue
         if not len(bvec):
-            print("Subject {} does not have BVEC file. Not appending to subjects".format(dwi_name))
+            if verbose:
+                print("Subject {} does not have BVEC file. Not appending to subjects".format(dwi_name))
             continue
         if not len(t1):
-            print("Subject {} does not have T1 file. Not appending to subjects".format(dwi_name))
+            if verbose:
+                print("Subject {} does not have T1 file. Not appending to subjects".format(dwi_name))
             continue
         if not len(fmri):
-            print("Subject {} does not have fMRI file. Not appending to subjects".format(dwi_name))
+            if verbose:
+                print("Subject {} does not have fMRI file. Not appending to subjects".format(dwi_name))
             continue
 
         # Append the subject name, dwi, json, bval, bvec, t1 and fMRI to the list
         SUBJECT_LISTS.append([dwi_name, dwi[1], json[0], bval[0], bvec[0], t1[0], fmri[0]])
     
-    print("Number of subjects: {}".format(len(SUBJECT_LISTS)))
+    # print("Number of subjects: {}".format(len(SUBJECT_LISTS)))
         
     return SUBJECT_LISTS
 
@@ -280,16 +293,16 @@ def get_atlas_choice(FILTERED_SUBJECT_LIST, ATLAS_FILES):
     atlas_name = get_filename(FILTERED_SUBJECT_LIST[0], "fmri")["fmri"].split("/")[-1].split("_")[1]
 
     # Make all atlas files lowercase for comparison
-    ATLAS_FILES = [atlas_file.lower() for atlas_file in ATLAS_FILES]
-    atlas_name = atlas_name.lower()
+    ATLAS_FILES_LOWER = [atlas_file.lower() for atlas_file in ATLAS_FILES]
+    atlas_name_lower = atlas_name.lower()
 
     # If the atlas name is not in the atlas files, exit the program
-    if not any(atlas_name in atlas_file for atlas_file in ATLAS_FILES):
+    if not any(atlas_name_lower in atlas_file for atlas_file in ATLAS_FILES_LOWER):
         print("Atlas name {} not found in atlas files. Please add atlas file".format(atlas_name))
         sys.exit('Exiting program')
     else:
         # Get the atlas path
-        atlas_path = [atlas_file for atlas_file in ATLAS_FILES if atlas_name in atlas_file][0]
+        atlas_path = [atlas_file for atlas_file in ATLAS_FILES if atlas_name_lower in atlas_file.lower()][0]
         print("Atlas path: {}".format(atlas_path))
     
     # Return the atlas path

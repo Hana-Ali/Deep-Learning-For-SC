@@ -19,8 +19,8 @@ def mrtrix_all_region_functions(ARGS):
 
     # Get the main paths
     (GENERAL_MRTRIX_FOLDER, SPECIFIC_MRTRIX_FOLDER, ATLAS_REG_FOLDER_NAME, COMBINED_TRACTS_FOLDER_NAME, 
-        COMBINED_CONNECTOME_FOLDER_NAME, INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME, 
-        INDIVIDUAL_ROIS_MIF_FOLDER_NAME) = main_mrtrix_folder_paths()
+    COMBINED_CONNECTOME_FOLDER_NAME, DENSITY_MAPS_FOLDER_NAME, INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME, 
+    INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME, INDIVIDUAL_ROIS_MIF_FOLDER_NAME) = main_mrtrix_folder_paths()
 
     # Extract the ROIs of each atlas
     ATLAS_ROI_ARGS = [ATLAS_STPT, INDIVIDUAL_ROIS_FROM_ATLAS_FOLDER_NAME]
@@ -342,7 +342,8 @@ def move_existing_data_to_includes_both(ARGS):
 
 # Function to remove all the injection_roi_found and injection_rois_not_done
 def remove_injection_roi_found_and_not_done(ARGS):
-        # Extract arguments needed to define paths
+    
+    # Extract arguments needed to define paths
     REGION_ID = ARGS[0]
 
     # Get the paths we need
@@ -372,4 +373,3 @@ def remove_injection_roi_found_and_not_done(ARGS):
     for file in INJECTION_ROIS_NOT_DONE_FILES:
         print("Removing {}".format(file))
         os.remove(file)
-

@@ -1,0 +1,70 @@
+DSI Studio version: Chen"陳" May 22 2023
+├─CUDA Driver Version: 12000 CUDA Run Time Version: 11050
+│ │ Device Count:1
+│ │ Device Number:0
+│ │ Arch: 75
+│ │ Device name: NVIDIA GeForce MX450
+│ │ Memory Clock Rate (KHz): 5001000
+│ │ Memory Bus Width (bits): 64
+│ │ Peak Memory Bandwidth (GB/s): 80.016
+│ DSI Studio version: Chen"陳" CPU/GPU computation enabled 
+│ action=rec
+│ source=996782.src.gz
+│ loop=996782.src.gz
+├─run rec
+│ ├─open SRC file 996782.src.gz
+│ │ │ prepare index file for future accelerated loading
+│ │ │ saving index file for accelerated loading: 996782.src.gz.idx
+│ │ │ apply gradient deviation correction
+│ │ └─11.343 s
+│ ├─reconstruction parameters:
+│ │ │ method=1
+│ │ │ odf_resolving=0
+│ │ │ record_odf=1
+│ │ │ dti_no_high_b=1
+│ │ │ check_btable=0
+│ │ │ other_output=fa,ad,rd,md,iso,rdi,nrdi
+│ │ │ r2_weighted=0
+│ │ │ thread_count=8
+│ │ │ param0=1.25
+│ │ │ param1=3000
+│ │ │ param2=0.05
+│ │ │ template 0:"ICBM152_adult.QA.nii"
+│ │ │ template 1:"C57BL6_mouse.QA.nii"
+│ │ │ template 2:"dHCP_neonate.QA.nii"
+│ │ │ template 3:"INDI_rhesus.QA.nii"
+│ │ │ template 4:"Pitt_marmoset.QA.nii"
+│ │ │ template 5:"WHS_SD_rat.QA.nii"
+│ │ │ template=0
+│ │ └─3 ms
+│ ├─specify mask
+│ │ │ mask=1
+│ │ └─2 ms
+│ ├─preprocessing
+│ │ │ preprocessing=0
+│ │ │ motion_correction=0
+│ │ └─0 ms
+│ ├─additional processing steps
+│ │ │ align_acpc=1
+│ │ ├─align acpc
+│ │ │ │ align ap-pc
+│ │ │ │ translocation: -0.592407 0.622484 -5.61857
+│ │ │ │ rotation: 0.00152348 0.0145252 0.00580117
+│ │ │ │ scaling: 0.942087 0.993164 0.886783
+│ │ │ │ shear: 0 0 0
+│ │ │ │ R2 for ac-pc alignment:0.889231
+│ │ │ ├─rotating
+│ │ │ │ └─28.985 s
+│ │ │ └─31.113 s
+│ │ └─31.114 s
+│ │ output=dwi_clean_dti.fib.gz
+│ ├─initializing
+│ │ └─17 ms
+│ ├─reconstructing
+│ │ └─1.21 s
+│ ├─saving dwi_clean_dti.fib.gz
+│ │ ├─saving results
+│ │ │ └─2.136 s
+│ │ └─2.139 s
+│ └─46.074 s
+└─47.138 s

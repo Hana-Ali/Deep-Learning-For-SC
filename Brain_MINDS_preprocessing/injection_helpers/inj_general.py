@@ -165,10 +165,10 @@ def get_tracer_injections_from_all_data_list(ALL_DATA_LIST, injection_type_list)
 def perform_all_general_mrtrix_functions(ALL_DATA_LIST, BMINDS_MBCA_TRANSFORM_FILE, BMINDS_ATLAS_FILE, 
                                             BMINDS_STPT_FILE, BMINDS_ATLAS_LABEL_FILE):
     # Grab the streamlines as a list
-    STREAMLINE_TYPES_TO_GRAB = ["tracer_tracts"]
+    STREAMLINE_TYPES_TO_GRAB = ["tracer_tracts_sharp", "tracer_tracts", "dwi_tracts"]
     ALL_STREAMLINES_LIST = get_tracer_streamlines_from_all_data_list(ALL_DATA_LIST, STREAMLINE_TYPES_TO_GRAB)
     # Grab the injections as a list
-    INJECTION_TYPES_TO_GRAB = ["cell_density"]
+    INJECTION_TYPES_TO_GRAB = ["streamline_density"]
     ALL_INJECTIONS_LIST = get_tracer_injections_from_all_data_list(ALL_DATA_LIST, INJECTION_TYPES_TO_GRAB)
     # Get the transform file
     TRANSFORM_FILE = BMINDS_MBCA_TRANSFORM_FILE[0]
@@ -176,7 +176,7 @@ def perform_all_general_mrtrix_functions(ALL_DATA_LIST, BMINDS_MBCA_TRANSFORM_FI
     ATLAS_STPT = [BMINDS_ATLAS_FILE[0], BMINDS_ATLAS_LABEL_FILE[0], BMINDS_STPT_FILE[0]]
 
     # Define the arguments to the function
-    ATLAS_STREAMLINE_ARGS = [ALL_STREAMLINES_LIST["tracer_tracts"], ALL_INJECTIONS_LIST["cell_density"], TRANSFORM_FILE, ATLAS_STPT]
+    ATLAS_STREAMLINE_ARGS = [ALL_STREAMLINES_LIST, ALL_INJECTIONS_LIST, TRANSFORM_FILE, ATLAS_STPT]
     # Get the commands
     MRTRIX_GENERAL_CMDS = mrtrix_all_general_functions(ATLAS_STREAMLINE_ARGS)
 
@@ -309,9 +309,9 @@ def get_tckstats_command(ATLAS_STPT, REGION_ID, ROIS_TO_DO, TYPE="includes_both"
 
         # Get the injection ROI tracts and stats path
         (CHOSEN_TRACTS_PATH) = get_injection_roi_tracts_path(REGION_ID, roi_name, TYPE)
-        (INJECTION_ROI_LENGTHS_PATH, INJECTION_ROI_COUNT_PATH, INJECTION_ROI_MEAN_PATH, 
-         INJECTION_ROI_MEDIAN_PATH, INJECTION_ROI_STD_PATH, INJECTION_ROI_MIN_PATH, 
-         INJECTION_ROI_MAX_PATH) = get_injection_roi_tracts_stats_path(REGION_ID, roi_name, TYPE="includes_both")
+        (INJECTION_ROI_TRACTS_STATS_FOLDER_SPECIFIC, INJECTION_ROI_LENGTHS_PATH, INJECTION_ROI_COUNT_PATH, 
+         INJECTION_ROI_MEAN_PATH, INJECTION_ROI_MEDIAN_PATH, INJECTION_ROI_STD_PATH, INJECTION_ROI_MIN_PATH, 
+         INJECTION_ROI_MAX_PATH) = get_injection_roi_tracts_stats_path(REGION_ID, roi_name, TYPE)
 
         # Find the stats of the number of streamlines between the injection site and the ROI. Note that it PRINTS out
         # everything, but we can grab the count by counting the number of lines in the file
@@ -337,8 +337,8 @@ def find_and_save_stats_results(ATLAS_STPT, REGION_ID, TYPE="includes_both"):
         # Get the ROI name or ID
         roi_name = roi_mif_path.split("/")[-1]
         # Get the injection ROI stats path
-        (INJECTION_ROI_LENGTHS_PATH, INJECTION_ROI_COUNT_PATH, INJECTION_ROI_MEAN_PATH, 
-         INJECTION_ROI_MEDIAN_PATH, INJECTION_ROI_STD_PATH, INJECTION_ROI_MIN_PATH, 
+        (INJECTION_ROI_TRACTS_STATS_FOLDER_SPECIFIC, INJECTION_ROI_LENGTHS_PATH, INJECTION_ROI_COUNT_PATH, 
+         INJECTION_ROI_MEAN_PATH, INJECTION_ROI_MEDIAN_PATH, INJECTION_ROI_STD_PATH, INJECTION_ROI_MIN_PATH, 
          INJECTION_ROI_MAX_PATH) = get_injection_roi_tracts_stats_path(REGION_ID, roi_name, TYPE)
             
         # Get all the stats about the file
@@ -349,7 +349,7 @@ def find_and_save_stats_results(ATLAS_STPT, REGION_ID, TYPE="includes_both"):
         max_data = get_stats_from_file(INJECTION_ROI_LENGTHS_PATH, TYPE="max")
         std_data = get_stats_from_file(INJECTION_ROI_LENGTHS_PATH, TYPE="std")
 
-        # Save the count, mean, median, min, max, std, etc. to the text file using numpy
+        # Save the count, mean, median, min, max, std, etc. to the text file using numpy after checking that it isn't empty
         np.savetxt(INJECTION_ROI_COUNT_PATH, count_data, delimiter=",")
         np.savetxt(INJECTION_ROI_MEAN_PATH, mean_data, delimiter=",")
         np.savetxt(INJECTION_ROI_MEDIAN_PATH, median_data, delimiter=",")
@@ -365,32 +365,32 @@ def get_stats_from_file(STATS_FILE, TYPE="count"):
     lengths_data = np.loadtxt(STATS_FILE)
 
     if len(lengths_data) == 0:
-        print("Lengths data {} is empty. Exiting.".format(STATS_FILE))
+        print("Lengths data {} is empty. Setting to 0.".format(STATS_FILE))
         # Save to file that it's empty
         EMPTY_FILE = STATS_FILE.replace(".txt", "_empty.txt")
         np.savetxt(EMPTY_FILE, lengths_data, delimiter=",")
-        sys.exit()
+        return np.array([0])
 
     # Get the stats from the file, depending on the type
     if TYPE == "count":
-        count_data = np.array(len(lengths_data))
+        count_data = np.array([len(lengths_data)])
         return count_data
     elif TYPE == "lengths":
         return lengths_data
     elif TYPE == "mean":
-        mean_data = np.array(float(sum(lengths_data))/len(lengths_data) if len(lengths_data) > 0 else float('nan'))
+        mean_data = np.array([float(sum(lengths_data))/len(lengths_data) if len(lengths_data) > 0 else float('nan')])
         return mean_data
     elif TYPE == "median":
-        median_data = np.array(float(sorted(lengths_data)[len(lengths_data)//2]) if len(lengths_data) > 0 else float('nan'))
+        median_data = np.array([float(sorted(lengths_data)[len(lengths_data)//2]) if len(lengths_data) > 0 else float('nan')])
         return median_data
     elif TYPE == "min":
-        min_data = np.array(float(min(lengths_data)) if len(lengths_data) > 0 else float('nan'))
+        min_data = np.array([float(min(lengths_data)) if len(lengths_data) > 0 else float('nan')])
         return min_data
     elif TYPE == "max":
-        max_data = np.array(float(max(lengths_data)) if len(lengths_data) > 0 else float('nan'))
+        max_data = np.array([float(max(lengths_data)) if len(lengths_data) > 0 else float('nan')])
         return max_data
     elif TYPE == "std":
-        std_data = np.array(np.std(lengths_data) if len(lengths_data) > 0 else float('nan'))
+        std_data = np.array([np.std(lengths_data) if len(lengths_data) > 0 else float('nan')])
         return std_data
     else:
         print("Type {} not allowed. Exiting.".format(TYPE))
@@ -399,4 +399,4 @@ def get_stats_from_file(STATS_FILE, TYPE="count"):
 
 # TO MAKE ATLAS
 # LOAD EACH NIFTI COPY TO MAKE "ATLAS" THEN FOR LOOP AND WHEREVER THE NIFTI IS NON-ZERO SET THAT REGION IN "ATLAS" TO I
-#MRICRO MAKE ACTUAL ATLAS w injections if ya 
+#MRICRO MAKE ACTUAL ATLAS w injections if ya want to

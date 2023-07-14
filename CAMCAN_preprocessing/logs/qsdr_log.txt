@@ -1,0 +1,90 @@
+DSI Studio version: Chen"陳" May 22 2023
+├─CUDA Driver Version: 12000 CUDA Run Time Version: 11050
+│ │ Device Count:1
+│ │ Device Number:0
+│ │ Arch: 75
+│ │ Device name: NVIDIA GeForce MX450
+│ │ Memory Clock Rate (KHz): 5001000
+│ │ Memory Bus Width (bits): 64
+│ │ Peak Memory Bandwidth (GB/s): 80.016
+│ DSI Studio version: Chen"陳" CPU/GPU computation enabled 
+│ action=rec
+│ source=996782.src.gz
+│ loop=996782.src.gz
+├─run rec
+│ ├─open SRC file 996782.src.gz
+│ │ │ using index file for accelerated loading:996782.src.gz.idx
+│ │ │ apply gradient deviation correction
+│ │ └─11.516 s
+│ ├─reconstruction parameters:
+│ │ │ method=7
+│ │ │ odf_resolving=0
+│ │ │ record_odf=1
+│ │ │ dti_no_high_b=1
+│ │ │ check_btable=0
+│ │ │ other_output=fa,ad,rd,md,iso,rdi,nrdi
+│ │ │ r2_weighted=0
+│ │ │ thread_count=8
+│ │ │ param0=1.25
+│ │ │ param1=3000
+│ │ │ param2=0.05
+│ │ │ template 0:"ICBM152_adult.QA.nii"
+│ │ │ template 1:"C57BL6_mouse.QA.nii"
+│ │ │ template 2:"dHCP_neonate.QA.nii"
+│ │ │ template 3:"INDI_rhesus.QA.nii"
+│ │ │ template 4:"Pitt_marmoset.QA.nii"
+│ │ │ template 5:"WHS_SD_rat.QA.nii"
+│ │ │ template=0
+│ │ │ qsdr_reso=1.25
+│ │ └─0 ms
+│ ├─specify mask
+│ │ │ mask=1
+│ │ └─1 ms
+│ ├─preprocessing
+│ │ │ preprocessing=0
+│ │ │ motion_correction=0
+│ │ └─0 ms
+│ ├─additional processing steps
+│ │ │ align_acpc=1
+│ │ ├─align acpc
+│ │ │ │ align ap-pc
+│ │ │ │ translocation: -0.592407 0.622484 -5.61857
+│ │ │ │ rotation: 0.00152348 0.0145252 0.00580117
+│ │ │ │ scaling: 0.942087 0.993164 0.886783
+│ │ │ │ shear: 0 0 0
+│ │ │ │ R2 for ac-pc alignment:0.889231
+│ │ │ ├─rotating
+│ │ │ │ └─28.813 s
+│ │ │ └─30.775 s
+│ │ └─30.776 s
+│ │ other_image=fa:dwi_clean_dti.fib.gz.fa.nii.gz
+│ │ fa:dwi_clean_dti.fib.gz.fa.nii.gz
+add dwi_clean_dti.fib.gz.fa.nii.gz as fa treated as DWI space images.
+│ │ output=dwi_clean_qsdr.fib.gz
+│ ├─initializing
+│ │ └─11 ms
+│ ├─reconstructing
+│ │ └─2.255 m
+│ ├─initializing
+│ │ │ width ratio (subject/template):(126/157) 0.802548
+│ │ │ translocation: 0.0870644 -0.539673 0.503185
+│ │ │ rotation: -0.00531532 -0.020402 -0.0241663
+│ │ │ scaling: 0.940758 0.989234 0.884744
+│ │ │ shear: 0.0115434 -0.0258091 0.0138326
+│ │ │ 0.752822 -0.00915577 -0.00295843 5.03889
+│ │ │ 0.0190101 0.7912 0.00558291 -1.06284
+│ │ │ -0.0143441 0.00410995 0.707638 7.47086
+│ │ │ linear r:0.773588
+│ │ │ R2:0.708803
+│ │ │ output dimension: (125,151,108)
+│ │ │ output resolution:1.25
+│ │ │ output dimension:(125,151,108)
+│ │ └─10.083 s
+│ ├─reconstructing
+│ │ └─26.9405 m
+│ ├─saving dwi_clean_qsdr.fib.gz
+│ │ ├─saving results
+│ │ │ └─2.11992 m
+│ │ └─2.11998 m
+│ └─32.1941 m
+└─32.196 m
