@@ -8,7 +8,6 @@ import itertools
 from .base_model import BaseModel
 
 import sys
-sys.path.append('..')
 from model_builders.network_funcs import *
 
 # Define the cycleGAN model
@@ -209,7 +208,7 @@ class cycleGANModel(BaseModel):
     ##############################################################
 
     # Define the name
-    def name(self):
+    def get_name(self):
         return 'cycleGANModel'
     
     # Set the input
@@ -221,4 +220,30 @@ class cycleGANModel(BaseModel):
         self.real_A = input[0 if AtoB else 1].to(self.device)
         self.real_B = input[1 if AtoB else 0].to(self.device)
 
+    # Modify the command line configurations
+    @staticmethod
+    def modify_commandline_options(parser, is_train=True):
 
+        # Set the default values
+        parser.set_defaults(no_dropout=True)
+
+        # If the model is in training mode
+        if is_train:
+            # Set the lambda values
+            parser.add_argument('--lambda_A', type=float, default=10.0, help='weight for cycle loss (A -> B -> A)')
+            parser.add_argument('--lambda_B', type=float, default=10.0,
+                                help='weight for cycle loss (B -> A -> B)')
+            parser.add_argument('--lambda_identity', type=float, default=0.5, help='use identity mapping. Setting lambda_identity other than 0 has an effect of '
+                                                                                   'scaling the weight of the identity mapping loss. For example, if the weight of the'
+                                                                                   ' identity loss should be 10 times smaller than the weight of the reconstruction loss, '
+                                                                                   'please set lambda_identity = 0.1')
+            '''
+            adjust the weight of correlation coefficient loss
+            '''
+            parser.add_argument('--lambda_co_A', type=float, default=2,
+                                help='weight for correlation coefficient loss (A -> B)')
+            parser.add_argument('--lambda_co_B', type=float, default=2,
+                                help='weight for correlation coefficient loss (B -> A )')
+
+        # Return the parser
+        return parser

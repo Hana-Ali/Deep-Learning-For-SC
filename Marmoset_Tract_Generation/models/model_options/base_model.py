@@ -7,7 +7,6 @@ import os
 from collections import OrderedDict
 
 import sys
-sys.path.append('..')
 from model_builders.network_funcs import *
 
 # Define the base model
@@ -216,5 +215,8 @@ class BaseModel():
                 print('[Network %s] Total number of parameters : %.3f M' % (name, num_params / 1e6))
         print('-----------------------------------------------')
 
-
+    # Modify the parser to add command line configuration for the model
+    @staticmethod
+    def modify_commandline_options(parser, is_train):
+        return parser
             

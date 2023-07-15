@@ -11,7 +11,6 @@ Architectures to try:
 import torch.nn as nn
 
 import sys
-sys.path.append('..')
 from model_builders.network_blocks import *
 
 ##############################################################

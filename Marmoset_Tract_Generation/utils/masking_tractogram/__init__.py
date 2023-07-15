@@ -11,3 +11,6 @@ and the voxels that are 0 will be the voxels that are not in the tractogram. Thi
 sitk.BinaryThreshold() from SimpleITK. The tractogram will be converted to a binary image in the __call__ function of the 
 class BinaryThreshold, where the tractogram will be converted to a binary image
 """
+
+# Import the masking function
+from .masking import *

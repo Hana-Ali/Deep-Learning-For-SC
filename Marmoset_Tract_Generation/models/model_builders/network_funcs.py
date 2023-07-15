@@ -10,9 +10,8 @@ import functools
 from numpy import random
 
 import sys
-sys.path.append('..')
-from base_models.generators import *
-from base_models.discriminators import *
+from model_options.generators import *
+from model_options.discriminators import *
 
 # Get the normalization layer
 def get_norm_layer(norm_type='instance'):
