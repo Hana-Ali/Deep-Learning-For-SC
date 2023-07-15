@@ -7,6 +7,7 @@ import torch.nn as nn
 from torch.optim import lr_scheduler
 from torch.nn import init
 import functools
+from numpy import random
 
 import sys
 sys.path.append('..')
@@ -268,3 +269,70 @@ def correlation_coefficient_loss(prediction, target):
     
     # Return the loss
     return 1 - loss**2 # absolute constraint
+
+# Define the image pool
+# This class implements an image buffer that stores previously generated images
+# This buffer enables us to update discriminators using a history of generated images
+# rather than the ones produced by the latest generators
+class ImagePool():
+
+    # Constructor
+    def __init__(self, pool_size):
+                
+        # Initialize the parent class
+        super(ImagePool, self).__init__()
+
+        # Initialize the attributes
+        self.pool_size = pool_size
+        
+        # If the pool size is greater than 0
+        if self.pool_size > 0:
+            # Initialize the pool
+            self.num_imgs = 0
+            self.images = []
+        
+    # Function to query the pool
+    def query(self, images):
+
+        # If the pool size is 0
+        if self.pool_size == 0:
+            # Return the images
+            return images
+
+        # This function selects a random image from the pool, stored here        
+        return_images = []
+        # For each image
+        for image in images:
+            
+            # Unsqueeze the image
+            image = torch.unsqueeze(image.data, 0)
+            
+            # If the pool is not full
+            if self.num_imgs < self.pool_size:
+                # Add the image to the pool
+                self.num_imgs = self.num_imgs + 1
+                self.images.append(image)
+                return_images.append(image)
+            
+            # If the pool is full
+            else:
+                # Randomly select an image
+                prob = random.uniform(0, 1)
+
+                # If the probability is greater than 0.5
+                if prob > 0.5:
+                    # Select a random image
+                    random_id = random.randint(0, self.pool_size - 1)
+                    temp = self.images[random_id].clone()
+                    self.images[random_id] = image
+                    return_images.append(temp)
+                # If the probability is less than 0.5
+                else:
+                    # Return the image
+                    return_images.append(image)
+            
+            # Concatenate the images
+            return_images = torch.cat(return_images, 0)
+
+            # Return the images
+            return return_images
