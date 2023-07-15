@@ -8,7 +8,7 @@ from collections import OrderedDict
 
 import sys
 sys.path.append('..')
-from network_helpers.network_funcs import *
+from model_builders.network_funcs import *
 
 # Define the base model
 class BaseModel():

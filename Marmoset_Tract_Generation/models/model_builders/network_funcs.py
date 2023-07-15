@@ -233,7 +233,7 @@ class GANLoss(nn.Module):
         # Return the loss
         return loss
     
-# Define the cycle consistency loss
+# Define the cycle consistency loss - Copilot created
 class CycleConsistencyLoss(nn.Module):
 
     # Constructor

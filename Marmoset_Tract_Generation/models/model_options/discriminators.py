@@ -12,7 +12,7 @@ import torch.nn as nn
 
 import sys
 sys.path.append('..')
-from network_helpers.network_blocks import *
+from model_builders.network_blocks import *
 
 ##############################################################
 ################### PatchGAN Discriminator ###################

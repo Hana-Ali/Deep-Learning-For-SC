@@ -5,8 +5,11 @@ from a given DWI image and a given tractogram, and the other way around
 
 import torch
 import itertools
-from .base_models.base_model import BaseModel
-from .network_helpers.network_funcs import *
+from .base_model import BaseModel
+
+import sys
+sys.path.append('..')
+from model_builders.network_funcs import *
 
 # Define the cycleGAN model
 class cycleGANModel(BaseModel):
