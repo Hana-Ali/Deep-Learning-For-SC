@@ -91,7 +91,7 @@ def resize_dwi_by_scale(region_item, scale_x=0.5, scale_y=0.5, scale_z=0.5, verb
 
     # Define the resized DWI path
     resized_name = region_item[0].split(os.sep)[-1].split(".")[0] + "_resized.nii"
-    RESIZED_PATH = os.path.join(os.sep.join(region_item[0].split(os.sep)[:-1]), resized_name)
+    RESIZED_PATH = os.path.join((os.sep).join(region_item[0].split(os.sep)[:-1]), resized_name)
     
     # Check if the paths already exist
     if os.path.exists(RESIZED_PATH):
@@ -110,13 +110,15 @@ def resize_dwi_by_scale(region_item, scale_x=0.5, scale_y=0.5, scale_z=0.5, verb
     return RESIZED_PATH
 
 # Function to extract the first K shells of the bvals and bvecs
-def extract_K_shells_bvals_bvecs(region_item, K=3, verbose=False):
+def extract_K_shells_bvals_bvecs(region_item, K=8, verbose=False):
 
     # Define the resized DWI path
+    resized_DWI_path = (os.sep).join(region_item[0].split(os.sep)[:-1])
+
     bval_shell_name = region_item[1].split(os.sep)[-1].split(".")[0] + "_{}_shell_bval.bval".format(K)
     bvec_shell_name = region_item[2].split(os.sep)[-1].split(".")[0] + "_{}_shell_bvec.bvec".format(K)
-    BVAL_SHELL_PATH = os.path.join((os.sep).join(region_item[1].split(os.sep)[:-1]), bval_shell_name)
-    BVEC_SHELL_PATH = os.path.join((os.sep).join(region_item[2].split(os.sep)[:-1]), bvec_shell_name)
+    BVAL_SHELL_PATH = os.path.join(resized_DWI_path, bval_shell_name)
+    BVEC_SHELL_PATH = os.path.join(resized_DWI_path, bvec_shell_name)
 
     if os.path.exists(BVAL_SHELL_PATH) and os.path.exists(BVEC_SHELL_PATH):
         if verbose:
@@ -132,7 +134,7 @@ def extract_K_shells_bvals_bvecs(region_item, K=3, verbose=False):
 
     # Get the first K shells
     bval_shell = bval_text[:K]
-    bvec_shell = bvec_text[:][:K]
+    bvec_shell = bvec_text[:, :K]
 
     # Save the first K shells
     np.savetxt(BVAL_SHELL_PATH, bval_shell, fmt='%i')
@@ -166,6 +168,7 @@ def join_dwi_diff_bvals_bvecs(DWI_LIST):
         same_region_list = [dwi[1:] for dwi in DWI_LIST if dwi[0] == region_ID]
 
         # Create list of all resized DWIs, BVALs and BVECs for this same region
+        print("Resizing region {}".format(region_ID))
         resized_region_list = get_resized_bval_bvec_lists(same_region_list)
         
         # Convert to mif and concatenate for both the normal and resized DWIs
@@ -194,7 +197,7 @@ def get_resized_bval_bvec_lists(same_region_list, verbose=False):
     for region_item in same_region_list:
         # Resize the DWI and extract the first K shells
         RESIZE_PATHS.append(resize_dwi_by_scale(region_item, scale_x=0.5, scale_y=0.5, scale_z=0.5))
-        FIRST_K_SHELL_BVALS_BVECS.append(extract_K_shells_bvals_bvecs(region_item, K=3))
+        FIRST_K_SHELL_BVALS_BVECS.append(extract_K_shells_bvals_bvecs(region_item, K=8))
         # Create a new list with the resized and first K shells
         resized_region_list.append([RESIZE_PATHS[-1], FIRST_K_SHELL_BVALS_BVECS[-1][0], FIRST_K_SHELL_BVALS_BVECS[-1][1]])
 
