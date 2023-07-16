@@ -103,17 +103,12 @@ def main():
 
     # --------------- Preprocessing the data to get the right file formats --------------- #
     if hpc:
-        # # Get the current region based on the command-line
-        # region_idx = int(sys.argv[2])
-        # # Get the data of the indexed region in the list
-        # (REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT) = ALL_DATA_LIST[region_idx]
-        # # Call the parallel process function on this region
-        # parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT)
-        # # Get the data of the indexed region in the list
-        # (REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT) = ALL_DATA_LIST[0]
-        # # Call the parallel process function on this region
-        # parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT)
-        pass
+        # Get the current region based on the command-line
+        region_idx = int(sys.argv[2])
+        # Get the data of the indexed region in the list
+        (REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT) = RESIZED_ALL_DATA_LIST[region_idx]
+        # Call the parallel process function on this region
+        parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT)
     else:
         # Call the parallel process function on all regions - serially
         for region_idx in range(len(ALL_DATA_LIST)):

@@ -71,7 +71,7 @@ def check_input_folders(folder, name, verbose=False):
             print("--- {} folder found. Continuing...".format(name))
 
 # Check that output folders are in suitable shape
-def check_output_folders(folder, name, wipe=True, verbose=False):
+def check_output_folders(folder, name, wipe=False, verbose=False):
     if not os.path.exists(folder):
         if verbose:
             print("--- {} folder not found. Created folder: {}".format(name, folder))

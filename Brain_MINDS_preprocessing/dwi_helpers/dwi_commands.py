@@ -22,31 +22,69 @@ def define_mrtrix_general_commands(ARGS):
     # Return the commands
     return (MASK_CMD, MASK_NII_CMD)
 
+# Define MRtrix cleaning commands
+def define_mrtrix_clean_commands(ARGS):
+    
+    # Extract arguments needed to define paths
+    REGION_ID = ARGS[0]
+    DWI_FILES = ARGS[1]
+
+    # Get the general paths
+    (INPUT_MIF_PATH, MASK_MIF_PATH, MASK_NII_PATH) = get_mrtrix_general_paths(REGION_ID, DWI_FILES)
+    # Get the clean paths
+    (DWI_DENOISE_PATH, DWI_NOISE_PATH, DWI_EDDY_PATH, DWI_CLEAN_MIF_PATH, DWI_CLEAN_MASK_PATH,
+        DWI_CLEAN_MASK_NII_PATH, DWI_CLEAN_NII_PATH, DWI_CLEAN_BVEC_PATH, DWI_CLEAN_BVAL_PATH) = get_mrtrix_clean_paths(REGION_ID)
+    
+    # Get the input MIF path
+    DWI_NEEDED = ["bval", "bvec"]
+    DWI_NEEDED_PATHS = extract_from_input_list(DWI_FILES, DWI_NEEDED, "dwi")
+
+    # Denoising command
+    DWI_DENOISE_CMD = "dwidenoise {input}.mif {output}.mif -noise {noise}.mif".format(
+        input=INPUT_MIF_PATH, output=DWI_DENOISE_PATH, noise=DWI_NOISE_PATH)
+    # Eddy correction command
+    DWI_EDDY_CMD = 'dwifslpreproc {input}.mif {output}.mif -fslgrad {bvec} {bval} -eddy_options " --slm=linear" -rpe_header'.format(
+        input=DWI_DENOISE_PATH, bvec=DWI_NEEDED_PATHS["bvec"], bval=DWI_NEEDED_PATHS["bval"], output=DWI_EDDY_PATH)
+    # Bias correction command
+    DWI_BIAS_CMD = "dwibiascorrect ants {input}.mif {output}.mif".format(input=DWI_EDDY_PATH, output=DWI_CLEAN_MIF_PATH)
+    # Convert to NII command
+    DWI_CONVERT_CMD = "mrconvert {input}.mif {output}.nii.gz -export_grad_fsl {bvec_clean}.bvec {bval_clean}.bval".format(
+        input=DWI_CLEAN_MIF_PATH, output=DWI_CLEAN_NII_PATH, bvec_clean=DWI_CLEAN_BVEC_PATH, bval_clean=DWI_CLEAN_BVAL_PATH)
+    # Get the mask
+    CLEAN_MASK_CMD = "dwi2mask {input}.mif {output}.mif".format(input=DWI_CLEAN_MIF_PATH, output=DWI_CLEAN_MASK_PATH)
+    # Convert mask to NII command
+    CLEAN_MASK_NII_CMD = "mrconvert {input}.mif {output}.nii.gz".format(input=DWI_CLEAN_MASK_PATH, output=DWI_CLEAN_MASK_NII_PATH)
+
+    # Return the commands
+    return (DWI_DENOISE_CMD, DWI_EDDY_CMD, DWI_BIAS_CMD, DWI_CONVERT_CMD, CLEAN_MASK_CMD, CLEAN_MASK_NII_CMD)
+
+
 # Define MRtrix FOD commands
 def define_mrtrix_fod_commands(ARGS):
 
     # Extract arguments needed to define paths
     REGION_ID = ARGS[0]
-    DWI_FILES = ARGS[1]
     
-    # Get the rest of the paths for the commands
-    (INPUT_MIF_PATH, MASK_MIF_PATH, MASK_NII_PATH) = get_mrtrix_general_paths(REGION_ID, DWI_FILES)
+    # Get the clean paths
+    (DWI_DENOISE_PATH, DWI_NOISE_PATH, DWI_EDDY_PATH, DWI_CLEAN_MIF_PATH, DWI_CLEAN_MASK_PATH,
+        DWI_CLEAN_MASK_NII_PATH, DWI_CLEAN_NII_PATH, DWI_CLEAN_BVEC_PATH, DWI_CLEAN_BVAL_PATH) = get_mrtrix_clean_paths(REGION_ID)
     # Get the fod paths
     (RESPONSE_WM_PATH, RESPONSE_GM_PATH, RESPONSE_CSF_PATH, RESPONSE_VOXEL_PATH,
         WM_FOD_PATH, GM_FOD_PATH, CSF_FOD_PATH, VF_FOD_PATH, WM_FOD_NORM_PATH, GM_FOD_NORM_PATH, 
             CSF_FOD_NORM_PATH) = get_mrtrix_fod_paths(REGION_ID)
 
-
     # Response estimation of WM, GM, CSF from DWI command
-    RESPONSE_EST_CMD = "dwi2response dhollander {input}.mif -mask {mask}.mif {wm}.txt {gm}.txt {csf}.txt -voxels {response_voxels}.mif".format(
-        input=INPUT_MIF_PATH, mask=MASK_MIF_PATH, wm=RESPONSE_WM_PATH, gm=RESPONSE_GM_PATH, csf=RESPONSE_CSF_PATH, response_voxels=RESPONSE_VOXEL_PATH)
-    VIEW_RESPONSE_CMD = "mrview {input}.mif -overlay.load {response_voxels}.mif".format(input=INPUT_MIF_PATH,
+    RESPONSE_EST_CMD = "dwi2response dhollander {input}.mif -mask {mask}.mif {wm}.txt {gm}.txt {csf}.txt -voxels \
+        {response_voxels}.mif".format(input=DWI_CLEAN_MIF_PATH, mask=DWI_CLEAN_MASK_PATH, wm=RESPONSE_WM_PATH, 
+                                      gm=RESPONSE_GM_PATH, csf=RESPONSE_CSF_PATH, 
+                                      response_voxels=RESPONSE_VOXEL_PATH)
+    VIEW_RESPONSE_CMD = "mrview {input}.mif -overlay.load {response_voxels}.mif".format(input=DWI_CLEAN_MIF_PATH,
                                                                                         response_voxels=RESPONSE_VOXEL_PATH)    
     # Spherical deconvolution to estimate fODs command
     MULTISHELL_CSD_CMD = "dwi2fod msmt_csd {input}.mif {wm}.txt {wmfod}.mif {gm}.txt {gmfod}.mif {csf}.txt \
         {csffod}.mif -mask {mask}.mif".format(
-        input=INPUT_MIF_PATH, wm=RESPONSE_WM_PATH, wmfod=WM_FOD_PATH, gm=RESPONSE_GM_PATH, gmfod=GM_FOD_PATH,
-        csf=RESPONSE_CSF_PATH, csffod=CSF_FOD_PATH, mask=MASK_MIF_PATH)
+        input=DWI_CLEAN_MIF_PATH, wm=RESPONSE_WM_PATH, wmfod=WM_FOD_PATH, gm=RESPONSE_GM_PATH, gmfod=GM_FOD_PATH,
+        csf=RESPONSE_CSF_PATH, csffod=CSF_FOD_PATH, mask=DWI_CLEAN_MASK_PATH)
     # Combining fODs into a VF command
     COMBINE_FODS_CMD = "mrconvert -coord 3 0 {wmfod}.mif - | mrcat {csffod}.mif {gmfod}.mif - {output}.mif".format(
         wmfod=WM_FOD_PATH, csffod=CSF_FOD_PATH, gmfod=GM_FOD_PATH, output=VF_FOD_PATH)
@@ -55,7 +93,7 @@ def define_mrtrix_fod_commands(ARGS):
     NORMALIZE_FODS_CMD = "mtnormalise {wmfod}.mif {wmfod_norm}.mif {gmfod}.mif {gmfod_norm}.mif {csffod}.mif \
         {csffod_norm}.mif -mask {mask}.mif".format(
         wmfod=WM_FOD_PATH, wmfod_norm=WM_FOD_NORM_PATH, gmfod=GM_FOD_PATH, gmfod_norm=GM_FOD_NORM_PATH, csffod=CSF_FOD_PATH,
-        csffod_norm=CSF_FOD_NORM_PATH, mask=MASK_MIF_PATH)
+        csffod_norm=CSF_FOD_NORM_PATH, mask=DWI_CLEAN_MASK_PATH)
     VIEW_NORMALIZED_FODS_CMD = "mrview {vf}.mif -odf.load_sh {wmfod_norm}.mif".format(vf=VF_FOD_PATH,
                                                                                       wmfod_norm=WM_FOD_NORM_PATH)
     
@@ -68,22 +106,22 @@ def define_mrtrix_registration_commands(ARGS):
 
     # Extract arguments needed to define paths
     REGION_ID = ARGS[0]
-    DWI_FILES = ARGS[1]
-    ATLAS_STPT = ARGS[2]
+    ATLAS_STPT = ARGS[1]
     
     # Define what's needed for MRTRIX FOD and extract them from subject files
     ATLAS_NEEDED = ["atlas"]
     ATLAS_NEEDED_PATH = extract_from_input_list(ATLAS_STPT, ATLAS_NEEDED, "atlas_stpt")
 
-    # Get the rest of the paths for the commands
-    (INPUT_MIF_PATH, MASK_MIF_PATH, MASK_NII_PATH) = get_mrtrix_general_paths(REGION_ID, DWI_FILES)
+    # Get the clean paths
+    (DWI_DENOISE_PATH, DWI_NOISE_PATH, DWI_EDDY_PATH, DWI_CLEAN_MIF_PATH, DWI_CLEAN_MASK_PATH,
+        DWI_CLEAN_MASK_NII_PATH, DWI_CLEAN_NII_PATH, DWI_CLEAN_BVEC_PATH, DWI_CLEAN_BVAL_PATH) = get_mrtrix_clean_paths(REGION_ID)
     # Get the registration paths
     (DWI_B0_PATH, DWI_B0_NII, ATLAS_DWI_MAP_MAT, ATLAS_DWI_CONVERT_INV, 
      ATLAS_REG_PATH, ATLAS_MIF_PATH) = get_mrtrix_registration_paths(REGION_ID, ATLAS_NEEDED_PATH)
 
     # Extracting mean B0 and transforming to NII command
     DWI_B0_CMD = "dwiextract {input}.mif - -bzero | mrmath - mean {output}.mif -axis 3".format(
-        input=INPUT_MIF_PATH, output=DWI_B0_PATH)
+        input=DWI_CLEAN_MIF_PATH, output=DWI_B0_PATH)
     DWI_B0_NII_CMD = "mrconvert {input}.mif {output}".format(input=DWI_B0_PATH, output=DWI_B0_NII)
     # Transformation and registration of atlas to DWI space (to be used for connectome generation)
     REGISTER_ATLAS_DWI_CMD = "flirt -in {dwi} -ref {atlas} -interp nearestneighbour -dof 6 -omat {transform_mat}.mat".format(
@@ -112,8 +150,9 @@ def define_mrtrix_probtrack_commands(ARGS):
     ATLAS_NEEDED = ["atlas"]
     ATLAS_NEEDED_PATH = extract_from_input_list(ATLAS_STPT, ATLAS_NEEDED, "atlas_stpt")
 
-    # Get the general paths
-    (INPUT_MIF_PATH, MASK_MIF_PATH, MASK_NII_PATH) = get_mrtrix_general_paths(REGION_ID, DWI_FILES)
+    # Get the clean paths
+    (DWI_DENOISE_PATH, DWI_NOISE_PATH, DWI_EDDY_PATH, DWI_CLEAN_MIF_PATH, DWI_CLEAN_MASK_PATH,
+    DWI_CLEAN_MASK_NII_PATH, DWI_CLEAN_NII_PATH, DWI_CLEAN_BVEC_PATH, DWI_CLEAN_BVAL_PATH) = get_mrtrix_clean_paths(REGION_ID)
     # Get the fod paths
     (RESPONSE_WM_PATH, RESPONSE_GM_PATH, RESPONSE_CSF_PATH, RESPONSE_VOXEL_PATH,
         WM_FOD_PATH, GM_FOD_PATH, CSF_FOD_PATH, VF_FOD_PATH, WM_FOD_NORM_PATH, GM_FOD_NORM_PATH, 
@@ -127,9 +166,10 @@ def define_mrtrix_probtrack_commands(ARGS):
     # Probabilistic tractography command
     PROB_TRACT_CMD = "tckgen {wmfod_norm}.mif {output}.tck -algorithm iFOD2 -seed_image {mask}.nii -mask {mask}.nii \
         -angle {opt_angle} -minlength {opt_minlength} -cutoff {opt_cutoff} \
-        -fslgrad {bvec} {bval} -select 300000 -force".format(wmfod_norm=WM_FOD_NORM_PATH, output=TRACT_TCK_PATH, mask=MASK_NII_PATH,
-                                                            opt_angle=32.2, opt_cutoff=0.05, opt_minlength=4.8,
-                                                            bvec=DWI_NEEDED_PATHS["bvec"], bval=DWI_NEEDED_PATHS["bval"])
+        -fslgrad {bvec} {bval} -select 300000 -force".format(wmfod_norm=WM_FOD_NORM_PATH, output=TRACT_TCK_PATH, 
+                                                             mask=DWI_CLEAN_MASK_NII_PATH,
+                                                             opt_angle=32.2, opt_cutoff=0.05, opt_minlength=4.8,
+                                                             bvec=DWI_NEEDED_PATHS["bvec"], bval=DWI_NEEDED_PATHS["bval"])
     
     # Return the commands
     return (PROB_TRACT_CMD)
@@ -144,7 +184,6 @@ def define_mrtrix_connectome_commands(ARGS):
     # Define what's needed for MRTRIX FOD and extract them from subject files
     ATLAS_NEEDED = ["atlas"]
     ATLAS_NEEDED_PATH = extract_from_input_list(ATLAS_STPT, ATLAS_NEEDED, "atlas_stpt")
-
 
     # Get the registration paths
     (DWI_B0_PATH, DWI_B0_NII, ATLAS_DWI_MAP_MAT, ATLAS_DWI_CONVERT_INV, 
@@ -172,13 +211,18 @@ def pre_tractography_commands(ARGS):
     GENERAL_ARGS = [REGION_ID, DWI_FILES]
     (MASK_CMD, MASK_NII_CMD) = define_mrtrix_general_commands(GENERAL_ARGS)
 
+    # Define the cleaning commands
+    CLEAN_ARGS = [REGION_ID, DWI_FILES]
+    (DWI_DENOISE_CMD, DWI_EDDY_CMD, DWI_BIAS_CMD, DWI_CONVERT_CMD, 
+     CLEAN_MASK_CMD, CLEAN_MASK_NII_CMD) = define_mrtrix_clean_commands(CLEAN_ARGS)
+
     # Define the FOD commands
-    FOD_ARGS = [REGION_ID, DWI_FILES]
+    FOD_ARGS = [REGION_ID]
     (RESPONSE_EST_CMD, VIEW_RESPONSE_CMD, MULTISHELL_CSD_CMD, COMBINE_FODS_CMD,
         VIEW_COMBINED_FODS_CMD, NORMALIZE_FODS_CMD, VIEW_NORMALIZED_FODS_CMD) = define_mrtrix_fod_commands(FOD_ARGS)
     
     # Define the registration commands
-    REG_ARGS = [REGION_ID, DWI_FILES, ATLAS_STPT]
+    REG_ARGS = [REGION_ID, ATLAS_STPT]
     (DWI_B0_CMD, DWI_B0_NII_CMD, REGISTER_ATLAS_DWI_CMD, TRANSFORMATION_ATLAS_DWI_CMD,
         ATLAS_MIF_CMD, FINAL_ATLAS_TRANSFORM_CMD) = define_mrtrix_registration_commands(REG_ARGS)
 
@@ -208,6 +252,12 @@ def pre_tractography_commands(ARGS):
         MRTRIX_COMMANDS.extend([
                                 (MASK_CMD, "Create DWI brain mask"),
                                 (MASK_NII_CMD, "Convert DWI brain mask mif -> nii"), 
+                                (DWI_DENOISE_CMD, "Denoise DWI"),
+                                (DWI_EDDY_CMD, "Eddy correct DWI"),
+                                (DWI_BIAS_CMD, "Bias correct DWI"),
+                                (DWI_CONVERT_CMD, "Convert DWI mif -> nii"),
+                                (CLEAN_MASK_CMD, "Create DWI brain mask for cleaned DWI"),
+                                (CLEAN_MASK_NII_CMD, "Convert DWI brain mask mif -> nii for cleaned DWI"),
                             ])
     if MRTRIX_FOD:
         MRTRIX_COMMANDS.extend([

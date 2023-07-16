@@ -94,10 +94,10 @@ def main():
     check_output_folders(TCKMAPPED_STREAMLINES_FOLDER, "TCKMAPPED_STREAMLINES_FOLDER", wipe=False)
     check_output_folders(TCKMAPPED_COMBINED_FOLDER, "TCKMAPPED_COMBINED_FOLDER", wipe=False)
 
-    # Define the path with the combined streamline files
-    COMBINED_STREAMLINE_FOLDER = os.path.join(BMINDS_DATA_FOLDER, "combined_streamlines")
+    # Define the path with the resized B0 files
+    RESIZED_B0_FOLDER = os.path.join(BMINDS_DATA_FOLDER, "resized_B0")
     # Glob all the streamline files
-    COMBINED_STREAMLINE_FILES = glob_files(COMBINED_STREAMLINE_FOLDER, "tck")
+    COMBINED_STREAMLINE_FILES = glob_files(RESIZED_B0_FOLDER, "tck")
     # Check the globbed files
     check_globbed_files(COMBINED_STREAMLINE_FILES, "COMBINED_STREAMLINE_FILES")
 

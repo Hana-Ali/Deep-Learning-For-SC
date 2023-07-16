@@ -60,6 +60,29 @@ def get_mrtrix_general_paths(REGION_ID, DWI_FILES):
     # Return the paths
     return (INPUT_MIF_PATH, MASK_MIF_PATH, MASK_NII_PATH)
     
+# Define MRTrix clean paths
+def get_mrtrix_clean_paths(REGION_ID):
+
+    # Get the folder names  
+    (REGION_MRTRIX_PATH, GENERAL_FOLDER_NAME, RESPONSE_FOLDER_NAME, FOD_FOLDER_NAME,
+        FOD_NORM_FOLDER_NAME, ATLAS_REG_FOLDER_NAME, PROB_TRACKING_FOLDER_NAME,
+        CONNECTIVITY_FOLDER_NAME) = main_mrtrix_folder_paths(REGION_ID)
+    
+    # Define the denoising, eddy correction, and bias correction paths
+    DWI_DENOISE_PATH = os.path.join(GENERAL_FOLDER_NAME, "{}_denoise".format(REGION_ID))
+    DWI_NOISE_PATH = os.path.join(GENERAL_FOLDER_NAME, "{}_noise".format(REGION_ID))
+    DWI_EDDY_PATH = os.path.join(GENERAL_FOLDER_NAME, "{}_eddy".format(REGION_ID))
+    DWI_CLEAN_MIF_PATH = os.path.join(GENERAL_FOLDER_NAME, "{}_clean_mif".format(REGION_ID))
+    DWI_CLEAN_MASK_PATH = os.path.join(GENERAL_FOLDER_NAME, "{}_clean_mask".format(REGION_ID))
+    DWI_CLEAN_MASK_NII_PATH = os.path.join(GENERAL_FOLDER_NAME, "{}_clean_mask_nii".format(REGION_ID))
+    DWI_CLEAN_NII_PATH = os.path.join(GENERAL_FOLDER_NAME, "{}_clean_nii".format(REGION_ID))
+    DWI_CLEAN_BVEC_PATH = os.path.join(GENERAL_FOLDER_NAME, "{}_clean_bvec".format(REGION_ID))
+    DWI_CLEAN_BVAL_PATH = os.path.join(GENERAL_FOLDER_NAME, "{}_clean_bval".format(REGION_ID))
+
+    # Return the paths
+    return (DWI_DENOISE_PATH, DWI_NOISE_PATH, DWI_EDDY_PATH, DWI_CLEAN_MIF_PATH, DWI_CLEAN_MASK_PATH,
+            DWI_CLEAN_MASK_NII_PATH, DWI_CLEAN_NII_PATH, DWI_CLEAN_BVEC_PATH, DWI_CLEAN_BVAL_PATH)
+
 # Define MRTrix FOD paths
 def get_mrtrix_fod_paths(REGION_ID):
     

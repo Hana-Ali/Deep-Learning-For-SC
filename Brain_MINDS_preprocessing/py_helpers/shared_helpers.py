@@ -4,6 +4,8 @@ from .general_helpers import *
 import subprocess
 import numpy as np
 
+import nibabel as nib
+
 # Function to extract the DWI filename
 def extract_region_ID(file):
 
@@ -87,7 +89,7 @@ def get_injection_type(file):
         sys.exit('Exiting program')
 
 # Function to resize the DWI and extract only the first K shells
-def resize_dwi_by_scale(region_item, scale_x=0.5, scale_y=0.5, scale_z=0.5, verbose=False):
+def resize_dwi_by_scale(region_item, scale_x=0.5, scale_y=0.5, scale_z=0.5, K=8, verbose=False):
 
     # Define the resized DWI path
     resized_name = region_item[0].split(os.sep)[-1].split(".")[0] + "_resized.nii"
@@ -100,11 +102,18 @@ def resize_dwi_by_scale(region_item, scale_x=0.5, scale_y=0.5, scale_z=0.5, verb
         return RESIZED_PATH
 
     # Resize the DWI and save under resized
-    MRRESIZE_CMD = "mrgrid {input} regrid -scale {scale_x},{scale_y},{scale_z} {output}".format(input=region_item[0], 
+    MRRESIZE_CMD = "mrgrid {input} regrid -scale {scale_x},{scale_y},{scale_z} {output} -force".format(input=region_item[0], 
                     scale_x=scale_x, scale_y=scale_y, scale_z=scale_z, output=RESIZED_PATH)
     
     print("Running command: {}".format(MRRESIZE_CMD))
     subprocess.run(MRRESIZE_CMD, shell=True)
+
+    # Once it's resized, we also need to get the first K directions to match the shells
+    print("Extracting first {} shells of bvals and bvecs".format(K))
+    resized_image = nib.load(RESIZED_PATH)
+    first_K_directions = resized_image.slicer[:, :, :, :K]
+    print("First K directions shape: {}".format(first_K_directions.shape))
+    nib.save(first_K_directions, RESIZED_PATH)
 
     # Return the resized path
     return RESIZED_PATH
@@ -176,7 +185,7 @@ def join_dwi_diff_bvals_bvecs(DWI_LIST):
          CONCAT_BVECS_PATH) = convert_and_concatenate(same_region_list)
         
         (RESIZED_CONCAT_NII_PATH, RESIZED_CONCAT_MIF_PATH, RESIZED_CONCAT_BVALS_PATH, 
-         RESIZED_CONCAT_BVECS_PATH) = convert_and_concatenate(resized_region_list)
+         RESIZED_CONCAT_BVECS_PATH) = convert_and_concatenate(resized_region_list, resized=True)
 
         # Add the concatenated path to the list
         ALL_CONCAT_PATHS.append([CONCAT_NII_PATH, CONCAT_MIF_PATH, CONCAT_BVALS_PATH, CONCAT_BVECS_PATH])
@@ -196,7 +205,7 @@ def get_resized_bval_bvec_lists(same_region_list, verbose=False):
     # Resize and extract the first K shells for all the DWIs
     for region_item in same_region_list:
         # Resize the DWI and extract the first K shells
-        RESIZE_PATHS.append(resize_dwi_by_scale(region_item, scale_x=0.5, scale_y=0.5, scale_z=0.5))
+        RESIZE_PATHS.append(resize_dwi_by_scale(region_item, scale_x=0.5, scale_y=0.5, scale_z=0.5, K=8))
         FIRST_K_SHELL_BVALS_BVECS.append(extract_K_shells_bvals_bvecs(region_item, K=8))
         # Create a new list with the resized and first K shells
         resized_region_list.append([RESIZE_PATHS[-1], FIRST_K_SHELL_BVALS_BVECS[-1][0], FIRST_K_SHELL_BVALS_BVECS[-1][1]])
@@ -205,7 +214,7 @@ def get_resized_bval_bvec_lists(same_region_list, verbose=False):
     return resized_region_list
 
 # Function to do all the conversion and concatenation
-def convert_and_concatenate(DWI_LIST):
+def convert_and_concatenate(DWI_LIST, resized=False):
     
     # This stores the MIF - resets with every new region
     MIF_PATHS = []
@@ -218,7 +227,7 @@ def convert_and_concatenate(DWI_LIST):
     # Create string for what mifs to concatenate
     mif_files_string = " ".join(MIF_PATHS)
     # Get the concatenated path
-    CONCAT_MIF_PATH = concatenate_mif(MIF_PATHS, mif_files_string)
+    CONCAT_MIF_PATH = concatenate_mif(MIF_PATHS, mif_files_string, resized=resized)
 
     # Convert back to nii
     (CONCAT_NII_PATH, CONCAT_BVALS_PATH, CONCAT_BVECS_PATH) = convert_to_nii(CONCAT_MIF_PATH)
@@ -251,11 +260,16 @@ def convert_to_mif(region_item, verbose=False):
     return MIF_PATH
 
 # Concatenate MIF
-def concatenate_mif(MIF_PATHS, mif_files_string, verbose=False):
+def concatenate_mif(MIF_PATHS, mif_files_string, resized=False, verbose=False):
     # Define the output concatentated path
     CONCAT_FOLDER = os.path.join((os.sep).join(MIF_PATHS[0].split(os.sep)[:-2]), "Concatenated_Data")
     check_output_folders(CONCAT_FOLDER, "CONCAT_FOLDER", wipe=False)
-    CONCAT_PATH = os.path.join(CONCAT_FOLDER, "DWI_concatenated.mif")
+
+    # Define the output concatentated path depending on resized or not
+    if resized:
+        CONCAT_PATH = os.path.join(CONCAT_FOLDER, "DWI_concatenated_resized.mif")
+    else:
+        CONCAT_PATH = os.path.join(CONCAT_FOLDER, "DWI_concatenated.mif")
     
     # Check if the concatenated path already exists
     if os.path.exists(CONCAT_PATH):
