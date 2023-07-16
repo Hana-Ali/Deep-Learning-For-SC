@@ -16,6 +16,9 @@ return the augmented DWI image and tractogram.
 """
 
 # Import all methods from the files in this folder
+from .register_aug import Register
+from .align_aug import Align
+from .crop_bg_aug import CropBackground
 from .resampling_aug import Resample
 from .transforms_aug import Augmentation
 from .padding_aug import Padding

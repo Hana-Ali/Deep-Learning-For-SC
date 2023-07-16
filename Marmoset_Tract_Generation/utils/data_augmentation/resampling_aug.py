@@ -25,7 +25,8 @@ class Resample(object):
         # Check what the new resolution is
         if isinstance(new_voxel_size, float):
             # Set the new voxel size
-            self.new_voxel_size = (new_voxel_size, new_voxel_size, new_voxel_size)
+            # self.new_voxel_size = (new_voxel_size, new_voxel_size, new_voxel_size)
+            self.new_voxel_size = new_voxel_size
         else:
             # Set the new voxel size
             self.new_voxel_size = new_voxel_size
