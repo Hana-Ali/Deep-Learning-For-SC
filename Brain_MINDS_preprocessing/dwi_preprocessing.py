@@ -10,11 +10,6 @@ def parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, AT
 
     print("Started parallel process - {}".format(REGION_ID))
 
-    print("DWI FILES: {}".format(DWI_FILES))
-    print("STREAMLINE FILES: {}".format(STREAMLINE_FILES))
-    print("INJECTION FILES: {}".format(INJECTION_FILES))
-    print("ATLAS/STPT FILES: {}".format(ATLAS_STPT))
-
     # --------------- MRTRIX reconstruction commands --------------- #
     # Define needed arguments array
     ARGS_MRTRIX = [
@@ -99,7 +94,6 @@ def main():
 
     print("Length of All Data List: {}".format(len(ALL_DATA_LIST)))
     print("Length of Resized All Data List: {}".format(len(RESIZED_ALL_DATA_LIST)))
-    print("All resized data list: {}".format(RESIZED_ALL_DATA_LIST))
 
     # --------------- Preprocessing the data to get the right file formats --------------- #
     if hpc:

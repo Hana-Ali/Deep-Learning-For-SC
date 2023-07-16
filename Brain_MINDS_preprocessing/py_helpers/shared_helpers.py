@@ -139,8 +139,6 @@ def extract_K_shells_bvals_bvecs(region_item, K=8, verbose=False):
     bval_text = np.loadtxt(region_item[1])
     bvec_text = np.loadtxt(region_item[2])
 
-    print("bvec shape: {}".format(bvec_text.shape))
-
     # Get the first K shells
     bval_shell = bval_text[:K]
     bvec_shell = bvec_text[:, :K]

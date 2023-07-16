@@ -126,7 +126,6 @@ def get_mrtrix_registration_paths(REGION_ID, ATLAS_NEEDED_PATH):
     ATLAS_DWI_CONVERT_INV = os.path.join(ATLAS_REG_FOLDER_NAME, "{}_atlas2dwi_mrtrix".format(REGION_ID))
     ATLAS_REG_PATH = os.path.join(ATLAS_REG_FOLDER_NAME, "{}_atlasreg".format(REGION_ID))
     # Getting the name of the atlas without .nii.gz
-    print("ATLAS_NEEDED_PATH IN PATHS: {}".format(ATLAS_NEEDED_PATH))
     ATLAS_NAME = ATLAS_NEEDED_PATH["atlas"].split("/")[-1].split(".")[0]
     ATLAS_MIF_PATH = os.path.join(ATLAS_REG_FOLDER_NAME, "{}_atlas_mif".format(ATLAS_NAME))
 
