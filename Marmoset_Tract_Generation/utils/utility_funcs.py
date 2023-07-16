@@ -4,6 +4,7 @@ Functions for general use
 
 import os
 import torch
+import regex as re
 from collections import OrderedDict
 
 # Function to check if directory exists
@@ -50,3 +51,38 @@ def create_new_state_dict(file_name):
 
     # Return the new state dictionary
     return new_state_dict
+
+# Function to do numerical sorting
+def numerical_sort(value):
+        
+    # Split the value into numbers and non-numbers
+    parts = re.compile(r'(\d+)').split(value)
+
+    # Map each part as an integer if it's a number
+    parts[1::2] = map(int, parts[1::2])
+
+    # Return the parts
+    return parts
+
+# Function to list the files in a directory
+def list_files(path, sort=True):
+    
+    # Create an empty list where the raw images are stored
+    images_list = []
+
+    # For each file in the directory
+    for directory_name, subdirectory_list, file_list in os.walk(path):
+        # For each file in the file list
+        for file_name in file_list:
+            # If the file is a nifti file
+            if file_name.lower().endswith('.nii.gz') or file_name.lower().endswith('.nii'):
+                # Add the file to the list
+                images_list.append(os.path.join(directory_name, file_name))
+            
+    # If the list should be sorted
+    if sort:
+        # Sort the list
+        images_list.sort(key=numerical_sort)
+
+    # Return the list
+    return images_list

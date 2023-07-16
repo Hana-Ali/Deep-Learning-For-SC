@@ -296,7 +296,7 @@ class Augmentation(object):
     def flip_image(self, image, flip_axes):
 
         # Get the image array
-        image_array = np.transpose(sitk.GetArrayFromImage(image), axis=(2, 1, 0))
+        image_array = np.transpose(sitk.GetArrayFromImage(image), axes=(2, 1, 0))
 
         # Get the spacing, direction and origin of the image
         spacing = image.GetSpacing()
@@ -324,7 +324,7 @@ class Augmentation(object):
     def change_brightness(self, image):
         
         # Get the image array
-        image_array = np.transpose(sitk.GetArrayFromImage(image), axis=(2, 1, 0))
+        image_array = np.transpose(sitk.GetArrayFromImage(image), axes=(2, 1, 0))
 
         # Get the spacing, direction and origin of the image
         spacing = image.GetSpacing()
@@ -358,7 +358,7 @@ class Augmentation(object):
     def change_contrast(self, image):
 
         # Get the image array
-        image_array = np.transpose(sitk.GetArrayFromImage(image), axis=(2, 1, 0))
+        image_array = np.transpose(sitk.GetArrayFromImage(image), axes=(2, 1, 0))
 
         # Get the spacing, direction and origin of the image
         spacing = image.GetSpacing()
