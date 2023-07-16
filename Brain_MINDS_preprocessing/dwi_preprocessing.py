@@ -1,11 +1,10 @@
 # Right now we just want to read the data using nibabel
 import sys
-from py_helpers.general_helpers import *
-from py_helpers.shared_helpers import *
-from dwi_helpers.dwi_commands import *
-from dwi_helpers.dwi_general import *
 import subprocess
 import argparse
+
+from py_helpers import *
+from dwi_helpers import *
 
 def parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT):
 

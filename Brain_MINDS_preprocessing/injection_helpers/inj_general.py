@@ -1,12 +1,12 @@
 import os
-
 import sys
-sys.path.append("..")
-from py_helpers.general_helpers import *
-from py_helpers.shared_helpers import *
-from .inj_general_commands import *
-from numpy import random
 import numpy as np
+from numpy import random
+
+from py_helpers import *
+
+from .inj_general_commands import *
+
 
 # Create a list that associates each subject with its T1 and DWI files
 def create_data_list(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_FILES, BMINDS_STREAMLINE_FILES, 
@@ -60,10 +60,8 @@ def create_data_list(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_F
 # Create the common and uncommon regions list for the above function
 def common_uncommon_regions_list(CONCATENATED_DWI_LIST, STREAMLINE_LIST, INJECTION_LIST):
     # Get the region, or common element ID
-    if os.name == "nt":
-        DWI_REGION_IDS = [dwi_list[0].split("/")[-3] for dwi_list in CONCATENATED_DWI_LIST]
-    else:
-        DWI_REGION_IDS = [dwi_list[0].split("/")[-3] for dwi_list in CONCATENATED_DWI_LIST]
+    DWI_REGION_IDS = [dwi_list[0].split(os.sep)[-3] for dwi_list in CONCATENATED_DWI_LIST]
+    
     # Get region ID from dwi, streamline and injection files
     STREAMLINE_REGION_IDS = list(set([streamline[0] for streamline in STREAMLINE_LIST]))
     INJECTION_REGION_IDS = list(set([injection[0] for injection in INJECTION_LIST]))

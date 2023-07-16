@@ -1,8 +1,7 @@
 import os
 import sys
-sys.path.append("..")
-from py_helpers.general_helpers import *
-from py_helpers.shared_helpers import *
+
+from py_helpers import *
 
 
 # Define the MRTRIX folder paths
@@ -330,12 +329,8 @@ def get_tdi_path(streamline_file):
     INDIVIDUAL_ROIS_NIFTI_FOLDER_NAME, INDIVIDUAL_ROIS_MIF_FOLDER_NAME) = main_mrtrix_folder_paths()
 
     # Get the region ID from the streamline file
-    if os.name == "nt":
-        REGION_ID = streamline_file.split("\\")[-3]
-        FILE_NAME = streamline_file.split("\\")[-1]
-    else:
-        REGION_ID = streamline_file.split("/")[-3]
-        FILE_NAME = streamline_file.split("/")[-1]
+    REGION_ID = streamline_file.split(os.sep)[-3]
+    FILE_NAME = streamline_file.split(os.sep)[-1]
 
     # Create the region folder
     TDI_REGION_FOLDER = os.path.join(DENSITY_MAPS_FOLDER_NAME, "{}_TDI_files".format(REGION_ID))

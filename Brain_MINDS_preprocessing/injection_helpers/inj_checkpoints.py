@@ -1,6 +1,6 @@
-import sys
-sys.path.append("..")
-from py_helpers.general_helpers import *
+
+from py_helpers import *
+
 from .inj_paths import *
 
 # ------------------------------------------------- CHECKING MISSING FILES AND CHECKPOINTS ------------------------------------------------- #

@@ -3,10 +3,8 @@ import gzip
 import tarfile
 import magic
 
-import sys
-sys.path.append("..")
-from py_helpers.general_helpers import *
-from py_helpers.shared_helpers import *
+
+from py_helpers import *
 
 # First unzipping of all DWI files
 def unzip_dwi_stage_1(ANIMAL_DWI_FILES, UNZIPPED_DWI_PATH):
@@ -14,12 +12,8 @@ def unzip_dwi_stage_1(ANIMAL_DWI_FILES, UNZIPPED_DWI_PATH):
     for file in ANIMAL_DWI_FILES:    
         with gzip.open(file, 'rb') as f_in:
             # Get the name of the region and file
-            if os.name == "nt":
-                region_name = file.split("\\")[-2]
-                file_name = file.split("\\")[-1]
-            else:
-                region_name = file.split("/")[-2]
-                file_name = file.split("/")[-1]
+            region_name = file.split(os.sep)[-2]
+            file_name = file.split(os.sep)[-1]
 
             # Print what we're doing
             print("Unzipping Stage 1 for {}".format(region_name))
@@ -44,12 +38,8 @@ def unzip_dwi_stage_1(ANIMAL_DWI_FILES, UNZIPPED_DWI_PATH):
 def unzip_dwi_stage_2(UNZIPPED_DWI_FILES, UNZIPPED_DWI_PATH): 
     for file in UNZIPPED_DWI_FILES:
         # Get the name of the region and file
-        if os.name == "nt":
-            region_name = file.split("\\")[-2]
-            file_name = file.split("\\")[-1].split(".")[0] + "_unzipped"
-        else:
-            region_name = file.split("/")[-2]
-            file_name = file.split("/")[-1].split(".")[0] + "_unzipped"
+        region_name = file.split(os.sep)[-2]
+        file_name = file.split(os.sep)[-1].split(".")[0] + "_unzipped"
 
         # Print what we're doing
         print("Unzipping Stage 2 for {}".format(region_name))
@@ -149,10 +139,7 @@ def concatenate_common_subject_name(DWI_LIST, STREAMLINE_LIST, INJECTION_LIST, B
     # Join the two lists based on common subject name
     for dwi_list in DWI_LIST:
         # Get the region, or common element ID
-        if os.name == "nt":
-            region_ID = dwi_list[0].split("\\")[-3]
-        else:
-            region_ID = dwi_list[0].split("/")[-3]
+        region_ID = dwi_list[0].split(os.sep)[-3]
         # Based on this name, get every streamline and injection that has the same region ID
         streamline_files = [[streamline_file[1], streamline_file[2]] for streamline_file in STREAMLINE_LIST if streamline_file[0] == region_ID]
         injection_files = [[injection_file[1], injection_file[2]] for injection_file in INJECTION_LIST if injection_file[0] == region_ID]

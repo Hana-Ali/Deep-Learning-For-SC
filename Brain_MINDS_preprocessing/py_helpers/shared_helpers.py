@@ -6,15 +6,12 @@ import numpy as np
 
 # Function to extract the DWI filename
 def extract_region_ID(file):
+
     # Extract the filename
-    if os.name == "nt":
-        region_name = file.split("\\")[-3]
-        if "resized" in region_name:
-            region_name = region_name.replace("_resized", "")
-    else:
-        region_name = file.split("/")[-3]
-        if "resized" in region_name:
-            region_name = region_name.replace("_resized", "")
+    region_name = file.split(os.sep)[-3]
+    if "resized" in region_name:
+        region_name = region_name.replace("_resized", "")
+
     # Return the filename
     return region_name
 
@@ -22,11 +19,7 @@ def extract_region_ID(file):
 # Function to extract the BVAL filename
 def extract_correct_bval(dwi_file, BMINDS_BVAL_FILES):
 
-    # Extract the correct number for the bval
-    if os.name == "nt":
-        bval_name = dwi_file.split("\\")[-1]
-    else:
-        bval_name = dwi_file.split("/")[-1].split(".")[0]
+    bval_name = dwi_file.split(os.sep)[-1].split(".")[0]
     
     # For all the bvals extracted
     for bval_file in BMINDS_BVAL_FILES:
@@ -42,10 +35,7 @@ def extract_correct_bval(dwi_file, BMINDS_BVAL_FILES):
 # Function to extract the BVEC filename
 def extract_correct_bvec(dwi_file, BMINDS_BVEC_FILES):
     # Extract the correct number for the bval
-    if os.name == "nt":
-        bvec_name = dwi_file.split("\\")[-1]
-    else:
-        bvec_name = dwi_file.split("/")[-1].split(".")[0]
+    bvec_name = dwi_file.split(os.sep)[-1].split(".")[0]
     
     # For all the bvecs extracted
     for bvec_file in BMINDS_BVEC_FILES:
@@ -61,10 +51,7 @@ def extract_correct_bvec(dwi_file, BMINDS_BVEC_FILES):
 # Function to determine what type of streamline file it is (dwi, tract-tracing, etc)
 def get_streamline_type(file):
     # Extract the filename
-    if os.name == "nt":
-        streamline_name = file.split("\\")[-1].split(".")[0]
-    else:
-        streamline_name = file.split("/")[-1].split(".")[0]
+    streamline_name = file.split(os.sep)[-1].split(".")[0]
     
     # Return different things, depending on the name
     if 'sharp' in streamline_name:
@@ -81,10 +68,7 @@ def get_streamline_type(file):
 # Function to determine what type of injection file it is (density, etc)
 def get_injection_type(file):
     # Extract the filename
-    if os.name == "nt":
-        injection_name = file.split("\\")[-1].split(".")[0]
-    else:
-        injection_name = file.split("/")[-1].split(".")[0]
+    injection_name = file.split(os.sep)[-1].split(".")[0]
     
     # Return different things, depending on the name
     if 'cell_density' in injection_name:
@@ -106,12 +90,8 @@ def get_injection_type(file):
 def resize_dwi_by_scale(region_item, scale_x=0.5, scale_y=0.5, scale_z=0.5, verbose=False):
 
     # Define the resized DWI path
-    if os.name == "nt":
-        resized_name = region_item[0].split("\\")[-1].split(".")[0] + "_resized.nii"
-        RESIZED_PATH = os.path.join("\\".join(region_item[0].split("\\")[:-1]), resized_name)
-    else:
-        resized_name = region_item[0].split("/")[-1].split(".")[0] + "_resized.nii"
-        RESIZED_PATH = os.path.join("/".join(region_item[0].split("/")[:-1]), resized_name)
+    resized_name = region_item[0].split(os.sep)[-1].split(".")[0] + "_resized.nii"
+    RESIZED_PATH = os.path.join(os.sep.join(region_item[0].split(os.sep)[:-1]), resized_name)
     
     # Check if the paths already exist
     if os.path.exists(RESIZED_PATH):
@@ -132,17 +112,11 @@ def resize_dwi_by_scale(region_item, scale_x=0.5, scale_y=0.5, scale_z=0.5, verb
 # Function to extract the first K shells of the bvals and bvecs
 def extract_K_shells_bvals_bvecs(region_item, K=3, verbose=False):
 
-        # Define the resized DWI path
-    if os.name == "nt":
-        bval_shell_name = region_item[1].split("\\")[-1].split(".")[0] + "_{}_shell_bval.bval".format(K)
-        bvec_shell_name = region_item[2].split("\\")[-1].split(".")[0] + "_{}_shell_bvec.bvec".format(K)
-        BVAL_SHELL_PATH = os.path.join("\\".join(region_item[1].split("\\")[:-1]), bval_shell_name)
-        BVEC_SHELL_PATH = os.path.join("\\".join(region_item[2].split("\\")[:-1]), bvec_shell_name)
-    else:
-        bval_shell_name = region_item[1].split("/")[-1].split(".")[0] + "_{}_shell_bval.bval".format(K)
-        bvec_shell_name = region_item[2].split("/")[-1].split(".")[0] + "_{}_shell_bvec.bvec".format(K)
-        BVAL_SHELL_PATH = os.path.join("/".join(region_item[1].split("/")[:-1]), bval_shell_name)
-        BVEC_SHELL_PATH = os.path.join("/".join(region_item[2].split("/")[:-1]), bvec_shell_name)
+    # Define the resized DWI path
+    bval_shell_name = region_item[1].split(os.sep)[-1].split(".")[0] + "_{}_shell_bval.bval".format(K)
+    bvec_shell_name = region_item[2].split(os.sep)[-1].split(".")[0] + "_{}_shell_bvec.bvec".format(K)
+    BVAL_SHELL_PATH = os.path.join((os.sep).join(region_item[1].split(os.sep)[:-1]), bval_shell_name)
+    BVEC_SHELL_PATH = os.path.join((os.sep).join(region_item[2].split(os.sep)[:-1]), bvec_shell_name)
 
     if os.path.exists(BVAL_SHELL_PATH) and os.path.exists(BVEC_SHELL_PATH):
         if verbose:
@@ -253,12 +227,8 @@ def convert_and_concatenate(DWI_LIST):
 # Conversion to MIF
 def convert_to_mif(region_item, verbose=False):
     # Create the MIF path
-    if os.name == "nt":
-        mif_name = region_item[0].split("\\")[-1].split(".")[0] + "_mif.mif"
-        MIF_PATH = os.path.join("\\".join(region_item[0].split("\\")[:-1]), mif_name)
-    else:
-        mif_name = region_item[0].split("/")[-1].split(".")[0] + "_mif.mif"
-        MIF_PATH = os.path.join("/".join(region_item[0].split("/")[:-1]), mif_name)
+    mif_name = region_item[0].split(os.sep)[-1].split(".")[0] + "_mif.mif"
+    MIF_PATH = os.path.join((os.sep).join(region_item[0].split(os.sep)[:-1]), mif_name)
     
     # Check if the MIF path already exists
     if os.path.exists(MIF_PATH):
@@ -280,14 +250,9 @@ def convert_to_mif(region_item, verbose=False):
 # Concatenate MIF
 def concatenate_mif(MIF_PATHS, mif_files_string, verbose=False):
     # Define the output concatentated path
-    if os.name == "nt":
-        CONCAT_FOLDER = os.path.join("\\".join(MIF_PATHS[0].split("\\")[:-2]), "Concatenated_Data")
-        check_output_folders(CONCAT_FOLDER, "CONCAT_FOLDER", wipe=False)
-        CONCAT_PATH = os.path.join(CONCAT_FOLDER, "DWI_concatenated.mif")
-    else:
-        CONCAT_FOLDER = os.path.join("/".join(MIF_PATHS[0].split("/")[:-2]), "Concatenated_Data")
-        check_output_folders(CONCAT_FOLDER, "CONCAT_FOLDER", wipe=False)
-        CONCAT_PATH = os.path.join(CONCAT_FOLDER, "DWI_concatenated.mif")
+    CONCAT_FOLDER = os.path.join((os.sep).join(MIF_PATHS[0].split(os.sep)[:-2]), "Concatenated_Data")
+    check_output_folders(CONCAT_FOLDER, "CONCAT_FOLDER", wipe=False)
+    CONCAT_PATH = os.path.join(CONCAT_FOLDER, "DWI_concatenated.mif")
     
     # Check if the concatenated path already exists
     if os.path.exists(CONCAT_PATH):

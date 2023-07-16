@@ -1,9 +1,7 @@
 from .dwi_paths import *
 from .dwi_checkpoints import *
 
-import sys
-sys.path.append("..") # Adds higher directory to python modules path.
-from py_helpers.general_helpers import *
+from py_helpers import *
 
 # ----------------------------------------------------- COMMAND DEFINITIONS ----------------------------------------------------- #
 

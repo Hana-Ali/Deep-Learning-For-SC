@@ -1,11 +1,11 @@
 import os
-import sys
-sys.path.append("..")
+import numpy as np
+
 from .inj_paths import *
 from .inj_checkpoints import *
 from .inj_general import *
-from py_helpers.shared_helpers import *
-import numpy as np
+
+from py_helpers import *
 
 # Function to do all the mrtrix commands for each individual file rather than all
 def mrtrix_all_region_functions(ARGS):

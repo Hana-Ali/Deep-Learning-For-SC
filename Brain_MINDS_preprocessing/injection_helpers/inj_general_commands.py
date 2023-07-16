@@ -33,11 +33,12 @@
 
 import os
 import sys
-sys.path.append("..")
+import numpy as np
+
 from .inj_paths import *
 from .inj_checkpoints import *
-from py_helpers.shared_helpers import *
-import numpy as np
+
+from py_helpers import *
 
 # Function to use the transforms h5 file given, with ants
 def use_transforms_h5_file(ARGS):
@@ -158,10 +159,7 @@ def combine_all_region_stats():
 
 # Function to make the tracer type
 def get_tracer_type(streamline_file):
-    if os.name == "nt":
-        return streamline_file.split("\\")[-1]
-    else:
-        return streamline_file.split("/")[-1]
+    return streamline_file.split(os.sep)[-1]
 
 # Function to convert all tracer, tracer_sharp, and dwi tracts to TDI
 def create_tdi_from_streamlines(ARGS):

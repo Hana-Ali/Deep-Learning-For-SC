@@ -1,8 +1,6 @@
 from .dwi_paths import *
 
-import sys
-sys.path.append("..")
-from py_helpers.general_helpers import *
+from py_helpers import *
 
 # ------------------------------------------------- CHECKING MISSING FILES AND CHECKPOINTS ------------------------------------------------- #
 

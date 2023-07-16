@@ -1,7 +1,5 @@
-import sys
-sys.path.append("..")
-from py_helpers.general_helpers import *
-from py_helpers.shared_helpers import *
+# Import py_helpers
+from py_helpers import *
 
 # ----------------------------------------------------- PATH DEFINITIONS ----------------------------------------------------- #
 
