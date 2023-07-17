@@ -177,13 +177,15 @@ def check_missing_dwi_registration(REGION_ID, FOLDER_TYPE):
     MRTRIX_REGISTRATION = True
 
     # Get the MRtrix registration paths
-    (DWI_REG_FOLDER, DWI_MAP_MAT, DWI_CONVERT_INV, DWI_REG_PATH) = get_STPT_registration_paths(REGION_ID, FOLDER_TYPE)
+    (DWI_REG_FOLDER, DWI_MAP_MAT, DWI_CONVERT_INV, DWI_REG_PATH,
+     DWI_REG_MASK_PATH) = get_STPT_registration_paths(REGION_ID, FOLDER_TYPE)
 
     # Grab all the mif files
     MRTRIX_DWI_REG_MIF_FILES = glob_files(DWI_REG_FOLDER, "mif")
 
     # Check that we have all the files we need
-    if (any(DWI_REG_PATH in reg_mif_file for reg_mif_file in MRTRIX_DWI_REG_MIF_FILES)):
+    if (any(DWI_REG_PATH in reg_mif_file for reg_mif_file in MRTRIX_DWI_REG_MIF_FILES)
+        and any(DWI_REG_MASK_PATH in reg_mif_file for reg_mif_file in MRTRIX_DWI_REG_MIF_FILES)):
         print("--- MRtrix DWI registration files found. Skipping MRtrix registration processing.")
         MRTRIX_REGISTRATION = False
 
@@ -209,7 +211,8 @@ def check_missing_atlas_registration(REGION_ID, ATLAS, FOLDER_TYPE):
     MRTRIX_ATLAS_REG_MIF_FILES = glob_files(ATLAS_REG_FOLDER, "mif")
     
     # Check that we have all the files we need
-    if (any(ATLAS_REG_PATH in reg_mif_file for reg_mif_file in MRTRIX_ATLAS_REG_MIF_FILES)):
+    if (any(ATLAS_REG_PATH in reg_mif_file for reg_mif_file in MRTRIX_ATLAS_REG_MIF_FILES)
+        and any(ATLAS_MIF_PATH in reg_mif_file for reg_mif_file in MRTRIX_ATLAS_REG_MIF_FILES)):
         print("--- MRtrix atlas registration files found. Skipping MRtrix registration processing.")
         MRTRIX_REGISTRATION = False
     

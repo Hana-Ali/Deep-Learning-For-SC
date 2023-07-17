@@ -2,11 +2,17 @@
 
 #%% Import libraries
 import os
-os.add_dll_directory(r"C:\src\vcpkg\installed\x64-windows\bin")
-os.add_dll_directory(r"C:\cpp_libs\include\bayesopt\build\bin\Release")
+
+hpc = False
+
+if not hpc:
+    os.add_dll_directory(r"C:\src\vcpkg\installed\x64-windows\bin")
+    os.add_dll_directory(r"C:\cpp_libs\include\bayesopt\build\bin\Release")
+    
 from sklearn.preprocessing import MinMaxScaler
-from py_helpers.wilson_interface import *
-from py_helpers.helper_funcs import *
+
+from py_helpers import *
+
 from collections import OrderedDict
 import matplotlib.pyplot as plt
 import scipy.signal as signal
@@ -34,8 +40,12 @@ from pyGPGO.covfunc import matern52
 # import pymc3 as pm
 
 # Defining paths
-root_path = 'C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Spring Sem\\iso_dubai\\ISO\\HCP_DTI_BOLD'
-write_path = "C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Dissertation\\Notebooks\\MyCodes\\whole_brain_modelling\\results\\wilson"
+if not hpc:
+    root_path = 'C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Spring Sem\\iso_dubai\\ISO\\HCP_DTI_BOLD'
+    write_path = "C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Dissertation\\Notebooks\\MyCodes\\whole_brain_modelling\\results\\wilson"
+else:
+    root_path = '/rds/general/user/hsa22/ephemeral/HCP_DTI_BOLD'
+    write_path = os.path.join(os.getcwd(), "results/wilson")
 
 # Defining optimization parameters
 coupling_strength = 0.1
@@ -106,7 +116,7 @@ force_jump = 0
 crit_name = 0 # cExpectedImprovement
 
 # Defining config path
-config_path = os.path.join(os.getcwd(), "configs\\wilson_config.json")
+config_path = os.path.join(os.getcwd(), os.path.join("configs", "wilson_config.json"))
 
 #%% Start main program
 if __name__ == "__main__":
@@ -118,8 +128,8 @@ if __name__ == "__main__":
     start_save_idx = int(save_data_start / integration_step_size) + downsampling_rate
 
     # Defining the paths with this data
-    SC_path = os.path.join(os.getcwd(), "emp_data\\SC_matrix.npy")
-    FC_path = os.path.join(os.getcwd(), "emp_data\\FC_matrix.npy")
+    SC_path = os.path.join(os.getcwd(), os.path.join("emp_data", "SC_matrix.npy"))
+    FC_path = os.path.join(os.getcwd(), os.path.join("emp_data", "FC_matrix.npy"))
 
     # Parameters for JSON file
     wilson_params = [
@@ -165,9 +175,9 @@ if __name__ == "__main__":
 
     # Store matrices in .npy files
     print('Storing matrices in .npy files...')
-    np.save('emp_data\\SC_matrix.npy', SC_matrix)
-    np.save('emp_data\\FC_matrix.npy', FC_matrix)
-    np.save('emp_data\\BOLD_signals.npy', BOLD_signals)
+    np.save(os.path.join('emp_data', 'SC_matrix.npy'), SC_matrix)
+    np.save(os.path.join('emp_data', 'FC_matrix.npy'), FC_matrix)
+    np.save(os.path.join('emp_data', 'BOLD_signals.npy'), BOLD_signals)
 
 
     #%% Check number of available threads - multiprocessing tingz

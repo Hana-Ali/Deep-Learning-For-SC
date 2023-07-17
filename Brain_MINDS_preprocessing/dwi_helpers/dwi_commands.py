@@ -180,10 +180,11 @@ def define_atlas_registration_commands(ARGS):
      DWI_CLEAN_MASK_PATH, DWI_CLEAN_MASK_NII_PATH, DWI_CLEAN_NII_PATH, DWI_CLEAN_BVEC_PATH, 
      DWI_CLEAN_BVAL_PATH) = get_mrtrix_clean_paths(REGION_ID, FOLDER_TYPE)
     # Get the registered DWI paths
-    (DWI_REG_FOLDER, DWI_MAP_MAT, DWI_CONVERT_INV, DWI_REG_PATH, DWI_MASK_PATH) = get_STPT_registration_paths(REGION_ID, FOLDER_TYPE)
+    (DWI_REG_FOLDER, DWI_MAP_MAT, DWI_CONVERT_INV, DWI_REG_PATH, 
+     DWI_REG_MASK_PATH) = get_STPT_registration_paths(REGION_ID, FOLDER_TYPE)
     # Get the registration paths
     (ATLAS_REG_FOLDER, DWI_B0_PATH, DWI_B0_NII, ATLAS_DWI_MAP_MAT, ATLAS_DWI_CONVERT_INV, ATLAS_REG_PATH, 
-    ATLAS_MIF_PATH) = get_atlas_registration_paths(REGION_ID, ATLAS_NEEDED_PATH)
+    ATLAS_MIF_PATH) = get_atlas_registration_paths(REGION_ID, ATLAS_NEEDED_PATH, FOLDER_TYPE)
 
     # If we're of folder type BMCR, then everything's in STPT and we use the normal clean paths. If we're of folder type
     # BMA, then we need to use the STPT registered DWI paths
@@ -229,7 +230,8 @@ def define_mrtrix_probtrack_commands(ARGS):
      DWI_CLEAN_MASK_PATH, DWI_CLEAN_MASK_NII_PATH, DWI_CLEAN_NII_PATH, DWI_CLEAN_BVEC_PATH, 
      DWI_CLEAN_BVAL_PATH) = get_mrtrix_clean_paths(REGION_ID, FOLDER_TYPE)
     # Get the registered DWI paths
-    (DWI_REG_FOLDER, DWI_MAP_MAT, DWI_CONVERT_INV, DWI_REG_PATH, DWI_MASK_PATH) = get_STPT_registration_paths(REGION_ID, FOLDER_TYPE)
+    (DWI_REG_FOLDER, DWI_MAP_MAT, DWI_CONVERT_INV, DWI_REG_PATH, 
+     DWI_REG_MASK_PATH) = get_STPT_registration_paths(REGION_ID, FOLDER_TYPE)
     # Get the fod paths
     (RESPONSE_WM_PATH, RESPONSE_GM_PATH, RESPONSE_CSF_PATH, RESPONSE_VOXEL_PATH,
     WM_FOD_PATH, GM_FOD_PATH, CSF_FOD_PATH, VF_FOD_PATH, WM_FOD_NORM_PATH, GM_FOD_NORM_PATH, 
@@ -244,7 +246,7 @@ def define_mrtrix_probtrack_commands(ARGS):
     if FOLDER_TYPE == "BMCR" or FOLDER_TYPE == "BMA_EXVIVO":
         INPUT_MASK_PATH = DWI_CLEAN_MASK_PATH
     elif FOLDER_TYPE == "BMA_INVIVO":
-        INPUT_MASK_PATH = DWI_MASK_PATH
+        INPUT_MASK_PATH = DWI_REG_MASK_PATH
     
     # Probabilistic tractography command
     PROB_TRACT_CMD = "tckgen {wmfod_norm}.mif {output}.tck -algorithm iFOD2 -seed_image {mask}.nii.gz -mask {mask}.nii.gz \

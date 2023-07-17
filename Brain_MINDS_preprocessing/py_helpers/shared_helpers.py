@@ -151,7 +151,7 @@ def extract_K_shells_bvals_bvecs(region_item, K=8, verbose=False):
     return [BVAL_SHELL_PATH, BVEC_SHELL_PATH]
 
 # Join different bval and bvec files for the same region
-def join_dwi_diff_bvals_bvecs(DWI_LIST):
+def join_dwi_diff_bvals_bvecs(DWI_LIST, resize=True):
     # This stores which regions we've already done this for
     SEEN_REGIONS = []
     # This stores all the concat paths
@@ -175,15 +175,20 @@ def join_dwi_diff_bvals_bvecs(DWI_LIST):
         same_region_list = [dwi[1:] for dwi in DWI_LIST if dwi[0] == region_ID]
 
         # Create list of all resized DWIs, BVALs and BVECs for this same region
-        print("Resizing region {}".format(region_ID))
-        resized_region_list = get_resized_bval_bvec_lists(same_region_list)
+        if resize:
+            print("Resizing region {}".format(region_ID))
+            resized_region_list = get_resized_bval_bvec_lists(same_region_list)
         
         # Convert to mif and concatenate for both the normal and resized DWIs
         (CONCAT_NII_PATH, CONCAT_MIF_PATH, CONCAT_BVALS_PATH, 
          CONCAT_BVECS_PATH) = convert_and_concatenate(same_region_list)
         
-        (RESIZED_CONCAT_NII_PATH, RESIZED_CONCAT_MIF_PATH, RESIZED_CONCAT_BVALS_PATH, 
-         RESIZED_CONCAT_BVECS_PATH) = convert_and_concatenate(resized_region_list, resized=True)
+        if resize:
+            (RESIZED_CONCAT_NII_PATH, RESIZED_CONCAT_MIF_PATH, RESIZED_CONCAT_BVALS_PATH, 
+            RESIZED_CONCAT_BVECS_PATH) = convert_and_concatenate(resized_region_list, resized=True)
+        else:
+            (RESIZED_CONCAT_NII_PATH, RESIZED_CONCAT_MIF_PATH, RESIZED_CONCAT_BVALS_PATH, 
+            RESIZED_CONCAT_BVECS_PATH) = (None, None, None, None)
 
         # Add the concatenated path to the list
         ALL_CONCAT_PATHS.append([CONCAT_NII_PATH, CONCAT_MIF_PATH, CONCAT_BVALS_PATH, CONCAT_BVECS_PATH])

@@ -11,7 +11,7 @@ def parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, AT
     print("Started parallel process - {}".format(REGION_ID))
 
     # Define the folder type
-    FOLDER_TYPE = "BMCR"
+    FOLDER_TYPE = "BMA_INVIVO"
 
     # --------------- MRTRIX reconstruction commands --------------- #
     # Define needed arguments array
@@ -98,7 +98,7 @@ def main():
     # --------------- Create list of all data for each zone name --------------- #
     (ALL_DATA_LIST, RESIZED_ALL_DATA_LIST) = create_data_list(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_FILES, 
                                                                 BMINDS_STREAMLINE_FILES, BMINDS_INJECTION_FILES, BMINDS_ATLAS_FILE, 
-                                                                BMINDS_ATLAS_LABEL_FILE, BMINDS_STPT_FILE, resize=True)
+                                                                BMINDS_ATLAS_LABEL_FILE, BMINDS_STPT_FILE, resize=False)
 
     print("Length of All Data List: {}".format(len(ALL_DATA_LIST)))
     print("Length of Resized All Data List: {}".format(len(RESIZED_ALL_DATA_LIST)))
@@ -108,7 +108,7 @@ def main():
         # Get the current region based on the command-line
         region_idx = int(sys.argv[2])
         # Get the data of the indexed region in the list
-        (REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT) = RESIZED_ALL_DATA_LIST[region_idx]
+        (REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT) = ALL_DATA_LIST[region_idx]
         # Call the parallel process function on this region
         parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT)
     else:

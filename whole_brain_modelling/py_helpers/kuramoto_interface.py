@@ -1,8 +1,7 @@
 import simulations as sim
 import sys
 import time
-sys.path.insert(0, r"C:\Users\shahi\OneDrive - Imperial College London\Documents\imperial\Dissertation\Notebooks\MyCodes\whole_brain_modelling\py_helpers")
-from helper_funcs import *
+from .helper_funcs import *
 import numpy as np
 
 def kuramoto_simulator(coupling_strength, delay):
@@ -28,7 +27,7 @@ def kuramoto_simulator(coupling_strength, delay):
 
     # --------- Read the config file
     print('Reading config file...')
-    config_path = os.path.join(os.getcwd(), "configs\\kuramoto_config.json")
+    config_path = os.path.join(os.getcwd(), os.path.join("configs", "kuramoto_config.json"))
     config = read_json_config_kura(config_path)
 
     # --------- Extract the parameters

@@ -2,11 +2,17 @@
 
 #%% Import libraries
 import os
-os.add_dll_directory(r"C:\src\vcpkg\installed\x64-windows\bin")
-os.add_dll_directory(r"C:\cpp_libs\include\bayesopt\build\bin\Release")
+
+hpc = False
+
+if not hpc:
+    os.add_dll_directory(r"C:\src\vcpkg\installed\x64-windows\bin")
+    os.add_dll_directory(r"C:\cpp_libs\include\bayesopt\build\bin\Release")
+    
 from sklearn.preprocessing import MinMaxScaler
-from py_helpers.kuramoto_interface import *
-from py_helpers.helper_funcs import *
+
+from py_helpers import *
+
 from collections import OrderedDict
 import matplotlib.pyplot as plt
 import scipy.signal as signal
@@ -34,8 +40,12 @@ from pyGPGO.covfunc import matern52
 import pymc3 as pm
 
 # Defining paths
-root_path = 'C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Spring Sem\\iso_dubai\\ISO\\HCP_DTI_BOLD'
-write_path = "C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Dissertation\\Notebooks\\MyCodes\\whole_brain_modelling\\results\\kuramoto"
+if not hpc:
+    root_path = 'C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Spring Sem\\iso_dubai\\ISO\\HCP_DTI_BOLD'
+    write_path = "C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Dissertation\\Notebooks\\MyCodes\\whole_brain_modelling\\results\\wilson"
+else:
+    root_path = '/rds/general/user/hsa22/ephemeral/HCP_DTI_BOLD'
+    write_path = os.path.join(os.getcwd(), "results/wilson")
 
 # Defining optimization parameters
 coupling_strength = 0.1
@@ -84,7 +94,7 @@ force_jump = 0
 crit_name = 0 # cExpectedImprovement
 
 # Defining config path
-config_path = os.path.join(os.getcwd(), "configs\\kuramoto_config.json")
+config_path = os.path.join(os.getcwd(), os.path.join("configs", "kuramoto_config.json"))
 
 #%% Start main program
 if __name__ == "__main__":
@@ -95,21 +105,9 @@ if __name__ == "__main__":
     number_integration_steps = int(time_simulated / integration_step_size)
     start_save_idx = int(save_data_start / integration_step_size) + downsampling_rate
 
-    # Get empirical matrices
-    print('Getting SC, FC and BOLD matrices...')
-    SC_matrix = get_empirical_SC(root_path)
-    FC_matrix = get_empirical_FC(root_path, config_path)
-    BOLD_signals = get_empirical_BOLD(root_path)
-
-    # Store matrices in .npy files
-    print('Storing matrices in .npy files...')
-    np.save('emp_data\\SC_matrix.npy', SC_matrix)
-    np.save('emp_data\\FC_matrix.npy', FC_matrix)
-    np.save('emp_data\\BOLD_signals.npy', BOLD_signals)
-
     # Defining the paths with this data
-    SC_path = os.path.join(os.getcwd(), "emp_data\\SC_matrix.npy")
-    FC_path = os.path.join(os.getcwd(), "emp_data\\FC_matrix.npy")
+    SC_path = os.path.join(os.getcwd(), os.path.join("emp_data", "SC_matrix.npy"))
+    FC_path = os.path.join(os.getcwd(), os.path.join("emp_data", "FC_matrix.npy"))
 
     # Parameters for JSON file
     kuramoto_params = [
@@ -132,6 +130,19 @@ if __name__ == "__main__":
     print('Create config of parameters...')
     # Create a JSON file with the parameters
     write_json_config_kura(kuramoto_params, config_path)
+
+    # Get empirical matrices
+    print('Getting SC, FC and BOLD matrices...')
+    SC_matrix = get_empirical_SC(root_path)
+    FC_matrix = get_empirical_FC(root_path, config_path)
+    BOLD_signals = get_empirical_BOLD(root_path)
+
+    # Store matrices in .npy files
+    print('Storing matrices in .npy files...')
+    np.save(os.path.join('emp_data', 'SC_matrix.npy'), SC_matrix)
+    np.save(os.path.join('emp_data', 'FC_matrix.npy'), FC_matrix)
+    np.save(os.path.join('emp_data', 'BOLD_signals.npy'), BOLD_signals)
+
 
 
     #%% Check number of available threads - multiprocessing tingz

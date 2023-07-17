@@ -110,7 +110,8 @@ def check_unzipping(BMINDS_DWI_FOLDER, BMINDS_UNZIPPED_DWI_FOLDER):
 
 # Create a list that associates each subject with its T1 and DWI files
 def create_data_list(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_FILES, BMINDS_STREAMLINE_FILES, 
-                     BMINDS_INJECTION_FILES, BMINDS_ATLAS_FILE, BMINDS_ATLAS_LABEL_FILE, BMINDS_STPT_FILE):
+                     BMINDS_INJECTION_FILES, BMINDS_ATLAS_FILE, BMINDS_ATLAS_LABEL_FILE, BMINDS_STPT_FILE, 
+                     resize=True):
     DATA_LISTS = []
     RESIZED_DATA_LISTS = []
     # Get the initial lists
@@ -119,12 +120,13 @@ def create_data_list(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_F
                                                                         BMINDS_INJECTION_FILES)
     
     # Join all DWIs with the same region name but different bvals and bvecs using mrtrix
-    (CONCATENATED_DWI_LIST, RESIZED_CONCAT_DWI_LIST) = join_dwi_diff_bvals_bvecs(DWI_LIST)   
+    (CONCATENATED_DWI_LIST, RESIZED_CONCAT_DWI_LIST) = join_dwi_diff_bvals_bvecs(DWI_LIST, resize=resize)   
 
     # Join the two lists based on common subject name
     DATA_LISTS = concatenate_common_subject_name(CONCATENATED_DWI_LIST, STREAMLINE_LIST, INJECTION_LIST,
                                                     BMINDS_ATLAS_FILE, BMINDS_ATLAS_LABEL_FILE, BMINDS_STPT_FILE)
-    RESIZED_DATA_LISTS = concatenate_common_subject_name(RESIZED_CONCAT_DWI_LIST, STREAMLINE_LIST, INJECTION_LIST,
+    if resize:
+        RESIZED_DATA_LISTS = concatenate_common_subject_name(RESIZED_CONCAT_DWI_LIST, STREAMLINE_LIST, INJECTION_LIST,
                                                             BMINDS_ATLAS_FILE, BMINDS_ATLAS_LABEL_FILE, BMINDS_STPT_FILE)
             
     return (DATA_LISTS, RESIZED_DATA_LISTS)     
