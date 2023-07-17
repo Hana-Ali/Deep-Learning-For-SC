@@ -49,28 +49,21 @@ def main():
     
     # Check the input folders
     check_input_folders(BMINDS_DATA_FOLDER, "BMINDS_DATA_FOLDER")
-    check_input_folders(BMINDS_CORE_FOLDER, "BMINDS_CORE_FOLDER")
-    check_input_folders(BMINDS_DWI_FOLDER, "BMINDS_DWI_FOLDER")
-    check_input_folders(BMINDS_METADATA_FOLDER, "BMINDS_METADATA_FOLDER")
-    check_input_folders(BMINDS_TEMPLATES_FOLDER, "BMINDS_TEMPLATES_FOLDER")
-    check_input_folders(BMINDS_ATLAS_FOLDER, "BMINDS_ATLAS_FOLDER")
-    check_input_folders(BMINDS_STPT_TEMPLATE_FOLDER, "BMINDS_STPT_TEMPLATE_FOLDER")
-    check_input_folders(BMINDS_TRANSFORMS_FOLDER, "BMINDS_TRANSFORMS_FOLDER")
-    check_input_folders(BMINDS_INJECTIONS_FOLDER, "BMINDS_INJECTIONS_FOLDER")
+    check_input_folders(BMINDS_BMA_MAIN_FOLDER, "BMINDS_BMA_MAIN_FOLDER")
+    check_input_folders(BMINDS_BMA_INVIVO_FOLDER, "BMINDS_BMA_INVIVO_FOLDER")
+    check_input_folders(BMINDS_BMA_INVIVO_DWI_FOLDER, "BMINDS_BMA_INVIVO_DWI_FOLDER")
+
 
     # Check the output folders
-    check_output_folders(BMINDS_OUTPUTS_DMRI_FOLDER, "BMINDS_OUTPUTS_FOLDER", wipe=False)
-    check_output_folders(BMINDS_UNZIPPED_DWI_FOLDER, "BMINDS_UNZIPPED_DWI_FOLDER", wipe=False)
-    check_output_folders(BMINDS_UNZIPPED_DWI_RESIZED_FOLDER, "BMINDS_UNZIPPED_DWI_RESIZED_FOLDER", wipe=False)
-    check_output_folders(MAIN_MRTRIX_FOLDER_DMRI, "MAIN_MRTRIX_FOLDER", wipe=False)
-
-    # Unzip all input files
-    check_unzipping(BMINDS_DWI_FOLDER, BMINDS_UNZIPPED_DWI_FOLDER)
-
+    check_output_folders(BMINDS_OUTPUTS_DMRI_BMA_FOLDER, "BMINDS_OUTPUTS_DMRI_BMA_FOLDER")
+    check_output_folders(BMINDS_OUTPUTS_INVIVO_BMA_FOLDER, "BMINDS_OUTPUTS_INVIVO_BMA_FOLDER")
+    check_output_folders(MAIN_MRTRIX_FOLDER_BMA_DMRI_INVIVO, "MAIN_MRTRIX_FOLDER_BMA_DMRI_INVIVO")
+    
     # --------------- Glob the DWI, bval, bvec and tract-tracing data --------------- #
-    BMINDS_UNZIPPED_DWI_FILES = glob_files(BMINDS_UNZIPPED_DWI_FOLDER, "nii")
-    BMINDS_BVAL_FILES = glob_files(BMINDS_DWI_FOLDER, "bval")
-    BMINDS_BVEC_FILES = glob_files(BMINDS_DWI_FOLDER, "bvec")
+    BMINDS_INVIVO_DWI_FILES = glob_files(BMINDS_BMA_INVIVO_DWI_FOLDER, "nii")
+    BMINDS_BVAL_FILES = glob_files(BMINDS_BMA_INVIVO_DWI_FOLDER, "bval")
+    BMINDS_BVEC_FILES = glob_files(BMINDS_BMA_INVIVO_DWI_FOLDER, "bvec")
+    
     BMINDS_STREAMLINE_FILES = glob_files(BMINDS_METADATA_FOLDER, "tck")
     BMINDS_INJECTION_FILES = glob_files(BMINDS_INJECTIONS_FOLDER, "nii.gz")
     BMINDS_ATLAS_FILES = glob_files(BMINDS_ATLAS_FOLDER, "nii.gz")
@@ -85,7 +78,7 @@ def main():
     BMINDS_MBCA_TRANSFORM_FILE = [file for file in BMINDS_TRANSFORM_FILES if "MBCA" in file]
 
     # Check the globbed files
-    check_globbed_files(BMINDS_UNZIPPED_DWI_FILES, "BMINDS_UNZIPPED_DWI_FILES")
+    check_globbed_files(BMINDS_INVIVO_DWI_FILES, "BMINDS_INVIVO_DWI_FILES")
     check_globbed_files(BMINDS_BVAL_FILES, "BMINDS_BVAL_FILES")
     check_globbed_files(BMINDS_BVEC_FILES, "BMINDS_BVEC_FILES")
     check_globbed_files(BMINDS_STREAMLINE_FILES, "BMINDS_STREAMLINE_FILES")
@@ -96,11 +89,11 @@ def main():
     check_globbed_files(BMINDS_MBCA_TRANSFORM_FILE, "BMINDS_MBCA_TRANSFORM_FILE")
 
     # --------------- Create list of all data for each zone name --------------- #
-    (ALL_DATA_LIST, RESIZED_ALL_DATA_LIST) = create_data_list(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_FILES, 
+    (ALL_DATA_LIST, RESIZED_ALL_DATA_LIST) = create_data_list(BMINDS_INVIVO_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_FILES, 
                                                                 BMINDS_STREAMLINE_FILES, BMINDS_INJECTION_FILES, BMINDS_ATLAS_FILE, 
-                                                                BMINDS_ATLAS_LABEL_FILE, BMINDS_STPT_FILE, resize=False)
+                                                                BMINDS_ATLAS_LABEL_FILE, BMINDS_STPT_FILE, BMCR=False)
 
-    print("Length of All Data List: {}".format(len(ALL_DATA_LIST)))
+    print("Length of All Data List: {}".format(len(ALL_DATA_LIST))) # Should be size 126
     print("Length of Resized All Data List: {}".format(len(RESIZED_ALL_DATA_LIST)))
 
     # --------------- Preprocessing the data to get the right file formats --------------- #

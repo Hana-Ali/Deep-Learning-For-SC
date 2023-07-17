@@ -151,7 +151,7 @@ def extract_K_shells_bvals_bvecs(region_item, K=8, verbose=False):
     return [BVAL_SHELL_PATH, BVEC_SHELL_PATH]
 
 # Join different bval and bvec files for the same region
-def join_dwi_diff_bvals_bvecs(DWI_LIST, resize=True):
+def join_dwi_diff_bvals_bvecs(DWI_LIST, BMCR=True):
     # This stores which regions we've already done this for
     SEEN_REGIONS = []
     # This stores all the concat paths
@@ -175,18 +175,21 @@ def join_dwi_diff_bvals_bvecs(DWI_LIST, resize=True):
         same_region_list = [dwi[1:] for dwi in DWI_LIST if dwi[0] == region_ID]
 
         # Create list of all resized DWIs, BVALs and BVECs for this same region
-        if resize:
+        if BMCR:
             print("Resizing region {}".format(region_ID))
             resized_region_list = get_resized_bval_bvec_lists(same_region_list)
         
-        # Convert to mif and concatenate for both the normal and resized DWIs
-        (CONCAT_NII_PATH, CONCAT_MIF_PATH, CONCAT_BVALS_PATH, 
-         CONCAT_BVECS_PATH) = convert_and_concatenate(same_region_list)
+            # Convert to mif and concatenate for both the normal and resized DWIs
+            (CONCAT_NII_PATH, CONCAT_MIF_PATH, CONCAT_BVALS_PATH, 
+            CONCAT_BVECS_PATH) = convert_and_concatenate(same_region_list)
         
-        if resize:
             (RESIZED_CONCAT_NII_PATH, RESIZED_CONCAT_MIF_PATH, RESIZED_CONCAT_BVALS_PATH, 
             RESIZED_CONCAT_BVECS_PATH) = convert_and_concatenate(resized_region_list, resized=True)
         else:
+            # Given the same region list, convert to mif (don't actually concat anything)
+            (CONCAT_NII_PATH, CONCAT_MIF_PATH, CONCAT_BVALS_PATH,
+            CONCAT_BVECS_PATH) = convert_to_mif_BMA(same_region_list[0])
+
             (RESIZED_CONCAT_NII_PATH, RESIZED_CONCAT_MIF_PATH, RESIZED_CONCAT_BVALS_PATH, 
             RESIZED_CONCAT_BVECS_PATH) = (None, None, None, None)
 
@@ -261,6 +264,31 @@ def convert_to_mif(region_item, verbose=False):
 
     # Return the mif path
     return MIF_PATH
+
+# Conversion to MIF for BMA
+def convert_to_mif_BMA(region_item, verbose=False):
+    # Create the MIF path
+    mif_name = region_item[0].split(os.sep)[-1].split(".")[0] + "_mif.mif"
+    MIF_PATH = os.path.join((os.sep).join(region_item[0].split(os.sep)[:-1]), mif_name)
+
+
+    # Check if the MIF path already exists
+    if os.path.exists(MIF_PATH):
+        if verbose:
+            print("MIF path {} already exists. Continuing...".format(MIF_PATH))
+        return (region_item[0], MIF_PATH, region_item[1], region_item[2])
+    
+    # If it doesn't exist, convert to mif
+    MIF_CMD = "mrconvert {input_nii} -fslgrad {bvec} {bval} {output}".format(input_nii=region_item[0],
+                                                                                bval=region_item[1],
+                                                                                bvec=region_item[2],
+                                                                                output=MIF_PATH)
+
+    print("Running command: {}".format(MIF_CMD))
+    subprocess.run(MIF_CMD, shell=True)
+
+    # Return the nii, mif, bval and bvec paths
+    return (region_item[0], MIF_PATH, region_item[1], region_item[2])
 
 # Concatenate MIF
 def concatenate_mif(MIF_PATHS, mif_files_string, resized=False, verbose=False):
@@ -423,49 +451,66 @@ def extract_from_input_list(GENERAL_FILES, ITEMS_NEEDED, list_type):
     return items_to_get
 
 # Create initial lists for the above function
-def create_initial_lists(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_FILES, BMINDS_STREAMLINE_FILES,
-                            BMINDS_INJECTION_FILES):
+def create_initial_lists(BMINDS_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_FILES, BMINDS_STREAMLINE_FILES,
+                            BMINDS_INJECTION_FILES, BMCR=True):
     DWI_LIST = []
     STREAMLINE_LIST = []
     INJECTION_LIST = []
 
-    # For each DWI file
-    for dwi_file in BMINDS_UNZIPPED_DWI_FILES:
+    # If BMCR is true, continue as before
+    if BMCR:
+        # For each DWI file
+        for dwi_file in BMINDS_DWI_FILES:
 
-        # Check that it's not a concat or resized file - skip if it is
-        if "concat" in dwi_file or "resized" in dwi_file:
-            continue
+            # Check that it's not a concat or resized file - skip if it is
+            if "concat" in dwi_file or "resized" in dwi_file:
+                continue
 
-        # Get the region ID
-        region_ID = extract_region_ID(dwi_file)
+            # Get the region ID
+            region_ID = extract_region_ID(dwi_file)
 
-        # Get the bval and bvec files
-        bval_path = extract_correct_bval(dwi_file, BMINDS_BVAL_FILES)
-        bvec_path = extract_correct_bvec(dwi_file, BMINDS_BVEC_FILES)
+            # Get the bval and bvec files
+            bval_path = extract_correct_bval(dwi_file, BMINDS_BVAL_FILES)
+            bvec_path = extract_correct_bvec(dwi_file, BMINDS_BVEC_FILES)
 
-        # Append to a DWI list
-        DWI_LIST.append([region_ID, dwi_file, bval_path, bvec_path])
+            # Append to a DWI list
+            DWI_LIST.append([region_ID, dwi_file, bval_path, bvec_path])
 
-    # For each streamline file
-    for streamline_file in BMINDS_STREAMLINE_FILES:
-        # Get the region ID
-        region_ID = extract_region_ID(streamline_file)
-        # Get the type of streamline file it is
-        streamline_type = get_streamline_type(streamline_file)
-        # Append all the data to the dictionary
-        STREAMLINE_LIST.append([region_ID, streamline_type, streamline_file])
+        # For each streamline file
+        for streamline_file in BMINDS_STREAMLINE_FILES:
+            # Get the region ID
+            region_ID = extract_region_ID(streamline_file)
+            # Get the type of streamline file it is
+            streamline_type = get_streamline_type(streamline_file)
+            # Append all the data to the dictionary
+            STREAMLINE_LIST.append([region_ID, streamline_type, streamline_file])
 
-    # For each injection file
-    for injection_file in BMINDS_INJECTION_FILES:
-        # Ignore the ones with small in the filename
-        if "small" in injection_file:
-            continue
-        # Get the region ID
-        region_ID = extract_region_ID(injection_file)
-        # Get the type of injection file it is
-        injection_type = get_injection_type(injection_file)
-        # Append all the data to the dictionary
-        INJECTION_LIST.append([region_ID, injection_type, injection_file])
+        # For each injection file
+        for injection_file in BMINDS_INJECTION_FILES:
+            # Ignore the ones with small in the filename
+            if "small" in injection_file:
+                continue
+            # Get the region ID
+            region_ID = extract_region_ID(injection_file)
+            # Get the type of injection file it is
+            injection_type = get_injection_type(injection_file)
+            # Append all the data to the dictionary
+            INJECTION_LIST.append([region_ID, injection_type, injection_file])
+
+    # If the resize is not true, we do it differently
+    else:
+        # For each DWI file
+        for dwi_file in BMINDS_DWI_FILES:
+
+            # Get the file name
+            dwi_name = dwi_file.split(os.sep)[-1].split(".")[0]
+
+            # Get the bval and bvec (should only be one)
+            bval_path = BMINDS_BVAL_FILES[0]
+            bvec_path = BMINDS_BVEC_FILES[0]
+
+            # Append to a DWI list
+            DWI_LIST.append([dwi_name, dwi_file, bval_path, bvec_path])
 
     # Return the lists
     return (DWI_LIST, STREAMLINE_LIST, INJECTION_LIST)

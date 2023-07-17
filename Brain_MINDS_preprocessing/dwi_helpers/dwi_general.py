@@ -109,55 +109,73 @@ def check_unzipping(BMINDS_DWI_FOLDER, BMINDS_UNZIPPED_DWI_FOLDER):
         unzip_dwi_stage_2(UNZIPPED_STAGE_1, BMINDS_UNZIPPED_DWI_FOLDER) 
 
 # Create a list that associates each subject with its T1 and DWI files
-def create_data_list(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_FILES, BMINDS_STREAMLINE_FILES, 
+def create_data_list(BMINDS_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_FILES, BMINDS_STREAMLINE_FILES, 
                      BMINDS_INJECTION_FILES, BMINDS_ATLAS_FILE, BMINDS_ATLAS_LABEL_FILE, BMINDS_STPT_FILE, 
-                     resize=True):
+                     BMCR=True):
     DATA_LISTS = []
     RESIZED_DATA_LISTS = []
     # Get the initial lists
-    (DWI_LIST, STREAMLINE_LIST, INJECTION_LIST) = create_initial_lists(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES,
+    (DWI_LIST, STREAMLINE_LIST, INJECTION_LIST) = create_initial_lists(BMINDS_DWI_FILES, BMINDS_BVAL_FILES,
                                                                         BMINDS_BVEC_FILES, BMINDS_STREAMLINE_FILES,
-                                                                        BMINDS_INJECTION_FILES)
+                                                                        BMINDS_INJECTION_FILES, BMCR=BMCR)
     
     # Join all DWIs with the same region name but different bvals and bvecs using mrtrix
-    (CONCATENATED_DWI_LIST, RESIZED_CONCAT_DWI_LIST) = join_dwi_diff_bvals_bvecs(DWI_LIST, resize=resize)   
+    (CONCATENATED_DWI_LIST, RESIZED_CONCAT_DWI_LIST) = join_dwi_diff_bvals_bvecs(DWI_LIST, BMCR=BMCR) 
 
     # Join the two lists based on common subject name
     DATA_LISTS = concatenate_common_subject_name(CONCATENATED_DWI_LIST, STREAMLINE_LIST, INJECTION_LIST,
-                                                    BMINDS_ATLAS_FILE, BMINDS_ATLAS_LABEL_FILE, BMINDS_STPT_FILE)
-    if resize:
+                                                    BMINDS_ATLAS_FILE, BMINDS_ATLAS_LABEL_FILE, BMINDS_STPT_FILE,
+                                                    BMCR=BMCR)
+    if BMCR:
+        # Do the same for the resized data
         RESIZED_DATA_LISTS = concatenate_common_subject_name(RESIZED_CONCAT_DWI_LIST, STREAMLINE_LIST, INJECTION_LIST,
-                                                            BMINDS_ATLAS_FILE, BMINDS_ATLAS_LABEL_FILE, BMINDS_STPT_FILE)
-            
+                                                            BMINDS_ATLAS_FILE, BMINDS_ATLAS_LABEL_FILE, BMINDS_STPT_FILE,
+                                                            BMCR=BMCR)
+                
     return (DATA_LISTS, RESIZED_DATA_LISTS)     
 
 # Function to join based on common subject name
 def concatenate_common_subject_name(DWI_LIST, STREAMLINE_LIST, INJECTION_LIST, BMINDS_ATLAS_FILE, 
-                                    BMINDS_ATLAS_LABEL_FILE, BMINDS_STPT_FILE):
+                                    BMINDS_ATLAS_LABEL_FILE, BMINDS_STPT_FILE, BMCR=True):
 
     # Lists to hold the data
     DATA_LISTS = []
 
-    # Join the two lists based on common subject name
-    for dwi_list in DWI_LIST:
-        # Get the region, or common element ID
-        region_ID = dwi_list[0].split(os.sep)[-3]
-        # Based on this name, get every streamline and injection that has the same region ID
-        streamline_files = [[streamline_file[1], streamline_file[2]] for streamline_file in STREAMLINE_LIST if streamline_file[0] == region_ID]
-        injection_files = [[injection_file[1], injection_file[2]] for injection_file in INJECTION_LIST if injection_file[0] == region_ID]
-        # Add the atlas and stpt files
-        atlas_stpt = [BMINDS_ATLAS_FILE[0], BMINDS_ATLAS_LABEL_FILE[0], BMINDS_STPT_FILE[0]]
-        # Extract the dwi, bval and bvec files
-        dwi_data = [dwi_list[0], dwi_list[1], dwi_list[2], dwi_list[3]]
+    # If resizing, join the two lists based on common subject name
+    if BMCR:
+        # For every dwi list
+        for dwi_list in DWI_LIST:
+            # Get the region, or common element ID
+            region_ID = dwi_list[0].split(os.sep)[-3]
+            # Based on this name, get every streamline and injection that has the same region ID
+            streamline_files = [[streamline_file[1], streamline_file[2]] for streamline_file in STREAMLINE_LIST if streamline_file[0] == region_ID]
+            injection_files = [[injection_file[1], injection_file[2]] for injection_file in INJECTION_LIST if injection_file[0] == region_ID]
+            # Add the atlas and stpt files
+            atlas_stpt = [BMINDS_ATLAS_FILE[0], BMINDS_ATLAS_LABEL_FILE[0], BMINDS_STPT_FILE[0]]
+            # Extract the dwi, bval and bvec files
+            dwi_data = [dwi_list[0], dwi_list[1], dwi_list[2], dwi_list[3]]
 
-        # Check that streamline and injection files are not empty
-        if not streamline_files:
-            print("No streamline files found for {}".format(region_ID))
-            continue
-        if not injection_files:
-            print("No injection files found for {}".format(region_ID))
-            continue
-        # Append the subject name, dwi, bval, bvec, streamline and injection to the list
-        DATA_LISTS.append([region_ID, dwi_data, streamline_files, injection_files, atlas_stpt])
+            # Check that streamline and injection files are not empty
+            if not streamline_files:
+                print("No streamline files found for {}".format(region_ID))
+                continue
+            if not injection_files:
+                print("No injection files found for {}".format(region_ID))
+                continue
+            # Append the subject name, dwi, bval, bvec, streamline and injection to the list
+            DATA_LISTS.append([region_ID, dwi_data, streamline_files, injection_files, atlas_stpt])
+    # If not resizing - working with BMA data
+    else:
+        # For every dwi list
+        for dwi_list in DWI_LIST:
+            # Get the region ID
+            region_ID = dwi_list[0].split(os.sep)[-1].split(".")[0]
+            # Add the atlas and stpt files
+            atlas_stpt = [BMINDS_ATLAS_FILE[0], BMINDS_ATLAS_LABEL_FILE[0], BMINDS_STPT_FILE[0]]
+            # Extract the dwi, bval and bvec files
+            dwi_data = [dwi_list[0], dwi_list[1], dwi_list[2], dwi_list[3]]
+
+            # Append the subject name, dwi, bval, bvec, streamline and injection to the list
+            DATA_LISTS.append([region_ID, dwi_data, None, None, atlas_stpt])
 
     return DATA_LISTS

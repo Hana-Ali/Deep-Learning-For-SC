@@ -73,7 +73,7 @@ def define_mrtrix_clean_commands(ARGS):
     CLEAN_MASK_NII_CMD = "mrconvert {input}.mif {output}.nii.gz".format(input=DWI_CLEAN_MASK_PATH, output=DWI_CLEAN_MASK_NII_PATH)
 
     # Return the commands
-    return (DWI_DENOISE_CMD, DWI_BIAS_CMD, DWI_CONVERT_CMD, CLEAN_MASK_CMD, CLEAN_MASK_NII_CMD)
+    return (SKULL_STRIP_CMD, SKULL_STRIP_MIF_CMD, DWI_DENOISE_CMD, DWI_BIAS_CMD, DWI_CONVERT_CMD, CLEAN_MASK_CMD, CLEAN_MASK_NII_CMD)
 
 # Define the template registration commands
 def define_template_registration_commands(ARGS):
@@ -300,8 +300,8 @@ def pre_tractography_commands(ARGS):
 
     # Define the cleaning commands
     CLEAN_ARGS = [REGION_ID, DWI_FILES, FOLDER_TYPE]
-    (DWI_DENOISE_CMD, DWI_BIAS_CMD, DWI_CONVERT_CMD, 
-    CLEAN_MASK_CMD, CLEAN_MASK_NII_CMD) = define_mrtrix_clean_commands(CLEAN_ARGS)
+    (SKULL_STRIP_CMD, SKULL_STRIP_MIF_CMD, DWI_DENOISE_CMD, DWI_BIAS_CMD, 
+     DWI_CONVERT_CMD, CLEAN_MASK_CMD, CLEAN_MASK_NII_CMD) = define_mrtrix_clean_commands(CLEAN_ARGS)
 
     # Define the registration commands, depending on if we're of folder type BMCR or BMA
     if FOLDER_TYPE == "BMA_INVIVO":
@@ -345,15 +345,25 @@ def pre_tractography_commands(ARGS):
     # Define the commands array, depending on what's been done before
     MRTRIX_COMMANDS = []
     if MRTRIX_GENERAL:
+        # First do the general stuff
         MRTRIX_COMMANDS.extend([
                                 (MASK_CMD, "Create DWI brain mask"),
                                 (MASK_NII_CMD, "Convert DWI brain mask mif -> nii"), 
-                                (DWI_DENOISE_CMD, "Denoise DWI"),
-                                (DWI_BIAS_CMD, "Bias correct DWI"),
-                                (DWI_CONVERT_CMD, "Convert DWI mif -> nii"),
-                                (CLEAN_MASK_CMD, "Create DWI brain mask for cleaned DWI"),
-                                (CLEAN_MASK_NII_CMD, "Convert DWI brain mask mif -> nii for cleaned DWI"),
                             ])
+        # Then if we can skull strip we do
+        if SKULL_STRIP_CMD != "":
+            MRTRIX_COMMANDS.extend([
+                                    (SKULL_STRIP_CMD, "Skull strip DWI"),
+                                    (SKULL_STRIP_MIF_CMD, "Convert skull strip to mif"),
+                                ])
+        # Now we do denoising, bias correction and conversion to NII
+        MRTRIX_COMMANDS.extend([
+                            (DWI_DENOISE_CMD, "Denoise DWI"),
+                            (DWI_BIAS_CMD, "Bias correct DWI"),
+                            (DWI_CONVERT_CMD, "Convert DWI mif -> nii"),
+                            (CLEAN_MASK_CMD, "Create DWI brain mask for cleaned DWI"),
+                            (CLEAN_MASK_NII_CMD, "Convert DWI brain mask mif -> nii for cleaned DWI"),
+                        ])
     if MRTRIX_DWI_REGISTRATION and FOLDER_TYPE == "BMA_INVIVO":
         MRTRIX_COMMANDS.extend([
                                 (REGISTER_DWI_STPT_CMD, "Begin registering DWI to STPT template space"),
