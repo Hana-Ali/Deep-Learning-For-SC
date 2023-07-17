@@ -161,7 +161,7 @@ def define_mrtrix_probtrack_commands(ARGS):
     (GM_WM_SEED_PATH, TRACT_TCK_PATH) = get_mrtrix_probtrack_paths(REGION_ID)
     
     # Probabilistic tractography command
-    PROB_TRACT_CMD = "tckgen {wmfod_norm}.mif {output}.tck -algorithm iFOD2 -seed_image {mask}.nii -mask {mask}.nii \
+    PROB_TRACT_CMD = "tckgen {wmfod_norm}.mif {output}.tck -algorithm iFOD2 -seed_image {mask}.nii.gz -mask {mask}.nii.gz \
         -angle {opt_angle} -minlength {opt_minlength} -cutoff {opt_cutoff} \
         -fslgrad {bvec} {bval} -select 300000 -force".format(wmfod_norm=WM_FOD_NORM_PATH, output=TRACT_TCK_PATH, 
                                                              mask=DWI_CLEAN_MASK_NII_PATH,

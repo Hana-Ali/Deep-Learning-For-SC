@@ -150,7 +150,8 @@ def check_missing_mrtrix_fod(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, FOD_FOLDER_NAM
     # Check that we have all the files we need
     if (any(WM_FOD_PATH in fod_mif for fod_mif in MRTRIX_FOD_MIF_FILES)
             and any(GM_FOD_PATH in fod_mif for fod_mif in MRTRIX_FOD_MIF_FILES)
-            and any(CSF_FOD_PATH in fod_mif for fod_mif in MRTRIX_FOD_MIF_FILES)):
+            and any(CSF_FOD_PATH in fod_mif for fod_mif in MRTRIX_FOD_MIF_FILES)
+            and any(VF_FOD_PATH in fod_mif for fod_mif in MRTRIX_FOD_MIF_FILES)):
         print("--- MRtrix FOD files found. Skipping MRtrix FOD processing.")
         MRTRIX_FOD = False
 
