@@ -87,54 +87,68 @@ def main():
     check_globbed_files(BMINDS_STPT_FILE, "BMINDS_STPT_FILE")
     check_globbed_files(BMINDS_MBCA_TRANSFORM_FILE, "BMINDS_MBCA_TRANSFORM_FILE")
 
-    # --------------- TCKMAP all streamlines --------------- #
-    # Define the folder to save the tckmapped streamlines and check the folder
-    TCKMAPPED_STREAMLINES_FOLDER = os.path.join(BMINDS_DATA_FOLDER, "tckmapped_streamlines")
-    TCKMAPPED_COMBINED_FOLDER = os.path.join(TCKMAPPED_STREAMLINES_FOLDER, "combined_tckmapped")
-    check_output_folders(TCKMAPPED_STREAMLINES_FOLDER, "TCKMAPPED_STREAMLINES_FOLDER", wipe=False)
-    check_output_folders(TCKMAPPED_COMBINED_FOLDER, "TCKMAPPED_COMBINED_FOLDER", wipe=False)
+    # --------------- Extract B0 from all the resized files --------------- #
+    # Get the resized files from the unzipped folder
+    unzipped_nii_files = glob_files(BMINDS_UNZIPPED_DWI_FOLDER, "nii")
+    unzipped_bval_files = glob_files(BMINDS_UNZIPPED_DWI_FOLDER, "bvals")
+    unzipped_bvec_files = glob_files(BMINDS_UNZIPPED_DWI_FOLDER, "bvecs")
 
-    # Define the path with the resized B0 files
-    RESIZED_B0_FOLDER = os.path.join(BMINDS_DATA_FOLDER, "resized_B0")
-    # Glob all the streamline files
-    COMBINED_STREAMLINE_FILES = glob_files(RESIZED_B0_FOLDER, "tck")
-    # Check the globbed files
-    check_globbed_files(COMBINED_STREAMLINE_FILES, "COMBINED_STREAMLINE_FILES")
+    # Get the resized files from the ones above
+    resized_nii_files = [file for file in unzipped_nii_files if "concatenated_resized" in file]
+    resized_bval_files = [file for file in unzipped_bval_files if "concatenated_resized" in file]
+    resized_bvec_files = [file for file in unzipped_bvec_files if "concatenated_resized" in file]
 
-    # Get the streamline density file as a template
-    STREAMLINE_DENSITY_FILE = [file for file in BMINDS_INJECTION_FILES if "streamline_density" in file][0]
+    print("Length of unzipped nii files: {}".format(len(unzipped_nii_files)))
+    print("Length of unzipped bval files: {}".format(len(unzipped_bval_files)))
+    print("Length of unzipped bvec files: {}".format(len(unzipped_bvec_files)))
 
-    # For every file, make a flipped version
-    for file in COMBINED_STREAMLINE_FILES:
-        # First get the file name
-        filename = file.split(os.sep)[-1] + ".nii.gz"
-        # Define the path
-        tckmapped_file_path = os.path.join(TCKMAPPED_COMBINED_FOLDER, filename)
-        # Define the tckmap command
-        TCKMAP_CMD = "tckmap {input} {output} -template {template} -force".format(input=file, 
-                                                                           output=tckmapped_file_path, 
-                                                                           template=STREAMLINE_DENSITY_FILE)
-        # Run the command
-        print("Running command: {}".format(TCKMAP_CMD))
-        subprocess.run(TCKMAP_CMD, shell=True, check=True)
+    print("Resized nii files: {}".format(resized_nii_files))
+    print("Resized bval files: {}".format(resized_bval_files))
+    print("Resized bvec files: {}".format(resized_bvec_files))
 
-        # Get the flipped file name
-        flipped_file = tckmapped_file_path.replace(".nii.gz", "_flipped.nii.gz")
-        # Check if the flipped file exists
-        if not os.path.isfile(flipped_file):
-            # Flip the file
-            flipped_image = flip_image(tckmapped_file_path)
-            # Save the flipped file
-            sitk.WriteImage(flipped_image, flipped_file)
+    # For each file
+    for i in range(len(resized_nii_files)):
+        # Get the region_ID
+        region_ID = resized_nii_files[i].split(os.sep)[-3]
+        # Create the new folder in the resized unzipped folder if it doesn't exist
+        new_folder = os.path.join(BMINDS_UNZIPPED_DWI_RESIZED_FOLDER, region_ID, resized_nii_files[i].split(os.sep)[-2])
+        check_output_folders(new_folder, "resized region folder", wipe=False)
+        # Get the new filepath
+        new_nii_filepath = os.path.join(new_folder, resized_nii_files[i].split(os.sep)[-1])
+        new_bval_filepath = os.path.join(new_folder, resized_bval_files[i].split(os.sep)[-1])
+        new_bvec_filepath = os.path.join(new_folder, resized_bvec_files[i].split(os.sep)[-1])
+        print("New nii filepath: {}".format(new_nii_filepath))
+        print("New bval filepath: {}".format(new_bval_filepath))
+        print("New bvec filepath: {}".format(new_bvec_filepath))
+        # Copy the files to the new folder
+        shutil.copyfile(resized_nii_files[i], new_nii_filepath)
+        shutil.copyfile(resized_bval_files[i], new_bval_filepath)
+        shutil.copyfile(resized_bvec_files[i], new_bvec_filepath)
+
+    # Get the resized files from the unzipped folder
+    resized_mif_files = glob_files(BMINDS_UNZIPPED_DWI_RESIZED_FOLDER, "mif")
+    resized_nii_gz_files = glob_files(BMINDS_UNZIPPED_DWI_RESIZED_FOLDER, "nii.gz")
+
+    # Get only the ones with b0
+    resized_mif_files = [file for file in resized_mif_files if "b0" in file]
+    resized_nii_gz_files = [file for file in resized_nii_gz_files if "b0" in file]
+
+    print("Length of resized mif files: {}".format(len(resized_mif_files)))
+    print("Length of resized nii.gz files: {}".format(len(resized_nii_gz_files)))
+
+    # For every file
+    for file in resized_mif_files:
+        # Define the output file
+        new_path = ("").join(file.split(".mif")[:-1]) + ".mif"
+        # Rename the file
+        os.rename(file, new_path)
     
-    # Glob all nii.gz in the flipped streamlines folder
-    TCKMAPPED_COMBINED_STREAMLINE_FILES = glob_files(TCKMAPPED_COMBINED_FOLDER, "nii.gz")
-    # Check the globbed files
-    check_globbed_files(TCKMAPPED_COMBINED_STREAMLINE_FILES, "TCKMAPPED_COMBINED_STREAMLINE_FILES")
-
-    # Print the number of flipped streamline files
-    print("Number of streamline files with flipping: {}".format(len(TCKMAPPED_COMBINED_STREAMLINE_FILES)))
-    
+    # For every file
+    for file in resized_nii_gz_files:
+        # Define the output file
+        new_path = ("").join(file.split(".nii.gz")[:-1]) + ".nii.gz"
+        # Rename the file
+        os.rename(file, new_path)
 
 if __name__ == "__main__":
     main()

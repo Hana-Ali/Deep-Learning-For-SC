@@ -8,8 +8,19 @@ def get_main_paths(hpc):
     # Depending on whether we're in HPC or not, paths change
     if hpc:
         BMINDS_DATA_FOLDER = "/rds/general/user/hsa22/ephemeral/Brain_MINDS"
+        
         BMINDS_OUTPUTS_DMRI_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "processed_dMRI"))
-        BMINDS_OUTPUTS_INJECTIONS_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "processed_injections"))        
+        BMINDS_OUTPUTS_DMRI_BMA_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "processed_BMA_dMRI"))
+        BMINDS_OUTPUTS_INVIVO_BMA_FOLDER = os.path.realpath(os.path.join(BMINDS_OUTPUTS_DMRI_BMA_FOLDER, "in_vivo"))
+        BMINDS_OUTPUTS_EXVIVO_BMA_FOLDER = os.path.realpath(os.path.join(BMINDS_OUTPUTS_DMRI_BMA_FOLDER, "ex_vivo"))
+        BMINDS_OUTPUTS_INJECTIONS_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "processed_injections"))   
+
+        BMINDS_BMA_MAIN_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "BMA_dMRI"))
+        BMINDS_BMA_INVIVO_FOLDER = os.path.realpath(os.path.join(BMINDS_BMA_MAIN_FOLDER, "in_vivo"))
+        BMINDS_BMA_EXVIVO_FOLDER = os.path.realpath(os.path.join(BMINDS_BMA_MAIN_FOLDER, "ex_vivo"))
+        BMINDS_BMA_INVIVO_DWI_FOLDER = os.path.realpath(os.path.join(BMINDS_BMA_INVIVO_FOLDER, "DWI"))
+        BMINDS_BMA_EXVIVO_DWI_FOLDER = os.path.realpath(os.path.join(BMINDS_BMA_EXVIVO_FOLDER, "DWI"))
+    
         BMINDS_CORE_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "BMCR_core_data"))
         BMINDS_DWI_FOLDER = os.path.realpath(os.path.join(BMINDS_CORE_FOLDER, "dMRI_raw"))
         BMINDS_METADATA_FOLDER = os.path.realpath(os.path.join(BMINDS_CORE_FOLDER, "meta_data"))
@@ -18,6 +29,7 @@ def get_main_paths(hpc):
         BMINDS_STPT_TEMPLATE_FOLDER = os.path.realpath(os.path.join(BMINDS_TEMPLATES_FOLDER, "STPT_population_average"))
         BMINDS_TRANSFORMS_FOLDER = os.path.realpath(os.path.join(BMINDS_TEMPLATES_FOLDER, "ANTS_transforms"))
         BMINDS_INJECTIONS_FOLDER = os.path.realpath(os.path.join(BMINDS_CORE_FOLDER, "processed_tracer_data"))
+        
         BMINDS_UNZIPPED_DWI_FOLDER = os.path.realpath(os.path.join(BMINDS_OUTPUTS_DMRI_FOLDER, "dMRI_unzipped"))
         BMINDS_UNZIPPED_DWI_RESIZED_FOLDER = os.path.realpath(os.path.join(BMINDS_OUTPUTS_DMRI_FOLDER, "dMRI_unzipped_resized"))
 
@@ -39,8 +51,14 @@ def get_main_paths(hpc):
 
         else:
             BMINDS_DATA_FOLDER = "/mnt/d/Brain-MINDS"
+            
             BMINDS_OUTPUTS_DMRI_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "processed_dMRI"))
             BMINDS_OUTPUTS_INJECTIONS_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "processed_injections"))
+            
+            BMINDS_BMA_MAIN_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "BMA_dMRI"))
+            BMINDS_BMA_INVIVO_FOLDER = os.path.realpath(os.path.join(BMINDS_BMA_MAIN_FOLDER, "in_vivo"))
+            BMINDS_BMA_INVIVO_DWI_FOLDER = os.path.realpath(os.path.join(BMINDS_BMA_INVIVO_FOLDER, "DWI"))
+
             BMINDS_CORE_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "BMCR_core_data"))
             BMINDS_DWI_FOLDER = os.path.realpath(os.path.join(BMINDS_CORE_FOLDER, "dMRI_raw"))
             BMINDS_METADATA_FOLDER = os.path.realpath(os.path.join(BMINDS_CORE_FOLDER, "meta_data"))
@@ -49,18 +67,25 @@ def get_main_paths(hpc):
             BMINDS_STPT_TEMPLATE_FOLDER = os.path.realpath(os.path.join(BMINDS_TEMPLATES_FOLDER, "STPT_population_average"))
             BMINDS_TRANSFORMS_FOLDER = os.path.realpath(os.path.join(BMINDS_TEMPLATES_FOLDER, "ANTS_transforms"))
             BMINDS_INJECTIONS_FOLDER = os.path.realpath(os.path.join(BMINDS_CORE_FOLDER, "processed_tracer_data"))
+            
             BMINDS_UNZIPPED_DWI_FOLDER = os.path.realpath(os.path.join(BMINDS_OUTPUTS_DMRI_FOLDER, "dMRI_unzipped"))
             BMINDS_UNZIPPED_DWI_RESIZED_FOLDER = os.path.realpath(os.path.join(BMINDS_OUTPUTS_DMRI_FOLDER, "dMRI_unzipped_resized"))
 
     # Create main MRTRIX folder
     MAIN_MRTRIX_FOLDER_DMRI = os.path.join(BMINDS_OUTPUTS_DMRI_FOLDER, "MRTRIX")
+    MAIN_MRTRIX_FOLDER_BMA_DMRI_INVIVO = os.path.join(BMINDS_OUTPUTS_INVIVO_BMA_FOLDER, "MRTRIX")
+    MAIN_MRTRIX_FOLDER_BMA_DMRI_EXVIVO = os.path.join(BMINDS_OUTPUTS_EXVIVO_BMA_FOLDER, "MRTRIX")
     MAIN_MRTRIX_FOLDER_INJECTIONS = os.path.join(BMINDS_OUTPUTS_INJECTIONS_FOLDER, "MRTRIX")
 
     # Return folder names
-    return (BMINDS_DATA_FOLDER, BMINDS_OUTPUTS_DMRI_FOLDER, BMINDS_OUTPUTS_INJECTIONS_FOLDER, BMINDS_CORE_FOLDER,
-            BMINDS_DWI_FOLDER, BMINDS_METADATA_FOLDER, BMINDS_TEMPLATES_FOLDER, BMINDS_ATLAS_FOLDER, BMINDS_STPT_TEMPLATE_FOLDER, 
-            BMINDS_TRANSFORMS_FOLDER, BMINDS_INJECTIONS_FOLDER, BMINDS_UNZIPPED_DWI_FOLDER, BMINDS_UNZIPPED_DWI_RESIZED_FOLDER,
-            MAIN_MRTRIX_FOLDER_DMRI, MAIN_MRTRIX_FOLDER_INJECTIONS)
+    return (BMINDS_DATA_FOLDER, BMINDS_OUTPUTS_DMRI_FOLDER, BMINDS_OUTPUTS_DMRI_BMA_FOLDER, BMINDS_OUTPUTS_INVIVO_BMA_FOLDER,
+            BMINDS_OUTPUTS_EXVIVO_BMA_FOLDER, BMINDS_OUTPUTS_INJECTIONS_FOLDER, BMINDS_BMA_MAIN_FOLDER, 
+            BMINDS_BMA_INVIVO_FOLDER, BMINDS_BMA_EXVIVO_FOLDER, BMINDS_BMA_INVIVO_DWI_FOLDER, BMINDS_BMA_EXVIVO_DWI_FOLDER,
+            BMINDS_CORE_FOLDER, BMINDS_DWI_FOLDER, BMINDS_METADATA_FOLDER, BMINDS_TEMPLATES_FOLDER, 
+            BMINDS_ATLAS_FOLDER, BMINDS_STPT_TEMPLATE_FOLDER, BMINDS_TRANSFORMS_FOLDER, BMINDS_INJECTIONS_FOLDER, 
+            BMINDS_UNZIPPED_DWI_FOLDER, BMINDS_UNZIPPED_DWI_RESIZED_FOLDER,
+            MAIN_MRTRIX_FOLDER_DMRI, MAIN_MRTRIX_FOLDER_BMA_DMRI_INVIVO, MAIN_MRTRIX_FOLDER_BMA_DMRI_EXVIVO, 
+            MAIN_MRTRIX_FOLDER_INJECTIONS)
        
 
 # Check that output folders with subfolders are in suitable shape
