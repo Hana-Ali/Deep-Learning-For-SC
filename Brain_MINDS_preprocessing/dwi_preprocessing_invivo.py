@@ -55,9 +55,9 @@ def main():
 
 
     # Check the output folders
-    check_output_folders(BMINDS_OUTPUTS_DMRI_BMA_FOLDER, "BMINDS_OUTPUTS_DMRI_BMA_FOLDER")
-    check_output_folders(BMINDS_OUTPUTS_INVIVO_BMA_FOLDER, "BMINDS_OUTPUTS_INVIVO_BMA_FOLDER")
-    check_output_folders(MAIN_MRTRIX_FOLDER_BMA_DMRI_INVIVO, "MAIN_MRTRIX_FOLDER_BMA_DMRI_INVIVO")
+    check_output_folders(BMINDS_OUTPUTS_DMRI_BMA_FOLDER, "BMINDS_OUTPUTS_DMRI_BMA_FOLDER", wipe=False)
+    check_output_folders(BMINDS_OUTPUTS_INVIVO_BMA_FOLDER, "BMINDS_OUTPUTS_INVIVO_BMA_FOLDER", wipe=False)
+    check_output_folders(MAIN_MRTRIX_FOLDER_BMA_DMRI_INVIVO, "MAIN_MRTRIX_FOLDER_BMA_DMRI_INVIVO", wipe=False)
     
     # --------------- Glob the DWI, bval, bvec and tract-tracing data --------------- #
     BMINDS_INVIVO_DWI_FILES = glob_files(BMINDS_BMA_INVIVO_DWI_FOLDER, "nii")

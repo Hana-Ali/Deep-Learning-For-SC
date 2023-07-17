@@ -34,9 +34,9 @@ def define_mrtrix_clean_commands(ARGS):
     # Get the general paths
     (INPUT_MIF_PATH, MASK_MIF_PATH, MASK_NII_PATH) = get_mrtrix_general_paths(REGION_ID, DWI_FILES, FOLDER_TYPE)
     # Get the clean paths
-    (SKULL_STRIP_PATH, SKULL_STRIP_MIF_PATH, DWI_DENOISE_PATH, DWI_NOISE_PATH, DWI_EDDY_PATH, DWI_CLEAN_MIF_PATH, 
-     DWI_CLEAN_MASK_PATH, DWI_CLEAN_MASK_NII_PATH, DWI_CLEAN_NII_PATH, DWI_CLEAN_BVEC_PATH, 
-     DWI_CLEAN_BVAL_PATH) = get_mrtrix_clean_paths(REGION_ID, FOLDER_TYPE)
+    (DWI_B0_PATH, DWI_B0_NII, SKULL_STRIP_PATH, SKULL_STRIP_MIF_PATH, DWI_DENOISE_PATH, DWI_NOISE_PATH, 
+    DWI_EDDY_PATH, DWI_CLEAN_MIF_PATH, DWI_CLEAN_MASK_PATH, DWI_CLEAN_MASK_NII_PATH, DWI_CLEAN_NII_PATH, 
+    DWI_CLEAN_BVEC_PATH, DWI_CLEAN_BVAL_PATH) = get_mrtrix_clean_paths(REGION_ID, FOLDER_TYPE)
     
     # Get the input paths
     DWI_NEEDED = ["dwi_nii", "bval", "bvec"]
@@ -44,6 +44,11 @@ def define_mrtrix_clean_commands(ARGS):
 
     # Define skull stripping command as empty if skull strip is empty
     if SKULL_STRIP_PATH:
+        # Extract the B0 image
+        DWI_B0_CMD = "dwiextract {input}.mif - -bzero | mrmath - mean {output}.mif -axis 3".format(
+            input=INPUT_MIF_PATH, output=DWI_B0_PATH)
+        # Convert B0 to NII command
+        DWI_B0_NII_CMD = "mrconvert {input}.mif {output}.nii.gz".format(input=DWI_B0_PATH, output=DWI_B0_NII)
         # Skull strip
         SKULL_STRIP_CMD = "bet {input} {output}.nii.gz -f 0.5 -R -B".format(input=DWI_NEEDED_PATHS["dwi_nii"], 
                                                                             output=SKULL_STRIP_PATH)
@@ -51,6 +56,8 @@ def define_mrtrix_clean_commands(ARGS):
         SKULL_STRIP_MIF_CMD = "mrconvert {input}.nii.gz {output}.mif".format(input=SKULL_STRIP_PATH,
                                                                                 output=SKULL_STRIP_MIF_PATH)
     else:
+        DWI_B0_CMD = ""
+        DWI_B0_NII_CMD = ""
         SKULL_STRIP_CMD = ""
         SKULL_STRIP_MIF_CMD = ""
 
@@ -73,7 +80,8 @@ def define_mrtrix_clean_commands(ARGS):
     CLEAN_MASK_NII_CMD = "mrconvert {input}.mif {output}.nii.gz".format(input=DWI_CLEAN_MASK_PATH, output=DWI_CLEAN_MASK_NII_PATH)
 
     # Return the commands
-    return (SKULL_STRIP_CMD, SKULL_STRIP_MIF_CMD, DWI_DENOISE_CMD, DWI_BIAS_CMD, DWI_CONVERT_CMD, CLEAN_MASK_CMD, CLEAN_MASK_NII_CMD)
+    return (DWI_B0_CMD, DWI_B0_NII_CMD, SKULL_STRIP_CMD, SKULL_STRIP_MIF_CMD, DWI_DENOISE_CMD, 
+            DWI_BIAS_CMD, DWI_CONVERT_CMD, CLEAN_MASK_CMD, CLEAN_MASK_NII_CMD)
 
 # Define the template registration commands
 def define_template_registration_commands(ARGS):
@@ -88,9 +96,9 @@ def define_template_registration_commands(ARGS):
     ATLAS_NEEDED_PATH = extract_from_input_list(ATLAS_STPT, ATLAS_NEEDED, "atlas_stpt")
 
     # Get the clean paths
-    (SKULL_STRIP_PATH, SKULL_STRIP_MIF_PATH, DWI_DENOISE_PATH, DWI_NOISE_PATH, DWI_EDDY_PATH, DWI_CLEAN_MIF_PATH,
-        DWI_CLEAN_MASK_PATH, DWI_CLEAN_MASK_NII_PATH, DWI_CLEAN_NII_PATH, DWI_CLEAN_BVEC_PATH,
-        DWI_CLEAN_BVAL_PATH) = get_mrtrix_clean_paths(REGION_ID, FOLDER_TYPE)
+    (DWI_B0_PATH, DWI_B0_NII, SKULL_STRIP_PATH, SKULL_STRIP_MIF_PATH, DWI_DENOISE_PATH, DWI_NOISE_PATH, 
+    DWI_EDDY_PATH, DWI_CLEAN_MIF_PATH, DWI_CLEAN_MASK_PATH, DWI_CLEAN_MASK_NII_PATH, DWI_CLEAN_NII_PATH, 
+    DWI_CLEAN_BVEC_PATH, DWI_CLEAN_BVAL_PATH) = get_mrtrix_clean_paths(REGION_ID, FOLDER_TYPE)
     # Get the registration paths
     (DWI_REG_FOLDER, DWI_MAP_MAT, DWI_CONVERT_INV, DWI_REG_PATH, 
      DWI_REG_MASK_PATH) = get_STPT_registration_paths(REGION_ID, FOLDER_TYPE)
@@ -116,9 +124,9 @@ def define_mrtrix_fod_commands(ARGS):
     FOLDER_TYPE = ARGS[1]
     
     # Get the clean paths
-    (SKULL_STRIP_PATH, SKULL_STRIP_MIF_PATH, DWI_DENOISE_PATH, DWI_NOISE_PATH, DWI_EDDY_PATH, DWI_CLEAN_MIF_PATH, 
-     DWI_CLEAN_MASK_PATH, DWI_CLEAN_MASK_NII_PATH, DWI_CLEAN_NII_PATH, DWI_CLEAN_BVEC_PATH, 
-     DWI_CLEAN_BVAL_PATH) = get_mrtrix_clean_paths(REGION_ID, FOLDER_TYPE)
+    (DWI_B0_PATH, DWI_B0_NII, SKULL_STRIP_PATH, SKULL_STRIP_MIF_PATH, DWI_DENOISE_PATH, DWI_NOISE_PATH, 
+    DWI_EDDY_PATH, DWI_CLEAN_MIF_PATH, DWI_CLEAN_MASK_PATH, DWI_CLEAN_MASK_NII_PATH, DWI_CLEAN_NII_PATH, 
+    DWI_CLEAN_BVEC_PATH, DWI_CLEAN_BVAL_PATH) = get_mrtrix_clean_paths(REGION_ID, FOLDER_TYPE)
     # Get the registration paths
     (DWI_REG_FOLDER, DWI_MAP_MAT, DWI_CONVERT_INV, DWI_REG_PATH, 
      DWI_REG_MASK_PATH) = get_STPT_registration_paths(REGION_ID, FOLDER_TYPE)
@@ -176,9 +184,9 @@ def define_atlas_registration_commands(ARGS):
     ATLAS_NEEDED_PATH = extract_from_input_list(ATLAS_STPT, ATLAS_NEEDED, "atlas_stpt")
 
     # Get the clean paths
-    (SKULL_STRIP_PATH, SKULL_STRIP_MIF_PATH, DWI_DENOISE_PATH, DWI_NOISE_PATH, DWI_EDDY_PATH, DWI_CLEAN_MIF_PATH, 
-     DWI_CLEAN_MASK_PATH, DWI_CLEAN_MASK_NII_PATH, DWI_CLEAN_NII_PATH, DWI_CLEAN_BVEC_PATH, 
-     DWI_CLEAN_BVAL_PATH) = get_mrtrix_clean_paths(REGION_ID, FOLDER_TYPE)
+    (DWI_B0_PATH, DWI_B0_NII, SKULL_STRIP_PATH, SKULL_STRIP_MIF_PATH, DWI_DENOISE_PATH, DWI_NOISE_PATH, 
+    DWI_EDDY_PATH, DWI_CLEAN_MIF_PATH, DWI_CLEAN_MASK_PATH, DWI_CLEAN_MASK_NII_PATH, DWI_CLEAN_NII_PATH, 
+    DWI_CLEAN_BVEC_PATH, DWI_CLEAN_BVAL_PATH) = get_mrtrix_clean_paths(REGION_ID, FOLDER_TYPE)
     # Get the registered DWI paths
     (DWI_REG_FOLDER, DWI_MAP_MAT, DWI_CONVERT_INV, DWI_REG_PATH, 
      DWI_REG_MASK_PATH) = get_STPT_registration_paths(REGION_ID, FOLDER_TYPE)
@@ -226,9 +234,9 @@ def define_mrtrix_probtrack_commands(ARGS):
     ATLAS_NEEDED_PATH = extract_from_input_list(ATLAS_STPT, ATLAS_NEEDED, "atlas_stpt")
 
     # Get the clean paths
-    (SKULL_STRIP_PATH, SKULL_STRIP_MIF_PATH, DWI_DENOISE_PATH, DWI_NOISE_PATH, DWI_EDDY_PATH, DWI_CLEAN_MIF_PATH, 
-     DWI_CLEAN_MASK_PATH, DWI_CLEAN_MASK_NII_PATH, DWI_CLEAN_NII_PATH, DWI_CLEAN_BVEC_PATH, 
-     DWI_CLEAN_BVAL_PATH) = get_mrtrix_clean_paths(REGION_ID, FOLDER_TYPE)
+    (DWI_B0_PATH, DWI_B0_NII, SKULL_STRIP_PATH, SKULL_STRIP_MIF_PATH, DWI_DENOISE_PATH, DWI_NOISE_PATH, 
+    DWI_EDDY_PATH, DWI_CLEAN_MIF_PATH, DWI_CLEAN_MASK_PATH, DWI_CLEAN_MASK_NII_PATH, DWI_CLEAN_NII_PATH, 
+    DWI_CLEAN_BVEC_PATH, DWI_CLEAN_BVAL_PATH) = get_mrtrix_clean_paths(REGION_ID, FOLDER_TYPE)
     # Get the registered DWI paths
     (DWI_REG_FOLDER, DWI_MAP_MAT, DWI_CONVERT_INV, DWI_REG_PATH, 
      DWI_REG_MASK_PATH) = get_STPT_registration_paths(REGION_ID, FOLDER_TYPE)
@@ -300,8 +308,8 @@ def pre_tractography_commands(ARGS):
 
     # Define the cleaning commands
     CLEAN_ARGS = [REGION_ID, DWI_FILES, FOLDER_TYPE]
-    (SKULL_STRIP_CMD, SKULL_STRIP_MIF_CMD, DWI_DENOISE_CMD, DWI_BIAS_CMD, 
-     DWI_CONVERT_CMD, CLEAN_MASK_CMD, CLEAN_MASK_NII_CMD) = define_mrtrix_clean_commands(CLEAN_ARGS)
+    (DWI_B0_CMD, DWI_B0_NII_CMD, SKULL_STRIP_CMD, SKULL_STRIP_MIF_CMD, DWI_DENOISE_CMD, 
+    DWI_BIAS_CMD, DWI_CONVERT_CMD, CLEAN_MASK_CMD, CLEAN_MASK_NII_CMD) = define_mrtrix_clean_commands(CLEAN_ARGS)
 
     # Define the registration commands, depending on if we're of folder type BMCR or BMA
     if FOLDER_TYPE == "BMA_INVIVO":
@@ -351,8 +359,10 @@ def pre_tractography_commands(ARGS):
                                 (MASK_NII_CMD, "Convert DWI brain mask mif -> nii"), 
                             ])
         # Then if we can skull strip we do
-        if SKULL_STRIP_CMD != "":
+        if DWI_B0_CMD != "":
             MRTRIX_COMMANDS.extend([
+                                    (DWI_B0_CMD, "Extracting mean B0"),
+                                    (DWI_B0_NII_CMD, "DWI B0 mif -> NII"),
                                     (SKULL_STRIP_CMD, "Skull strip DWI"),
                                     (SKULL_STRIP_MIF_CMD, "Convert skull strip to mif"),
                                 ])

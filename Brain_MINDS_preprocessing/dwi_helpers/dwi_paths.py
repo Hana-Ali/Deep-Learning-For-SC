@@ -101,6 +101,8 @@ def get_mrtrix_clean_paths(REGION_ID, FOLDER_TYPE):
     
     # Depending on if it's BMA or not, we either do skull stripping or not
     if "BMA_INVIVO" == FOLDER_TYPE:
+        DWI_B0_PATH = os.path.join(GENERAL_FOLDER_NAME, "{}_b0".format(REGION_ID))
+        DWI_B0_NII = os.path.join(GENERAL_FOLDER_NAME, "{}_b0.nii.gz".format(REGION_ID))
         SKULL_STRIP_PATH = os.path.join(GENERAL_FOLDER_NAME, "{}_skullstrip".format(REGION_ID))
         SKULL_STRIP_MIF_PATH = os.path.join(GENERAL_FOLDER_NAME, "{}_skullstrip_mif".format(REGION_ID))
     
@@ -116,8 +118,9 @@ def get_mrtrix_clean_paths(REGION_ID, FOLDER_TYPE):
     DWI_CLEAN_BVAL_PATH = os.path.join(GENERAL_FOLDER_NAME, "{}_clean_bval".format(REGION_ID))
 
     # Return the paths
-    return (SKULL_STRIP_PATH, SKULL_STRIP_MIF_PATH, DWI_DENOISE_PATH, DWI_NOISE_PATH, DWI_EDDY_PATH, DWI_CLEAN_MIF_PATH, 
-            DWI_CLEAN_MASK_PATH, DWI_CLEAN_MASK_NII_PATH, DWI_CLEAN_NII_PATH, DWI_CLEAN_BVEC_PATH, DWI_CLEAN_BVAL_PATH)
+    return (DWI_B0_PATH, DWI_B0_NII, SKULL_STRIP_PATH, SKULL_STRIP_MIF_PATH, DWI_DENOISE_PATH, DWI_NOISE_PATH, 
+            DWI_EDDY_PATH, DWI_CLEAN_MIF_PATH, DWI_CLEAN_MASK_PATH, DWI_CLEAN_MASK_NII_PATH, DWI_CLEAN_NII_PATH, 
+            DWI_CLEAN_BVEC_PATH, DWI_CLEAN_BVAL_PATH)
 
 # Define MRTrix FOD paths
 def get_mrtrix_fod_paths(REGION_ID, FOLDER_TYPE):
