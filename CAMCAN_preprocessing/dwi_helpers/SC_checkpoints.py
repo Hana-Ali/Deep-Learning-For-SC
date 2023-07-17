@@ -15,9 +15,15 @@ def check_all_mrtrix_missing_files(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, ATLAS):
     (SUBJECT_FOLDER_NAME, RECON_FOLDER_NAME, RESPONSE_FOLDER_NAME, FOD_FOLDER_NAME, FOD_NORM_FOLDER_NAME,
         T1_REG_FOLDER_NAME, ATLAS_REG_FOLDER_NAME, PROB_TRACKING_FOLDER_NAME, GLOBAL_TRACKING_FOLDER_NAME,
             CONNECTIVITY_FOLDER_NAME) = main_mrtrix_folder_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
-        
+    
+    # --------------------- MRTRIX RESPONSE CHECK
+    MRTRIX_RESPONSE = check_missing_mrtrix_response(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, RESPONSE_FOLDER_NAME)
+
     # --------------------- MRTRIX FOD CHECK
     MRTRIX_FOD = check_missing_mrtrix_fod(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, FOD_NORM_FOLDER_NAME)
+
+    # --------------------- MRTRIX FOD NORM CHECK
+    MRTRIX_FOD_NORM = check_missing_mrtrix_fod_norm(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, FOD_NORM_FOLDER_NAME)
     
     # --------------------- MRTRIX REGISTRATION CHECK
     MRTRIX_REGISTRATION = check_missing_mrtrix_registration(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, ATLAS, T1_REG_FOLDER_NAME, ATLAS_REG_FOLDER_NAME)
@@ -32,7 +38,7 @@ def check_all_mrtrix_missing_files(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, ATLAS):
     MRTRIX_CONNECTOME = check_missing_mrtrix_connectome(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, CONNECTIVITY_FOLDER_NAME)
 
     # Return the variables
-    return (MRTRIX_FOD, MRTRIX_REGISTRATION, MRTRIX_PROBTRACK, MRTRIX_GLOBAL_TRACKING, MRTRIX_CONNECTOME)
+    return (MRTRIX_RESPONSE, MRTRIX_FOD, MRTRIX_FOD_NORM, MRTRIX_REGISTRATION, MRTRIX_PROBTRACK, MRTRIX_GLOBAL_TRACKING, MRTRIX_CONNECTOME)
     
 # Function to check missing FSL
 def check_missing_fsl(MAIN_FSL_PATH, dwi_filename):
@@ -65,6 +71,9 @@ def check_missing_mrtrix_cleaning(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH):
     CLEAN_DWI_FILES = glob_files(CLEANING_FOLDER_NAME, "nii.gz")
     CLEAN_BVAL_FILE = glob_files(CLEANING_FOLDER_NAME, "bval")
     CLEAN_BVEC_FILE = glob_files(CLEANING_FOLDER_NAME, "bvec")
+    print("CLEAN_DWI_FILES: ", CLEAN_DWI_FILES)
+    print("CLEAN_BVAL_FILE: ", CLEAN_BVAL_FILE)
+    print("CLEAN_BVEC_FILE: ", CLEAN_BVEC_FILE)
     # Check that we have all the files we need
     if (any(DWI_CONVERT_PATH in clean_file for clean_file in CLEAN_DWI_FILES)
          and len(CLEAN_BVAL_FILE) > 0 and len(CLEAN_BVEC_FILE) > 0):
@@ -103,8 +112,32 @@ def check_missing_dsi_studio(NEEDED_FILE_PATHS, MAIN_STUDIO_PATH, dwi_filename):
     # Return the variable
     return STUDIO_PROCESSING
 
+# Function to check missing MRtrix response function processing
+def check_missing_mrtrix_response(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, RESPONSE_FOLDER_NAME):
+    # Define variable that stores whether or not we should do MRtrix response function processing
+    MRTRIX_RESPONSE = True
+    # Get the MRtrix response function paths
+    (RESPONSE_WM_PATH, RESPONSE_GM_PATH, RESPONSE_CSF_PATH, RESPONSE_VOXEL_PATH,
+        WM_FOD_PATH, GM_FOD_PATH, CSF_FOD_PATH, VF_FOD_PATH, WM_FOD_NORM_PATH, GM_FOD_NORM_PATH, 
+            CSF_FOD_NORM_PATH) = get_mrtrix_fod_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
+    # Grab all the mif files
+    MRTRIX_RESPONSE_MIF_FILES = glob_files(RESPONSE_FOLDER_NAME, "mif")
+    print("MRTRIX_RESPONSE_MIF_FILES: ", MRTRIX_RESPONSE_MIF_FILES)
+    # Check that we have all the files we need
+    if (any(RESPONSE_VOXEL_PATH in mif_file for mif_file in MRTRIX_RESPONSE_MIF_FILES)):
+        print("--- MRtrix response files found. Skipping MRtrix response estimation.")
+        MRTRIX_RESPONSE = False
+
+    # If we don't have all the files we need, then we clean the folder and start from scratch
+    if MRTRIX_RESPONSE:
+        print("--- MRtrix response files not found. Cleaning MRtrix response folder.")
+        check_output_folders(RESPONSE_FOLDER_NAME, "MRtrix response folder", wipe=True)
+
+    # Return the variable
+    return MRTRIX_RESPONSE
+
 # Function to check missing MRtrix FOD processing
-def check_missing_mrtrix_fod(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, FOD_NORM_FOLDER_NAME):
+def check_missing_mrtrix_fod(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, FOD_FOLDER_NAME):
     # Define variable that stores whether or not we should do MRtrix FOD processing
     MRTRIX_FOD = True
     # Get the MRtrix FOD paths
@@ -112,21 +145,49 @@ def check_missing_mrtrix_fod(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, FOD_NORM_FOLDE
         WM_FOD_PATH, GM_FOD_PATH, CSF_FOD_PATH, VF_FOD_PATH, WM_FOD_NORM_PATH, GM_FOD_NORM_PATH, 
             CSF_FOD_NORM_PATH) = get_mrtrix_fod_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
     # Grab all the mif files
-    MRTRIX_FOD_MIF_FILES = glob_files(FOD_NORM_FOLDER_NAME, "mif")
+    MRTRIX_FOD_MIF_FILES = glob_files(FOD_FOLDER_NAME, "mif")
+    print("MRTRIX_FOD_MIF_FILES: ", MRTRIX_FOD_MIF_FILES)
     # Check that we have all the files we need
-    if (any(WM_FOD_NORM_PATH in fod_mif for fod_mif in MRTRIX_FOD_MIF_FILES)
-            and any(GM_FOD_NORM_PATH in fod_mif for fod_mif in MRTRIX_FOD_MIF_FILES)
-            and any(CSF_FOD_NORM_PATH in fod_mif for fod_mif in MRTRIX_FOD_MIF_FILES)):
+    if (any(WM_FOD_PATH in fod_mif for fod_mif in MRTRIX_FOD_MIF_FILES)
+            and any(GM_FOD_PATH in fod_mif for fod_mif in MRTRIX_FOD_MIF_FILES)
+            and any(CSF_FOD_PATH in fod_mif for fod_mif in MRTRIX_FOD_MIF_FILES)):
         print("--- MRtrix FOD files found. Skipping MRtrix FOD processing.")
         MRTRIX_FOD = False
 
     # If we don't have all the files we need, then we clean the folder and start from scratch
     if MRTRIX_FOD:
         print("--- MRtrix FOD files not found. Cleaning MRtrix FOD folder.")
+        check_output_folders(FOD_FOLDER_NAME, "MRtrix FOD folder", wipe=True)
+
+    # Return the variable
+    return MRTRIX_FOD
+
+
+# Function to check missing MRtrix FOD processing
+def check_missing_mrtrix_fod_norm(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, FOD_NORM_FOLDER_NAME):
+    # Define variable that stores whether or not we should do MRtrix FOD norm processing
+    MRTRIX_FOD_NORM = True
+    # Get the MRtrix FOD paths
+    (RESPONSE_WM_PATH, RESPONSE_GM_PATH, RESPONSE_CSF_PATH, RESPONSE_VOXEL_PATH,
+        WM_FOD_PATH, GM_FOD_PATH, CSF_FOD_PATH, VF_FOD_PATH, WM_FOD_NORM_PATH, GM_FOD_NORM_PATH, 
+            CSF_FOD_NORM_PATH) = get_mrtrix_fod_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
+    # Grab all the mif files
+    MRTRIX_FOD_NORM_MIF_FILES = glob_files(FOD_NORM_FOLDER_NAME, "mif")
+    print("MRTRIX_FOD_NORM_MIF_FILES: ", MRTRIX_FOD_NORM_MIF_FILES)
+    # Check that we have all the files we need
+    if (any(WM_FOD_NORM_PATH in fod_mif for fod_mif in MRTRIX_FOD_NORM_MIF_FILES)
+            and any(GM_FOD_NORM_PATH in fod_mif for fod_mif in MRTRIX_FOD_NORM_MIF_FILES)
+            and any(CSF_FOD_NORM_PATH in fod_mif for fod_mif in MRTRIX_FOD_NORM_MIF_FILES)):
+        print("--- MRtrix FOD NORM files found. Skipping MRtrix FOD processing.")
+        MRTRIX_FOD_NORM = False
+
+    # If we don't have all the files we need, then we clean the folder and start from scratch
+    if MRTRIX_FOD_NORM:
+        print("--- MRtrix FOD NORM files not found. Cleaning MRtrix FOD folder.")
         check_output_folders(FOD_NORM_FOLDER_NAME, "MRtrix FOD folder", wipe=True)
     
     # Return the variable
-    return MRTRIX_FOD
+    return MRTRIX_FOD_NORM
 
 # Function to check missing MRtrix registration processing
 def check_missing_mrtrix_registration(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, ATLAS, T1_REG_FOLDER_NAME, ATLAS_REG_FOLDER_NAME):
@@ -139,6 +200,8 @@ def check_missing_mrtrix_registration(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, ATLAS
     # Grab all the mif files in the T1 and atlas registration folders
     MRTRIX_REG_MIF_FILES = glob_files(T1_REG_FOLDER_NAME, "mif")
     MRTRIX_ATLAS_REG_MIF_FILES = glob_files(ATLAS_REG_FOLDER_NAME, "mif")
+    print("MRTRIX_REG_MIF_FILES: ", MRTRIX_REG_MIF_FILES)
+    print("MRTRIX_ATLAS_REG_MIF_FILES: ", MRTRIX_ATLAS_REG_MIF_FILES)
     # Check that we have all the files we need
     if (any(FIVETT_REG_PATH in reg_mif for reg_mif in MRTRIX_REG_MIF_FILES) and 
         any(ATLAS_REG_PATH in reg_mif for reg_mif in MRTRIX_ATLAS_REG_MIF_FILES)):
@@ -162,6 +225,7 @@ def check_missing_mrtrix_probtrack(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, PROB_TRA
     (GM_WM_SEED_PATH, TRACT_TCK_PATH) = get_mrtrix_probtrack_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
     # Grab all the tck files
     MRTRIX_PROBTRACK_TCK_FILES = glob_files(PROB_TRACKING_FOLDER_NAME, "tck")
+    print("MRTRIX_PROBTRACK_TCK_FILES: ", MRTRIX_PROBTRACK_TCK_FILES)
     # Check that we have all the files we need
     if any(TRACT_TCK_PATH in tckfile for tckfile in MRTRIX_PROBTRACK_TCK_FILES):
         print("--- MRtrix probabilistic tracking files found. Skipping MRtrix probabilistic tracking processing.")
@@ -183,6 +247,7 @@ def check_missing_mrtrix_global_tracking(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, GL
     (GLOBAL_FOD_PATH, GLOBAL_FISO_PATH, GLOBAL_TRACT_PATH) = get_mrtrix_global_tracking_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
     # Grab all the tck files
     MRTRIX_GLOBAL_TRACKING_TCK_FILES = glob_files(GLOBAL_TRACKING_FOLDER_NAME, "tck")
+    print("MRTRIX_GLOBAL_TRACKING_TCK_FILES: ", MRTRIX_GLOBAL_TRACKING_TCK_FILES)
     # Check that we have all the files we need
     if any(GLOBAL_TRACT_PATH in global_tract for global_tract in MRTRIX_GLOBAL_TRACKING_TCK_FILES):
         print("--- MRtrix global tracking files found. Skipping MRtrix global tracking processing.")
@@ -204,6 +269,7 @@ def check_missing_mrtrix_connectome(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, CONNECT
     (CONNECTIVITY_PROB_PATH, CONNECTIVITY_GLOBAL_PATH) = get_mrtrix_connectome_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
     # Grab all the csv files
     MRTRIX_CONNECTOME_CSV_FILES = glob_files(CONNECTIVITY_FOLDER_NAME, "csv")
+    print("MRTRIX_CONNECTOME_CSV_FILES: ", MRTRIX_CONNECTOME_CSV_FILES)
     # Check that we have all the files we need
     if (any(CONNECTIVITY_PROB_PATH in csv_file for csv_file in MRTRIX_CONNECTOME_CSV_FILES) 
         and any(CONNECTIVITY_GLOBAL_PATH in csv_file for csv_file in MRTRIX_CONNECTOME_CSV_FILES)):

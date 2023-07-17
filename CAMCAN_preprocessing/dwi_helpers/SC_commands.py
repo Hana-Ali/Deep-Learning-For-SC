@@ -377,19 +377,25 @@ def probabilistic_tractography(ARGS):
     # Get the checkpoints of what has and has not been done
     FILES_NEEDED = ["filename"]
     NEEDED_FILE_PATHS = get_filename(SUBJECT_FILES, FILES_NEEDED)
-    (MRTRIX_FOD, MRTRIX_REGISTRATION, MRTRIX_PROBTRACK, MRTRIX_GLOBAL_TRACKING, 
-        MRTRIX_CONNECTOME) = check_all_mrtrix_missing_files(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, ATLAS)
+    (MRTRIX_RESPONSE, MRTRIX_FOD, MRTRIX_FOD_NORM, MRTRIX_REGISTRATION, 
+     MRTRIX_PROBTRACK, MRTRIX_GLOBAL_TRACKING, MRTRIX_CONNECTOME) = check_all_mrtrix_missing_files(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, ATLAS)
     
     # Define the commands array, depending on what's been done
     MRTRIX_COMMANDS = []
-    if MRTRIX_FOD:
+    if MRTRIX_RESPONSE:
         MRTRIX_COMMANDS.extend([
                                 (MIF_CMD, "Convert DWI nii -> mif"), (MASK_CMD, "Create DWI brain mask"),
-                                (RESPONSE_EST_CMD, "Estimate response function of WM, GM, CSF from DWI"),
+                                (RESPONSE_EST_CMD, "Estimate response function of WM, GM, CSF from DWI")
+                            ])
+    if MRTRIX_FOD:
+        MRTRIX_COMMANDS.extend([
                                 (MULTISHELL_CSD_CMD, "Spherical deconvolution to estimate fODs"),
                                 (COMBINE_FODS_CMD, "Combining fODs into a VF"),
-                                (NORMALIZE_FODS_CMD, "Normalizing fODs")
                         ])
+    if MRTRIX_FOD_NORM:
+        MRTRIX_COMMANDS.extend([
+                                (NORMALIZE_FODS_CMD, "Normalizing fODs")
+                            ])
     if MRTRIX_REGISTRATION:
         MRTRIX_COMMANDS.extend([
                                 (MIF_T1_CMD, "Convert T1 nii -> mif"), (FIVETT_NOREG_CMD, "5ttgen creation with no registration"),

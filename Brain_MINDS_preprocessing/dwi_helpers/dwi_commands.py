@@ -42,11 +42,8 @@ def define_mrtrix_clean_commands(ARGS):
     # Denoising command
     DWI_DENOISE_CMD = "dwidenoise {input}.mif {output}.mif -noise {noise}.mif".format(
         input=INPUT_MIF_PATH, output=DWI_DENOISE_PATH, noise=DWI_NOISE_PATH)
-    # Eddy correction command
-    DWI_EDDY_CMD = 'dwifslpreproc {input}.mif {output}.mif -fslgrad {bvec} {bval} -eddy_options " --slm=linear" -rpe_header'.format(
-        input=DWI_DENOISE_PATH, bvec=DWI_NEEDED_PATHS["bvec"], bval=DWI_NEEDED_PATHS["bval"], output=DWI_EDDY_PATH)
     # Bias correction command
-    DWI_BIAS_CMD = "dwibiascorrect ants {input}.mif {output}.mif".format(input=DWI_EDDY_PATH, output=DWI_CLEAN_MIF_PATH)
+    DWI_BIAS_CMD = "dwibiascorrect ants {input}.mif {output}.mif".format(input=DWI_DENOISE_PATH, output=DWI_CLEAN_MIF_PATH)
     # Convert to NII command
     DWI_CONVERT_CMD = "mrconvert {input}.mif {output}.nii.gz -export_grad_fsl {bvec_clean}.bvec {bval_clean}.bval".format(
         input=DWI_CLEAN_MIF_PATH, output=DWI_CLEAN_NII_PATH, bvec_clean=DWI_CLEAN_BVEC_PATH, bval_clean=DWI_CLEAN_BVAL_PATH)
@@ -56,7 +53,7 @@ def define_mrtrix_clean_commands(ARGS):
     CLEAN_MASK_NII_CMD = "mrconvert {input}.mif {output}.nii.gz".format(input=DWI_CLEAN_MASK_PATH, output=DWI_CLEAN_MASK_NII_PATH)
 
     # Return the commands
-    return (DWI_DENOISE_CMD, DWI_EDDY_CMD, DWI_BIAS_CMD, DWI_CONVERT_CMD, CLEAN_MASK_CMD, CLEAN_MASK_NII_CMD)
+    return (DWI_DENOISE_CMD, DWI_BIAS_CMD, DWI_CONVERT_CMD, CLEAN_MASK_CMD, CLEAN_MASK_NII_CMD)
 
 
 # Define MRtrix FOD commands
@@ -213,7 +210,7 @@ def pre_tractography_commands(ARGS):
 
     # Define the cleaning commands
     CLEAN_ARGS = [REGION_ID, DWI_FILES]
-    (DWI_DENOISE_CMD, DWI_EDDY_CMD, DWI_BIAS_CMD, DWI_CONVERT_CMD, 
+    (DWI_DENOISE_CMD, DWI_BIAS_CMD, DWI_CONVERT_CMD, 
      CLEAN_MASK_CMD, CLEAN_MASK_NII_CMD) = define_mrtrix_clean_commands(CLEAN_ARGS)
 
     # Define the FOD commands
@@ -236,12 +233,14 @@ def pre_tractography_commands(ARGS):
 
     # Get the checkpoints for what has and hasn't been done yet
     CHECKPOINT_ARGS = [REGION_ID, DWI_FILES, ATLAS_STPT]
-    (MRTRIX_GENERAL, MRTRIX_FOD, MRTRIX_REGISTRATION, MRTRIX_PROBTRACK, 
-        MRTRIX_CONNECTOME) = check_all_mrtrix_missing_files(CHECKPOINT_ARGS)
+    (MRTRIX_GENERAL, MRTRIX_RESPONSE, MRTRIX_FOD, MRTRIX_FOD_NORM, 
+     MRTRIX_REGISTRATION, MRTRIX_PROBTRACK, MRTRIX_CONNECTOME) = check_all_mrtrix_missing_files(CHECKPOINT_ARGS)
 
     # Print the checkpoints
     print("--- MRtrix General: {}".format(MRTRIX_GENERAL))
+    print("--- MRtrix Response: {}".format(MRTRIX_RESPONSE))
     print("--- MRtrix FOD: {}".format(MRTRIX_FOD))
+    print("--- MRtrix FOD Norm: {}".format(MRTRIX_FOD_NORM))
     print("--- MRtrix Registration: {}".format(MRTRIX_REGISTRATION))
     print("--- MRtrix Probtrack: {}".format(MRTRIX_PROBTRACK))
     print("--- MRtrix Connectome: {}".format(MRTRIX_CONNECTOME))
@@ -253,17 +252,22 @@ def pre_tractography_commands(ARGS):
                                 (MASK_CMD, "Create DWI brain mask"),
                                 (MASK_NII_CMD, "Convert DWI brain mask mif -> nii"), 
                                 (DWI_DENOISE_CMD, "Denoise DWI"),
-                                (DWI_EDDY_CMD, "Eddy correct DWI"),
                                 (DWI_BIAS_CMD, "Bias correct DWI"),
                                 (DWI_CONVERT_CMD, "Convert DWI mif -> nii"),
                                 (CLEAN_MASK_CMD, "Create DWI brain mask for cleaned DWI"),
                                 (CLEAN_MASK_NII_CMD, "Convert DWI brain mask mif -> nii for cleaned DWI"),
                             ])
-    if MRTRIX_FOD:
+    if MRTRIX_RESPONSE:
         MRTRIX_COMMANDS.extend([
                                 (RESPONSE_EST_CMD, "Estimate response function of WM, GM, CSF from DWI"),
+                            ])
+    if MRTRIX_FOD:
+        MRTRIX_COMMANDS.extend([
                                 (MULTISHELL_CSD_CMD, "Spherical deconvolution to estimate fODs"),
                                 (COMBINE_FODS_CMD, "Combining fODs into a VF"),
+                            ])
+    if MRTRIX_FOD_NORM:
+        MRTRIX_COMMANDS.extend([
                                 (NORMALIZE_FODS_CMD, "Normalizing fODs"),
                             ])
     if MRTRIX_REGISTRATION:
