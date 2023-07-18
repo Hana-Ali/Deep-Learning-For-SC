@@ -1,8 +1,9 @@
 import simulations as sim
-import sys
-import time
 from py_helpers import *
 import numpy as np
+import time
+
+hpc = True
 
 def wilson_simulator(coupling_strength, delay):
     """"
@@ -30,9 +31,12 @@ def wilson_simulator(coupling_strength, delay):
 
     print('----------------- In wilson_electrical_sim -----------------')
 
+    # --------- Get the main paths
+    (SC_FC_root, write_path, config_path, NUMPY_root_path, 
+     SC_numpy_root, FC_numpy_root) = define_paths(hpc, wbm_type="wilson")
+
     # --------- Read the config file
     print('Reading config file...')
-    config_path = os.path.join(os.getcwd(), os.path.join("configs", "wilson_config.json"))
     config = read_json_config(config_path)
 
     # --------- Extract the parameters
@@ -57,8 +61,6 @@ def wilson_simulator(coupling_strength, delay):
     integration_step_size = config['integration_step_size']
     start_save_idx = config['start_save_idx']
     downsampling_rate = config['downsampling_rate']
-    SC_path = config['SC_path']
-    FC_path = config['FC_path']
     noise_type = config['noise_type']
     noise_amplitude = config['noise_amplitude']
     write_path = config['write_path']
@@ -66,6 +68,8 @@ def wilson_simulator(coupling_strength, delay):
     cutoffLow = config['cutoffLow']
     cutoffHigh = config['cutoffHigh']
     TR = config['TR']
+    SC_path = config['SC_path']
+    FC_path = config['FC_path']
 
     # --------- Get the SC and FC matrices
     print('Getting SC and FC matrices...')

@@ -23,28 +23,28 @@ def check_all_shapes(inputs):
         check_shape(inputs, input_shape, input_name)
 
 # Function to define paths, based on hpc
-def define_paths(hpc=False):
+def define_paths(hpc=False, wbm_type="kuramoto"):
     
     # Defining paths
-    if not hpc:
-        # root: SC_FC root | write: where to write BO results | config: where to write model config
-        SC_FC_root = 'C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Spring Sem\\iso_dubai\\ISO\\HCP_DTI_BOLD'
-        write_path = "C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Dissertation\\Notebooks\\MyCodes\\whole_brain_modelling\\results\\wilson"
-        config_path = os.path.join(os.getcwd(), os.path.join("configs", "kuramoto_config.json"))
-        # Paths for SC, FC numpy arrays
-        NUMPY_root_path = os.path.join(os.getcwd(), "emp_data")
-        SC_numpy_root = os.path.join(NUMPY_root_path, "SC_matrix.npy")
-        FC_numpy_root = os.path.join(NUMPY_root_path, "FC_matrix.npy")
-    else:
+    if hpc:
         # root: SC_FC root | write: where to write BO results | config: where to write model config
         SC_FC_root = '/rds/general/user/hsa22/ephemeral/CAMCAN/sc_fc_matrices'
         WBM_path = '/rds/general/user/hsa22/ephemeral/WBM/'
-        write_path = os.path.join(WBM_path, 'results', 'kuramoto')
-        config_path = os.path.join(WBM_path, 'configs', 'kuramoto_config.json')
+        write_path = os.path.join(WBM_path, 'results', '{wbm}'.format(wbm=wbm_type))
+        config_path = os.path.join(WBM_path, 'configs', '{wbm}_config.json'.format(wbm=wbm_type))
         # Paths for SC, FC numpy arrays
         NUMPY_root_path = os.path.join(WBM_path, 'numpy_arrays')
         SC_numpy_root = ""
         FC_numpy_root = ""
+    else:
+        # root: SC_FC root | write: where to write BO results | config: where to write model config
+        SC_FC_root = 'C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Spring Sem\\iso_dubai\\ISO\\HCP_DTI_BOLD'
+        write_path = "C:\\Users\\shahi\\OneDrive - Imperial College London\\Documents\\imperial\\Dissertation\\Notebooks\\MyCodes\\whole_brain_modelling\\results\\wilson"
+        config_path = os.path.join(os.getcwd(), os.path.join("configs", "{wbm}_config.json".format(wbm=wbm_type)))
+        # Paths for SC, FC numpy arrays
+        NUMPY_root_path = os.path.join(os.getcwd(), "emp_data")
+        SC_numpy_root = os.path.join(NUMPY_root_path, "SC_matrix.npy")
+        FC_numpy_root = os.path.join(NUMPY_root_path, "FC_matrix.npy")
 
     # Return the paths
     return (SC_FC_root, write_path, config_path, NUMPY_root_path, SC_numpy_root, FC_numpy_root)

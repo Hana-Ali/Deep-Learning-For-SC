@@ -1,8 +1,9 @@
 import simulations as sim
-import sys
-import time
 from py_helpers import *
 import numpy as np
+import time
+
+hpc = True
 
 def kuramoto_simulator(coupling_strength, delay):
     """"
@@ -25,9 +26,12 @@ def kuramoto_simulator(coupling_strength, delay):
 
     print('----------------- In Kuramoto Simulator -----------------')
 
+    # --------- Get the main paths
+    (SC_FC_root, write_path, config_path, NUMPY_root_path, 
+     SC_numpy_root, FC_numpy_root) = define_paths(hpc, wbm_type="kuramoto")
+
     # --------- Read the config file
     print('Reading config file...')
-    config_path = os.path.join(os.getcwd(), os.path.join("configs", "kuramoto_config.json"))
     config = read_json_config_kura(config_path)
 
     # --------- Extract the parameters
@@ -38,11 +42,11 @@ def kuramoto_simulator(coupling_strength, delay):
     integration_step_size = config['integration_step_size']
     start_save_idx = config['start_save_idx']
     downsampling_rate = config['downsampling_rate']
-    SC_path = config['SC_path']
-    FC_path = config['FC_path']
     noise_type = config['noise_type']
     noise_amplitude = config['noise_amplitude']
     write_path = config['write_path']
+    SC_path = config['SC_path']
+    FC_path = config['FC_path']
 
     # --------- Get the SC and FC matrices
     print('Getting SC and FC matrices...')
@@ -113,12 +117,6 @@ def kuramoto_simulator(coupling_strength, delay):
     # End simulation time
     end_sim_time = time.time()
     print('Simulation time: ' + str(end_sim_time - start_sim_time), 'seconds')
-
-    # print("Saving raw phi...")
-    # if not os.path.exists(write_path):
-    #     os.makedirs(write_path)
-    # raw_phi_path = os.path.join(write_path, "raw_phi.csv")
-    # np.savetxt(raw_phi_path, raw_phi, fmt="% .4f", delimiter=",")
     
     # --------- Ignore initialization (and downsample?)
     print("Ignoring initialization and downsampling...")
@@ -141,42 +139,37 @@ def kuramoto_simulator(coupling_strength, delay):
 
     # --------- Define folder path for all simulations
     print("Creating folders...")
-    if not os.path.exists(write_path):
-        os.makedirs(write_path)
+    check_output_folders(write_path, "kuramoto write path", wipe=False)
 
-    folder_name = "Coupling {:.4f}, Delay{:.4f}\\".format(coupling_strength, delay)
-    # phi_path_main = os.path.join(write_path, folder_name)
-    FC_path_main = os.path.join(write_path, folder_name)
-    empFC_simFC_corr_path_main = os.path.join(write_path, folder_name)
+    # Define the main results folder
+    main_results_folder_name = "Coupling {:.4f}, Delay{:.4f}\\".format(coupling_strength, delay)
+    main_results_folder = os.path.join(write_path, main_results_folder_name)
+    check_output_folders(main_results_folder, "Main results folder", wipe=False)
 
-    # if not os.path.exists(phi_path_main):
-    #     os.makedirs(phi_path_main)
-    if not os.path.exists(FC_path_main):
-        os.makedirs(FC_path_main)
-    if not os.path.exists(empFC_simFC_corr_path_main):
-        os.makedirs(empFC_simFC_corr_path_main)
+    # Define the correlation results folder
+    corr_results_folder = os.path.join(main_results_folder, "correlation")
+    check_output_folders(corr_results_folder, "Correlation results folder", wipe=False)
+    
+    # Save the simulated FC in the main results folder
+    sim_FC_path = os.path.join(main_results_folder, "sim_FC.csv")
 
-    # raw_phi_path = os.path.join(phi_path_main, "raw_phi.csv")
-    # phi_downsample_path = os.path.join(phi_path_main, "downsample_phi.csv")
-    FC_path = os.path.join(FC_path_main, "sim_FC.csv")
-    emp_FC_img_path = os.path.join(FC_path_main, "emp_FC.png")
-    sim_FC_img_path = os.path.join(FC_path_main, "sim_FC.png")
-    empFC_simFC_corr_path = os.path.join(empFC_simFC_corr_path_main, "empFC_simFC_corr.txt")
+    # Save the correlation results in the correlation results folder
+    emp_FC_img_path = os.path.join(corr_results_folder, "emp_FC.png")
+    sim_FC_img_path = os.path.join(corr_results_folder, "sim_FC.png")
+    empFC_simFC_corr_path = os.path.join(corr_results_folder, "empFC_simFC_corr.txt")
 
-    # # Save the results
+    # Save the results
     print("Saving the results...")
-    # np.savetxt(raw_phi_path, raw_phi, fmt="% .4f", delimiter=",")
-    # np.savetxt(phi_downsample_path, downsample_phi, fmt="% .4f", delimiter=",")
-    np.savetxt(FC_path, sim_FC, fmt="% .8f", delimiter=",")
+    np.savetxt(sim_FC_path, sim_FC, fmt="% .8f", delimiter=",")
     np.savetxt(empFC_simFC_corr_path, np.array([empFC_simFC_corr]), fmt="% .8f")
 
+    # Create and save images
     plt.figure()
     plt.imshow(emp_FC)
     plt.savefig(emp_FC_img_path)
     plt.figure()
     plt.imshow(sim_FC)
     plt.savefig(sim_FC_img_path)
-
 
     # Return the correlation
     return empFC_simFC_corr

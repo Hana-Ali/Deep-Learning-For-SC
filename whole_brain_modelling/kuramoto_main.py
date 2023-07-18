@@ -71,7 +71,7 @@ if __name__ == "__main__":
 
     # Get the main paths
     (SC_FC_root, write_path, config_path, NUMPY_root_path, 
-     SC_numpy_root, FC_numpy_root) = define_paths(hpc)
+     SC_numpy_root, FC_numpy_root) = define_paths(hpc, wbm_type="kuramoto")
 
     # Derive some parameters for simulation
     number_integration_steps = int(time_simulated / integration_step_size)
@@ -158,8 +158,6 @@ if __name__ == "__main__":
     print("Define Bayesian Optimization object...")
     gpgo = GPGO(gp, acq, kuramoto_simulator, bo_params)
     gpgo.run(max_iter=n_iterations)
-
-    gpgo.GP.posteriorPlot()
 
     print("Get results...")
     print(gpgo.getResult())

@@ -96,7 +96,7 @@ if __name__ == "__main__":
 
     # Get the main paths
     (SC_FC_root, write_path, config_path, NUMPY_root_path, 
-     SC_numpy_root, FC_numpy_root) = define_paths(hpc)
+     SC_numpy_root, FC_numpy_root) = define_paths(hpc, wbm_type="wilson")
 
     # Derive some parameters for simulation
     number_integration_steps = int(time_simulated / integration_step_size)
