@@ -32,6 +32,9 @@ def get_empirical_FC(path, config_path, HCP=False):
     else:
         FC_array = get_empirical_FC_CAMCAN(path, config_path)
 
+    # Return the FC array
+    return FC_array
+
 # Get the Structural Connectivity Matrices
 def get_empirical_SC_HCP(path):
     
@@ -89,8 +92,18 @@ def get_empirical_SC_CAMCAN(SUBJECT_SC_PATH):
     # Read the csv file
     csv_data = np.loadtxt(csv_file, delimiter=",")
 
+    # Get whether it's prob or global SC
+    if "prob" in csv_file:
+        SC_type = "prob"
+    elif "global" in csv_file:
+        SC_type = "global"
+    elif "det" in csv_file:
+        SC_type = "det"
+    else:
+        raise ValueError("The csv file does not contain a valid SC type")
+
     # Return the csv data
-    return csv_data
+    return (csv_data, SC_type)
 
 # Get the Functional Connectivity Matrices
 def get_empirical_FC_HCP(path, config_path):
@@ -168,7 +181,7 @@ def get_empirical_FC_CAMCAN(SUBJECT_FC_PATH, config_path):
     # Process the BOLD data and find correlation matrix
     bold_z_score = process_BOLD(BOLD_data, order, TR, cutoffLow, cutoffHigh)
     FC_matrix = np.corrcoef(bold_z_score)
-    
+
     # Remove the diagonal
     np.fill_diagonal(FC_matrix, 0.0)
 

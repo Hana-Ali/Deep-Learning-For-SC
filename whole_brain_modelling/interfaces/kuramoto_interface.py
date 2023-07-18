@@ -27,7 +27,7 @@ def kuramoto_simulator(coupling_strength, delay):
     print('----------------- In Kuramoto Simulator -----------------')
 
     # --------- Get the main paths
-    (SC_FC_root, write_path, config_path, NUMPY_root_path, 
+    (SC_FC_root, WBM_main_path, WBM_results_path, config_path, NUMPY_root_path, 
      SC_numpy_root, FC_numpy_root) = define_paths(hpc, wbm_type="kuramoto")
 
     # --------- Read the config file
@@ -50,8 +50,8 @@ def kuramoto_simulator(coupling_strength, delay):
 
     # --------- Get the SC and FC matrices
     print('Getting SC and FC matrices...')
-    SC = np.load(SC_path)
-    emp_FC = np.load(FC_path)
+    SC = np.load(SC_path, allow_pickle=True)
+    emp_FC = np.load(FC_path, allow_pickle=True)
 
     # --------- Check the shape of the SC and FC matrices
     inputs = [
