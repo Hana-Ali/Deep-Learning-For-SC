@@ -335,7 +335,7 @@ def define_mrtrix_connectome_commands(ARGS):
     # Get the global tracking paths
     (_, _, GLOBAL_TRACT_PATH) = get_mrtrix_global_tracking_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
     # Get the connectivity paths
-    (CONNECTIVITY_PROB_PATH, CONNECTIVITY_GLOBAL_PATH) = get_mrtrix_connectome_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
+    (CONNECTIVITY_PROB_PATH, CONNECTIVITY_GLOBAL_PATH) = get_mrtrix_connectome_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, ATLAS)
     
     # Connectivity matrix command
     CONNECTIVITY_PROB_CMD = "tck2connectome {input}.tck {atlas}.mif {output}.csv -zero_diagonal -symmetric \
@@ -380,6 +380,12 @@ def probabilistic_tractography(ARGS):
     (MRTRIX_RESPONSE, MRTRIX_FOD, MRTRIX_FOD_NORM, MRTRIX_REGISTRATION, 
      MRTRIX_PROBTRACK, MRTRIX_GLOBAL_TRACKING, MRTRIX_CONNECTOME) = check_all_mrtrix_missing_files(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, ATLAS)
     
+    print("MRTRIX RESPONSE: {}".format(MRTRIX_RESPONSE))
+    print("MRTRIX FOD: {}".format(MRTRIX_FOD))
+    print("MRTRIX FOD NORM: {}".format(MRTRIX_FOD_NORM))
+    print("MRTRIX REGISTRATION: {}".format(MRTRIX_REGISTRATION))
+
+
     # Define the commands array, depending on what's been done
     MRTRIX_COMMANDS = []
     if MRTRIX_RESPONSE:

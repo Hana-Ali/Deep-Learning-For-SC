@@ -2,6 +2,7 @@ import os
 import gzip
 import tarfile
 import magic
+import numpy as np
 
 
 from py_helpers import *

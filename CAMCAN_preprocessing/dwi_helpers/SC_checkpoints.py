@@ -35,7 +35,7 @@ def check_all_mrtrix_missing_files(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, ATLAS):
     MRTRIX_GLOBAL_TRACKING = check_missing_mrtrix_global_tracking(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, GLOBAL_TRACKING_FOLDER_NAME)
 
     # --------------------- MRTRIX CONNECTOME CHECK
-    MRTRIX_CONNECTOME = check_missing_mrtrix_connectome(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, CONNECTIVITY_FOLDER_NAME)
+    MRTRIX_CONNECTOME = check_missing_mrtrix_connectome(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, CONNECTIVITY_FOLDER_NAME, ATLAS)
 
     # Return the variables
     return (MRTRIX_RESPONSE, MRTRIX_FOD, MRTRIX_FOD_NORM, MRTRIX_REGISTRATION, MRTRIX_PROBTRACK, MRTRIX_GLOBAL_TRACKING, MRTRIX_CONNECTOME)
@@ -108,6 +108,9 @@ def check_missing_dsi_studio(NEEDED_FILE_PATHS, MAIN_STUDIO_PATH, dwi_filename):
     if STUDIO_PROCESSING:
         print("--- DSI Studio files not found. Cleaning DSI Studio folder.")
         check_output_folders(SUBJECT_FOLDER_NAME, "DSI Studio subject folder", wipe=True)
+        # Remake all the subfolders
+        (STUDIO_SRC_PATH, STUDIO_DTI_PATH, STUDIO_QSDR_PATH, SRC_LOG_PATH, DTI_LOG_PATH,
+        DTI_EXP_LOG_PATH, QSDR_LOG_PATH, QSDR_EXP_LOG_PATH, TRACT_LOG_PATH) = get_dsi_studio_paths(NEEDED_FILE_PATHS, MAIN_STUDIO_PATH)
 
     # Return the variable
     return STUDIO_PROCESSING
@@ -138,15 +141,18 @@ def check_missing_mrtrix_response(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, RESPONSE_
 
 # Function to check missing MRtrix FOD processing
 def check_missing_mrtrix_fod(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, FOD_FOLDER_NAME):
+
     # Define variable that stores whether or not we should do MRtrix FOD processing
     MRTRIX_FOD = True
+
     # Get the MRtrix FOD paths
     (RESPONSE_WM_PATH, RESPONSE_GM_PATH, RESPONSE_CSF_PATH, RESPONSE_VOXEL_PATH,
         WM_FOD_PATH, GM_FOD_PATH, CSF_FOD_PATH, VF_FOD_PATH, WM_FOD_NORM_PATH, GM_FOD_NORM_PATH, 
             CSF_FOD_NORM_PATH) = get_mrtrix_fod_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
+
     # Grab all the mif files
     MRTRIX_FOD_MIF_FILES = glob_files(FOD_FOLDER_NAME, "mif")
-    print("MRTRIX_FOD_MIF_FILES: ", MRTRIX_FOD_MIF_FILES)
+
     # Check that we have all the files we need
     if (any(WM_FOD_PATH in fod_mif for fod_mif in MRTRIX_FOD_MIF_FILES)
             and any(GM_FOD_PATH in fod_mif for fod_mif in MRTRIX_FOD_MIF_FILES)
@@ -263,11 +269,11 @@ def check_missing_mrtrix_global_tracking(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, GL
     return MRTRIX_GLOBAL_TRACKING
 
 # Function to check missing MRtrix connectome processing
-def check_missing_mrtrix_connectome(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, CONNECTIVITY_FOLDER_NAME):
+def check_missing_mrtrix_connectome(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, CONNECTIVITY_FOLDER_NAME, ATLAS):
     # Define variable that stores whether or not we should do MRtrix connectome processing
     MRTRIX_CONNECTOME = True
     # Get the MRtrix connectome paths
-    (CONNECTIVITY_PROB_PATH, CONNECTIVITY_GLOBAL_PATH) = get_mrtrix_connectome_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
+    (CONNECTIVITY_PROB_PATH, CONNECTIVITY_GLOBAL_PATH) = get_mrtrix_connectome_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, ATLAS)
     # Grab all the csv files
     MRTRIX_CONNECTOME_CSV_FILES = glob_files(CONNECTIVITY_FOLDER_NAME, "csv")
     print("MRTRIX_CONNECTOME_CSV_FILES: ", MRTRIX_CONNECTOME_CSV_FILES)

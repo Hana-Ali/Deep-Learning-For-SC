@@ -1,7 +1,7 @@
 import simulations as sim
 import sys
 import time
-from .helper_funcs import *
+from py_helpers import *
 import numpy as np
 
 def wilson_simulator(coupling_strength, delay):

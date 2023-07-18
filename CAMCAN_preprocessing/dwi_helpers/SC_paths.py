@@ -249,7 +249,7 @@ def get_mrtrix_global_tracking_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH):
     return (GLOBAL_FOD_PATH, GLOBAL_FISO_PATH, GLOBAL_TRACT_PATH)
 
 # Define MRtrix connectome paths
-def get_mrtrix_connectome_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH):
+def get_mrtrix_connectome_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, ATLAS):
 
     # Extract what we need here from the needed file paths
     dwi_filename = NEEDED_FILE_PATHS["filename"]
@@ -257,9 +257,14 @@ def get_mrtrix_connectome_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH):
     # Get the folder names
     (_, _, _, _, _, _, _, _, _, CONNECTIVITY_FOLDER_NAME) = main_mrtrix_folder_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
 
+    # Get the atlas name
+    ATLAS_NAME = ATLAS.split("/")[-1].split(".")[0].split("_")[0]
+
     # Connectivity matrix path
-    CONNECTIVITY_PROB_PATH = os.path.join(CONNECTIVITY_FOLDER_NAME, "{}_prob_connectivity".format(dwi_filename))
-    CONNECTIVITY_GLOBAL_PATH = os.path.join(CONNECTIVITY_FOLDER_NAME, "{}_global_connectivity".format(dwi_filename))
+    CONNECTIVITY_PROB_PATH = os.path.join(CONNECTIVITY_FOLDER_NAME, "{subject}_{atlas}_prob_connectivity".format(
+                                                                            subject=dwi_filename, atlas=ATLAS_NAME))
+    CONNECTIVITY_GLOBAL_PATH = os.path.join(CONNECTIVITY_FOLDER_NAME, "{subject}_{atlas}_global_connectivity".format(
+                                                                            subject=dwi_filename, atlas=ATLAS_NAME))
 
     # Return the paths
     return (CONNECTIVITY_PROB_PATH, CONNECTIVITY_GLOBAL_PATH)

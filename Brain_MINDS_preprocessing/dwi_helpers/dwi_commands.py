@@ -3,6 +3,39 @@ from .dwi_checkpoints import *
 
 from py_helpers import *
 
+# Function to get a clean image as reference from the BMINDS clean
+def get_clean_reference(hpc):
+
+    # Get all the main paths
+    (BMINDS_DATA_FOLDER, BMINDS_OUTPUTS_DMRI_FOLDER, BMINDS_OUTPUTS_DMRI_BMA_FOLDER, BMINDS_OUTPUTS_INVIVO_BMA_FOLDER,
+    BMINDS_OUTPUTS_EXVIVO_BMA_FOLDER, BMINDS_OUTPUTS_INJECTIONS_FOLDER, BMINDS_BMA_MAIN_FOLDER,
+    BMINDS_BMA_INVIVO_FOLDER, BMINDS_BMA_EXVIVO_FOLDER, BMINDS_BMA_INVIVO_DWI_FOLDER, BMINDS_BMA_EXVIVO_DWI_FOLDER,
+    BMINDS_CORE_FOLDER, BMINDS_DWI_FOLDER, BMINDS_METADATA_FOLDER, BMINDS_TEMPLATES_FOLDER,
+    BMINDS_ATLAS_FOLDER, BMINDS_STPT_TEMPLATE_FOLDER, BMINDS_TRANSFORMS_FOLDER, BMINDS_INJECTIONS_FOLDER,
+    BMINDS_UNZIPPED_DWI_FOLDER, BMINDS_UNZIPPED_DWI_RESIZED_FOLDER,
+    MAIN_MRTRIX_FOLDER_DMRI, MAIN_MRTRIX_FOLDER_BMA_DMRI_INVIVO, MAIN_MRTRIX_FOLDER_BMA_DMRI_EXVIVO,
+    MAIN_MRTRIX_FOLDER_INJECTIONS) = get_main_paths(hpc=hpc)
+
+    # Get all the folder names
+    BMINDS_MRTRIX_FOLDER_NAMES = [file for file in os.listdir(MAIN_MRTRIX_FOLDER_DMRI) if "A9" not in file]
+
+    # Choose a random folder
+    random_folder = np.random.choice(BMINDS_MRTRIX_FOLDER_NAMES)
+
+    # Get the general folder name and the specific folder name
+    (REGION_MRTRIX_PATH, GENERAL_FOLDER_NAME, RESPONSE_FOLDER_NAME, FOD_FOLDER_NAME, 
+    FOD_NORM_FOLDER_NAME, REGISTRATION_FOLDER_NAME, PROB_TRACKING_FOLDER_NAME, 
+    CONNECTIVITY_FOLDER_NAME) = define_main_mrtrix_folders_for_each_data("BMCR", random_folder)
+
+    # Get all nii files in the folder
+    CLEAN_NII_FILES = glob_files(GENERAL_FOLDER_NAME, "nii.gz")
+
+    # Filter for the specific one we want
+    CLEAN_NII_FILES = [file for file in CLEAN_NII_FILES if "clean_nii" in file]
+
+    # Return the first one
+    return CLEAN_NII_FILES[0]
+
 # ----------------------------------------------------- COMMAND DEFINITIONS ----------------------------------------------------- #
 
 # Define MRTrix General (mask) commands
@@ -42,33 +75,9 @@ def define_mrtrix_clean_commands(ARGS):
     DWI_NEEDED = ["dwi_nii", "bval", "bvec"]
     DWI_NEEDED_PATHS = extract_from_input_list(DWI_FILES, DWI_NEEDED, "dwi")
 
-    # Define skull stripping command as empty if skull strip is empty
-    if SKULL_STRIP_PATH:
-        # Extract the B0 image
-        DWI_B0_CMD = "dwiextract {input}.mif - -bzero | mrmath - mean {output}.mif -axis 3".format(
-            input=INPUT_MIF_PATH, output=DWI_B0_PATH)
-        # Convert B0 to NII command
-        DWI_B0_NII_CMD = "mrconvert {input}.mif {output}.nii.gz".format(input=DWI_B0_PATH, output=DWI_B0_NII)
-        # Skull strip
-        SKULL_STRIP_CMD = "bet {input} {output}.nii.gz -f 0.5 -R -B".format(input=DWI_NEEDED_PATHS["dwi_nii"], 
-                                                                            output=SKULL_STRIP_PATH)
-        # Convert skull strip to mif
-        SKULL_STRIP_MIF_CMD = "mrconvert {input}.nii.gz {output}.mif".format(input=SKULL_STRIP_PATH,
-                                                                                output=SKULL_STRIP_MIF_PATH)
-    else:
-        DWI_B0_CMD = ""
-        DWI_B0_NII_CMD = ""
-        SKULL_STRIP_CMD = ""
-        SKULL_STRIP_MIF_CMD = ""
-
-    # Denoising command
-    if SKULL_STRIP_MIF_PATH != "":
-        MIF_PATH = SKULL_STRIP_MIF_PATH
-    else:
-        MIF_PATH = INPUT_MIF_PATH
-
+    # Denoise command
     DWI_DENOISE_CMD = "dwidenoise {input}.mif {output}.mif -noise {noise}.mif".format(
-        input=MIF_PATH, output=DWI_DENOISE_PATH, noise=DWI_NOISE_PATH)
+        input=INPUT_MIF_PATH, output=DWI_DENOISE_PATH, noise=DWI_NOISE_PATH)
     # Bias correction command
     DWI_BIAS_CMD = "dwibiascorrect ants {input}.mif {output}.mif".format(input=DWI_DENOISE_PATH, output=DWI_CLEAN_MIF_PATH)
     # Convert to NII command
@@ -80,8 +89,7 @@ def define_mrtrix_clean_commands(ARGS):
     CLEAN_MASK_NII_CMD = "mrconvert {input}.mif {output}.nii.gz".format(input=DWI_CLEAN_MASK_PATH, output=DWI_CLEAN_MASK_NII_PATH)
 
     # Return the commands
-    return (DWI_B0_CMD, DWI_B0_NII_CMD, SKULL_STRIP_CMD, SKULL_STRIP_MIF_CMD, DWI_DENOISE_CMD, 
-            DWI_BIAS_CMD, DWI_CONVERT_CMD, CLEAN_MASK_CMD, CLEAN_MASK_NII_CMD)
+    return (DWI_DENOISE_CMD, DWI_BIAS_CMD, DWI_CONVERT_CMD, CLEAN_MASK_CMD, CLEAN_MASK_NII_CMD)
 
 # Define the template registration commands
 def define_template_registration_commands(ARGS):
@@ -103,11 +111,14 @@ def define_template_registration_commands(ARGS):
     (DWI_REG_FOLDER, DWI_MAP_MAT, DWI_CONVERT_INV, DWI_REG_PATH, 
      DWI_REG_MASK_PATH) = get_STPT_registration_paths(REGION_ID, FOLDER_TYPE)
     
+    # Get the reference image
+    REFERENCE_IMAGE = get_clean_reference(hpc=True)
+    
     # Transformation and registration of the clean mif to the template space
     REGISTER_DWI_STPT_CMD = "flirt -in {stpt} -ref {dwi} -interp nearestneighbour -dof 6 -omat {transform_mat}.mat".format(
-        stpt=ATLAS_NEEDED_PATH["stpt"], dwi=DWI_CLEAN_NII_PATH, transform_mat=DWI_MAP_MAT)
+        stpt=REFERENCE_IMAGE, dwi=DWI_CLEAN_NII_PATH, transform_mat=DWI_MAP_MAT)
     TRANSFORMATION_DWI_STPT_CMD = "transformconvert {transform_mat}.mat {stpt} {dwi} flirt_import {output}.txt".format(
-        transform_mat=DWI_MAP_MAT, stpt=ATLAS_NEEDED_PATH["stpt"], dwi=DWI_CLEAN_NII_PATH, output=DWI_CONVERT_INV)
+        transform_mat=DWI_MAP_MAT, stpt=REFERENCE_IMAGE, dwi=DWI_CLEAN_NII_PATH, output=DWI_CONVERT_INV)
     FINAL_DWI_TRANSFORM_CMD = "mrtransform {dwi}.mif -linear {transform}.txt -inverse {output}.mif".format(
         dwi=DWI_CLEAN_MIF_PATH, transform=DWI_CONVERT_INV, output=DWI_REG_PATH)
     # Create mask for the registered DWI
@@ -308,8 +319,8 @@ def pre_tractography_commands(ARGS):
 
     # Define the cleaning commands
     CLEAN_ARGS = [REGION_ID, DWI_FILES, FOLDER_TYPE]
-    (DWI_B0_CMD, DWI_B0_NII_CMD, SKULL_STRIP_CMD, SKULL_STRIP_MIF_CMD, DWI_DENOISE_CMD, 
-    DWI_BIAS_CMD, DWI_CONVERT_CMD, CLEAN_MASK_CMD, CLEAN_MASK_NII_CMD) = define_mrtrix_clean_commands(CLEAN_ARGS)
+    (DWI_DENOISE_CMD, DWI_BIAS_CMD, DWI_CONVERT_CMD, CLEAN_MASK_CMD, 
+     CLEAN_MASK_NII_CMD) = define_mrtrix_clean_commands(CLEAN_ARGS)
 
     # Define the registration commands, depending on if we're of folder type BMCR or BMA
     if FOLDER_TYPE == "BMA_INVIVO":
@@ -324,7 +335,7 @@ def pre_tractography_commands(ARGS):
     VIEW_COMBINED_FODS_CMD, NORMALIZE_FODS_CMD, VIEW_NORMALIZED_FODS_CMD) = define_mrtrix_fod_commands(FOD_ARGS)
     
     REG_ARGS = [REGION_ID, ATLAS_STPT, FOLDER_TYPE]
-    (DWI_B0_CMD, DWI_B0_NII_CMD, REGISTER_ATLAS_DWI_CMD, TRANSFORMATION_ATLAS_DWI_CMD,
+    (DWI_B0_CMD_ATLAS, DWI_B0_NII_CMD_ATLAS, REGISTER_ATLAS_DWI_CMD, TRANSFORMATION_ATLAS_DWI_CMD,
     ATLAS_MIF_CMD, FINAL_ATLAS_TRANSFORM_CMD) = define_atlas_registration_commands(REG_ARGS)
 
     # Define the probabilistic tractography commands
@@ -358,14 +369,6 @@ def pre_tractography_commands(ARGS):
                                 (MASK_CMD, "Create DWI brain mask"),
                                 (MASK_NII_CMD, "Convert DWI brain mask mif -> nii"), 
                             ])
-        # Then if we can skull strip we do
-        if DWI_B0_CMD != "":
-            MRTRIX_COMMANDS.extend([
-                                    (DWI_B0_CMD, "Extracting mean B0"),
-                                    (DWI_B0_NII_CMD, "DWI B0 mif -> NII"),
-                                    (SKULL_STRIP_CMD, "Skull strip DWI"),
-                                    (SKULL_STRIP_MIF_CMD, "Convert skull strip to mif"),
-                                ])
         # Now we do denoising, bias correction and conversion to NII
         MRTRIX_COMMANDS.extend([
                             (DWI_DENOISE_CMD, "Denoise DWI"),
@@ -396,7 +399,7 @@ def pre_tractography_commands(ARGS):
                             ])
     if MRTRIX_ATLAS_REGISTRATION:
         MRTRIX_COMMANDS.extend([
-                                (DWI_B0_CMD, "Extracting mean B0 and transforming to NII"), (DWI_B0_NII_CMD, "DWI B0 mif -> NII"),
+                                (DWI_B0_CMD_ATLAS, "Extracting mean B0 and transforming to NII"), (DWI_B0_NII_CMD_ATLAS, "DWI B0 mif -> NII"),
                                 (REGISTER_ATLAS_DWI_CMD, "Begin registering atlas to DWI space"),
                                 (TRANSFORMATION_ATLAS_DWI_CMD, "Initial transformation of atlas to DWI space"),
                                 (ATLAS_MIF_CMD, "Convert atlas nii -> mif"), (FINAL_ATLAS_TRANSFORM_CMD, "Final transformation of atlas to DWI space"),

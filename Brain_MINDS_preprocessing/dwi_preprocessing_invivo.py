@@ -70,7 +70,7 @@ def main():
     BMINDS_ATLAS_LABEL_FILES = glob_files(BMINDS_ATLAS_FOLDER, "txt")
     BMINDS_STPT_FILES = glob_files(BMINDS_STPT_TEMPLATE_FOLDER, "nii")
     BMINDS_TRANSFORM_FILES = glob_files(BMINDS_TRANSFORMS_FOLDER, "h5")
-    
+
     # Get the atlas and stpt files - separate from the mix above
     BMINDS_ATLAS_FILE = [file for file in BMINDS_ATLAS_FILES if "140_region_atlas_segmentation" in file]
     BMINDS_ATLAS_LABEL_FILE = [file for file in BMINDS_ATLAS_LABEL_FILES if "140_region_atlas_labels" in file]
