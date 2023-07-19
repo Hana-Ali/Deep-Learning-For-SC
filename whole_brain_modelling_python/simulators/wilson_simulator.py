@@ -1,10 +1,6 @@
 # Imports
-import matplotlib.pyplot as plt
 from py_helpers import *
-import pandas as pd
 import numpy as np
-import sys
-import os
 import torch
 
 ###### Define the Wilson-Cowan model as a class
@@ -113,7 +109,7 @@ class wilson_model:
         # Checking that the parameters are valid
         check_type(integration_steps, int, "integration_steps")
         check_type(integration_step_size, float, "integration_step_size")
-        check_type(initial_conditions, np.ndarray, "initial_conditions")
+        check_type(initial_conditions, "tensor", "initial_conditions")
         check_type(number_of_regions, int, "number_of_regions")
         check_type(SC, np.ndarray, "SC")
         # check_type(noise_type, int, "noise_type")
@@ -141,19 +137,15 @@ class wilson_model:
                 # Initialize the delay input
                 self.delay = np.floor(self.delay).astype(int)
                 delay_matrix = torch.tensor(electrical_activity[:, i - self.delay : i + 1])
-                # print('Delay matrix is', delay_matrix)
-                # print('Delay matrix shape is', delay_matrix.shape)
             
                 # Multiplying by the appropriate elements in the structural connectivity matrix
-                delay_matrix = torch.tensor(SC) @ delay_matrix
+                delay_matrix = torch.tensor(SC) @ delay_matrix # Needs to be times path length - check w pedro
                 delay_matrix = torch.sum(delay_matrix, axis=1)
-                # print('Summed delay matrix is', delay_matrix)
-                # print('Summed delay matrix shape is', delay_matrix.shape)
 
                 # Calculating the coupling matrix
-                coupling_matrix = self.coupling_strength * delay_matrix
-                # print('Coupling matrix is', coupling_matrix)
-                # print('Coupling matrix shape is', coupling_matrix.shape)
+                coupling_matrix = self.coupling_strength * torch.tensor(SC)
+                coupling_matrix.fill_diagonal_(self.c_ee)
+                coupling_matrix = coupling_matrix @ delay_matrix
 
             # Calculating the external input
             external_input = torch.tensor(np.zeros((number_of_regions, 2)))
@@ -169,12 +161,10 @@ class wilson_model:
             if i > self.delay:
                 inp[:, 0] = inp[:, 0] + coupling_matrix
                 inp[:, 1] = inp[:, 1] + coupling_matrix
-            # print('Input shape is', inp.shape)
 
             # Multipling input by alpha
             inp[:, 0] = self.alpha_e * inp[:, 0]
             inp[:, 1] = self.alpha_i * inp[:, 1]
-            # print('Shape of input[:,0] is', inp[:,0].shape)
 
             # Calculating the sigmoidal response
             E_response = self.sigmoidal(inp[:, 0])
@@ -183,8 +173,6 @@ class wilson_model:
             # Calculating the derivative
             E_derivative = (-E + (self.k_e - self.r_e * E) * (E_response)) / self.tau_e
             I_derivative = (-I + (self.k_i - self.r_i * I) * (I_response)) / self.tau_i
-            # print('E derivative shape is', E_derivative.shape)
-            # print('E derivative is', E_derivative)
 
             # Calculating the next state
             E = E + integration_step_size * E_derivative
@@ -195,4 +183,3 @@ class wilson_model:
 
         # Returning the output
         return electrical_activity
-

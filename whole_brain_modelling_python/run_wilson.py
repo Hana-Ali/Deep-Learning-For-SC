@@ -1,7 +1,7 @@
 # Imports
 import matplotlib.pyplot as plt
 from py_helpers import *
-from wilson_sim_pytorch import *
+from simulators import *
 import pandas as pd
 import numpy as np
 import sys
@@ -83,3 +83,28 @@ end = time.time()
 
 # Print the time taken
 print("Time taken: " + str(end - start) + " seconds")
+
+# Get the BOLD signal
+(BOLD, s, f, v, q) = balloonWindkessel(simulation[:, 0].numpy(), sampling_rate=0.72)
+
+# Recast it into a numpy array
+BOLD = np.array(BOLD)
+
+print("BOLD shape: ", BOLD.shape)
+
+# Concatenate along the first axis
+BOLD = np.concatenate(BOLD, axis=0)
+
+print("BOLD shape: ", BOLD.shape)
+
+print("BOLD: ", BOLD)
+
+
+# Find the correlation
+corr = np.corrcoef(BOLD)
+
+print("Correlation shape: ", corr.shape)
+
+# Plot the correlation and save image
+plt.imshow(corr)
+plt.savefig(write_path + "corr.png")
