@@ -3,9 +3,9 @@
 #%% Import libraries
 import os
 
-hpc = True
+hpc = False
 
-if not hpc:
+if hpc == False:
     os.add_dll_directory(r"C:\src\vcpkg\installed\x64-windows\bin")
     os.add_dll_directory(r"C:\cpp_libs\include\bayesopt\build\bin\Release")
     
@@ -67,6 +67,7 @@ if __name__ == "__main__":
     # %% Initial operations - making config file, starting timer, etc.
 
     # Get the main paths
+    hpc = False
     (SC_FC_root, WBM_main_path, WBM_results_path, config_path, NUMPY_root_path, 
      SC_numpy_root, FC_numpy_root) = define_paths(hpc, wbm_type="kuramoto")
 
