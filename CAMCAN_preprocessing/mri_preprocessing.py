@@ -16,7 +16,7 @@ import os
 
 # CHECK HOW TO DO THIS IN PARALLEL - STARMAP OR IMAP
 def parallel_process(SUBJECT_FILES, ATLAS, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH, 
-                        DSI_COMMAND):
+                        DSI_COMMAND, REGISTERED_ATLASES_FOLDER):
 
     # Define the stripped paths indices
     STRIPPED_INDEX = 0
@@ -117,6 +117,10 @@ def parallel_process(SUBJECT_FILES, ATLAS, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, M
         print("Started {} - {}".format(cmd_name, dwi_filename))
         subprocess.run(mrtrix_cmd, shell=True)
 
+    # Once we're done, create a folder in the registered_atlases folder of this atlas name
+    ATLAS_NAME = ATLAS.split(os.sep)[-1].split(".")[0]
+    os.makedirs(os.path.join(REGISTERED_ATLASES_FOLDER, ATLAS_NAME), exist_ok=True)
+
 
 # -------------------------------------------------- Folder Paths and Data Checking -------------------------------------------------- #
 
@@ -124,8 +128,8 @@ def main():
     # Get paths, depending on whether we're in HPC or not
     hpc =  int(sys.argv[1])
     (ALL_DATA_FOLDER, SUBJECTS_FOLDER, TRACTOGRAPHY_OUTPUT_FOLDER, NIPYPE_OUTPUT_FOLDER, 
-        DWI_MAIN_FOLDER, T1_MAIN_FOLDER, FMRI_MAIN_FOLDER, DSI_COMMAND, ATLAS_FOLDER, 
-            MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH) = get_main_paths(hpc)
+    DWI_MAIN_FOLDER, T1_MAIN_FOLDER, FMRI_MAIN_FOLDER, DSI_COMMAND, ATLAS_FOLDER, 
+    REGISTERED_ATLASES_FOLDER, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH) = get_main_paths(hpc)
 
     # Check if input folders - if not, exit program
     check_input_folders(DWI_MAIN_FOLDER, "DWI")
@@ -145,11 +149,13 @@ def main():
     B_VAL_FILES = glob_files(DWI_MAIN_FOLDER, "bval")
     B_VEC_FILES = glob_files(DWI_MAIN_FOLDER, "bvec")
     T1_INPUT_FILES = glob_files(T1_MAIN_FOLDER, "nii")
-    FMRI_INPUT_FILES = glob_files(FMRI_MAIN_FOLDER, "mat")
     # There may be multiple formats for the atlas, so we get both
     ATLAS_FILES_GZ = glob_files(ATLAS_FOLDER, "nii.gz")
     ATLAS_FILES_NII = glob_files(ATLAS_FOLDER, "nii")
     ATLAS_FILES = ATLAS_FILES_GZ + ATLAS_FILES_NII
+
+    # Filter out the fmri files for the ones that have atlases
+    (FMRI_INPUT_FILES, COMMON_ATLAS_FILES) = get_fmri_for_atlas(FMRI_MAIN_FOLDER, ATLAS_FILES)
     
     # Clean up T1 template files
     T1_INPUT_FILES = list(filter(lambda x: not re.search('Template', x), T1_INPUT_FILES))
@@ -173,10 +179,11 @@ def main():
         FILTERED_SUBJECT_LIST = filter_subjects_list(SUBJECT_LISTS, SUBJECTS_FOLDER)
 
     # --------------- Get the correct atlas depending on parcellated fMRI --------------- #
-    ATLAS_CHOSEN = get_atlas_choice(FILTERED_SUBJECT_LIST, ATLAS_FILES)
+    (ATLAS_PATH, NEW_SUBJECT_LIST) = get_atlas_choice(FILTERED_SUBJECT_LIST, COMMON_ATLAS_FILES, REGISTERED_ATLASES_FOLDER)
 
     # There are 584 subjects after filtering
-    # print('Number of subjects: {}'.format(len(FILTERED_SUBJECT_LIST)))
+    print('Number of subjects: {}'.format(len(NEW_SUBJECT_LIST)))
+    print("Altas path: {}".format(ATLAS_PATH))
     
     # --------------- Mapping subject inputs to the HPC job --------------- #
     if hpc:
@@ -185,13 +192,14 @@ def main():
         # Get the index of the subject in the filtered list
         subject = FILTERED_SUBJECT_LIST[subject_idx]
         # Call the parallel process function on this subject
-        parallel_process(subject, ATLAS_CHOSEN, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH,
+        parallel_process(subject, ATLAS_PATH, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH,
                         DSI_COMMAND)
     else:
         # Get the mapping as a list for multiprocessing to work
-        mapping_inputs = list(zip(FILTERED_SUBJECT_LIST, [ATLAS_CHOSEN]*len(FILTERED_SUBJECT_LIST), 
+        mapping_inputs = list(zip(FILTERED_SUBJECT_LIST, [ATLAS_PATH]*len(FILTERED_SUBJECT_LIST), 
                                 [MAIN_STUDIO_PATH]*len(FILTERED_SUBJECT_LIST), [MAIN_MRTRIX_PATH]*len(FILTERED_SUBJECT_LIST), 
-                                [MAIN_FSL_PATH]*len(FILTERED_SUBJECT_LIST), [DSI_COMMAND]*len(FILTERED_SUBJECT_LIST)))
+                                [MAIN_FSL_PATH]*len(FILTERED_SUBJECT_LIST), [DSI_COMMAND]*len(FILTERED_SUBJECT_LIST),
+                                [REGISTERED_ATLASES_FOLDER]*len(FILTERED_SUBJECT_LIST)))
 
         # Use the mapping inputs with starmap to run the parallel processes
         with mp.Pool() as pool:

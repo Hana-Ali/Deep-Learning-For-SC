@@ -106,21 +106,21 @@ class wilson_model:
         integration_step_size = simulation_params['integration_step_size']
         initial_conditions = simulation_params['initial_conditions']
         number_of_regions = simulation_params['number_of_regions']
-        SC = np.load(simulation_params['SC'], allow_pickle=True)
+        SC = simulation_params['SC']
         # noise_type = simulation_params['noise_type']
         # time_steps = simulation_params['time_steps']
 
         # Checking that the parameters are valid
         check_type(integration_steps, int, "integration_steps")
         check_type(integration_step_size, float, "integration_step_size")
-        # check_type(initial_conditions, np.ndarray, "initial_conditions")
+        check_type(initial_conditions, np.ndarray, "initial_conditions")
         check_type(number_of_regions, int, "number_of_regions")
         check_type(SC, np.ndarray, "SC")
         # check_type(noise_type, int, "noise_type")
         # check_type(time_steps, np.ndarray, "time_steps")
 
         # Checking the shape of the parameters
-        # check_shape(initial_conditions, (number_of_regions, 2), "initial_conditions")
+        check_shape(initial_conditions, (number_of_regions, 2), "initial_conditions")
         check_shape(SC, (number_of_regions, number_of_regions), "SC")
         
         # Setting the initial conditions

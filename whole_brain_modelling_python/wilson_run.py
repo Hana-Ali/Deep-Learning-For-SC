@@ -41,12 +41,6 @@ time_simulated = 510.000 # seconds
 integration_step_size = 0.002 # seconds
 integration_steps = int(time_simulated / integration_step_size)
 
-# Defining the number of oscillators
-number_oscillators = 360
-
-# Defining initial conditions
-initial_conditions = torch.tensor(np.random.rand(number_oscillators, 2))
-
 # Choose current subject to do processing for
 (SUBJECT_SC_PATH, SUBJECT_FC_PATH) = choose_random_subject(SC_FC_root, NUMPY_root_path)
 
@@ -60,6 +54,9 @@ write_path = get_write_path(SUBJECT_SC_PATH, SC_type, wbm_type="kuramoto")
 # Get the number of oscillators
 number_oscillators = SC_matrix.shape[0]
 
+# Defining initial conditions
+initial_conditions = torch.tensor(np.random.rand(number_oscillators, 2))
+
 # Store the numpy matrices in the numpy arrays folder
 (SC_matrix_path, FC_matrix_path) = store_subject_numpy_arrays(SC_matrix, FC_matrix, SUBJECT_SC_PATH, NUMPY_root_path)
 
@@ -72,7 +69,7 @@ sim_params = {
     'integration_step_size': integration_step_size,
     'initial_conditions': initial_conditions,
     'number_of_regions': number_oscillators,
-    'SC': SC_matrix_path
+    'SC': SC_matrix
 }
 
 # Start timer

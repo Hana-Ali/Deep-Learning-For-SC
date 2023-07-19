@@ -13,8 +13,10 @@ def get_main_paths(hpc):
         SUBJECTS_FOLDER = "" # Empty in the case of HPC
         TRACTOGRAPHY_OUTPUT_FOLDER = os.path.join(ALL_DATA_FOLDER, "dMRI_outputs")
         NIPYPE_OUTPUT_FOLDER = os.path.join(ALL_DATA_FOLDER, "Nipype_outputs")
-        FMRI_MAIN_FOLDER = os.path.join(ALL_DATA_FOLDER, "camcan_parcellated_acompcor/glasser360/fmri700/rest")
+        # FMRI_MAIN_FOLDER = os.path.join(ALL_DATA_FOLDER, "camcan_parcellated_acompcor/glasser360/fmri700/rest")
+        FMRI_MAIN_FOLDER = os.path.join(ALL_DATA_FOLDER, "camcan_parcellated_acompcor")
         ATLAS_FOLDER = os.path.join(ALL_DATA_FOLDER, "Atlas")
+        REGISTERED_ATLASES_FOLDER = os.path.join(ATLAS_FOLDER, "registered_atlases")
 
         PEDRO_MAIN_FOLDER = "/rds/general/user/pam213/home/Data/CAMCAN/"
         DWI_MAIN_FOLDER = os.path.join(PEDRO_MAIN_FOLDER, "dwi")
@@ -59,7 +61,7 @@ def get_main_paths(hpc):
     # Return folder names
     return (ALL_DATA_FOLDER, SUBJECTS_FOLDER, TRACTOGRAPHY_OUTPUT_FOLDER, NIPYPE_OUTPUT_FOLDER, 
             DWI_MAIN_FOLDER, T1_MAIN_FOLDER, FMRI_MAIN_FOLDER, DSI_COMMAND, ATLAS_FOLDER, 
-            MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH)
+            REGISTERED_ATLASES_FOLDER, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH)
 
 # Check that input folders exist
 def check_input_folders(folder, name, verbose=False):
@@ -242,7 +244,7 @@ def create_subject_list(DWI_INPUT_FILES, DWI_JSON_HEADERS, B_VAL_FILES, B_VEC_FI
             continue
 
         # Append the subject name, dwi, json, bval, bvec, t1 and fMRI to the list
-        SUBJECT_LISTS.append([dwi_name, dwi[1], json[0], bval[0], bvec[0], t1[0], fmri[0]])
+        SUBJECT_LISTS.append([dwi_name, dwi[1], json[0], bval[0], bvec[0], t1[0], fmri])
     
     # print("Number of subjects: {}".format(len(SUBJECT_LISTS)))
         
@@ -287,23 +289,80 @@ def get_filename(SUBJECT_FILES, items):
             
     return items_to_get
 
+# Function to get the fmri files that have atlases
+def get_fmri_for_atlas(FMRI_MAIN_FOLDER, ATLAS_FILES):
+
+    # Get the folder names in the fmri folder
+    FMRI_FOLDER_NAMES = os.listdir(FMRI_MAIN_FOLDER)
+
+    # Get the atlases common with the fmri folder names
+    COMMON_ATLAS_FILES = [atlas_file for atlas_file in ATLAS_FILES if any(fmri_folder in atlas_file for fmri_folder in FMRI_FOLDER_NAMES)]
+
+    # Get the fmri folder names that have atlases
+    FMRI_FOLDER_NAMES = [fmri_folder for fmri_folder in FMRI_FOLDER_NAMES if any(fmri_folder in atlas_file for atlas_file in COMMON_ATLAS_FILES)]
+
+    # Get the fmri files for each folder
+    FMRI_INPUT_FILES = []
+    for fmri_folder in FMRI_FOLDER_NAMES:
+        # Get the fmri files for each folder
+        FMRI_INPUT_FILES.append(glob_files(os.path.join(FMRI_MAIN_FOLDER, fmri_folder), "mat"))
+
+    # Flatten the list
+    FMRI_INPUT_FILES = [item for sublist in FMRI_INPUT_FILES for item in sublist]
+
+    # Return the fmri files
+    return (FMRI_INPUT_FILES, COMMON_ATLAS_FILES)
+
 # Function to get the atlas choice
-def get_atlas_choice(FILTERED_SUBJECT_LIST, ATLAS_FILES):
-    # Get the atlas name from the first subject
-    atlas_name = get_filename(FILTERED_SUBJECT_LIST[0], "fmri")["fmri"].split("/")[-1].split("_")[1]
-
-    # Make all atlas files lowercase for comparison
-    ATLAS_FILES_LOWER = [atlas_file.lower() for atlas_file in ATLAS_FILES]
-    atlas_name_lower = atlas_name.lower()
-
-    # If the atlas name is not in the atlas files, exit the program
-    if not any(atlas_name_lower in atlas_file for atlas_file in ATLAS_FILES_LOWER):
-        print("Atlas name {} not found in atlas files. Please add atlas file".format(atlas_name))
-        sys.exit('Exiting program')
-    else:
-        # Get the atlas path
-        atlas_path = [atlas_file for atlas_file in ATLAS_FILES if atlas_name_lower in atlas_file.lower()][0]
-        print("Atlas path: {}".format(atlas_path))
+def get_atlas_choice(FILTERED_SUBJECT_LIST, COMMON_ATLAS_FILES, REGISTERED_ATLASES_FOLDER):
     
-    # Return the atlas path
-    return atlas_path
+    print("length of filtered subject list: {}".format(len(FILTERED_SUBJECT_LIST)))
+
+    # Get all the atlases in the registered atlas folder
+    REGISTERED_ATLASES = os.listdir(REGISTERED_ATLASES_FOLDER)
+
+    # Get the atlas names in common and registered atlases
+    ATLAS_NAMES = [atlas_file.split(os.sep)[-1].split(".")[0] for atlas_file in COMMON_ATLAS_FILES]
+    REGISTERED_ATLAS_NAMES = [atlas_file.split(os.sep)[-1] for atlas_file in REGISTERED_ATLASES]
+
+    print("atlas names: {}".format(ATLAS_NAMES))
+
+    # Get the atlas names that are not in the registered atlases
+    UNREGISTERED_ATLAS_NAMES = [atlas_name for atlas_name in ATLAS_NAMES if atlas_name not in REGISTERED_ATLAS_NAMES]
+    # Remove the jubrain atlas
+    UNREGISTERED_ATLAS_NAMES = [atlas_name for atlas_name in UNREGISTERED_ATLAS_NAMES if atlas_name != "jubrain"]
+
+    # If there are no unregistered atlases, exit the program
+    if len(UNREGISTERED_ATLAS_NAMES) == 0:
+        print("No unregistered atlases found. Please add unregistered atlases")
+        sys.exit('Exiting program')
+
+    # Choose a random unregistered atlas
+    ATLAS_CHOICE = np.random.choice(UNREGISTERED_ATLAS_NAMES)
+
+    # New subject list
+    NEW_SUBJECT_LIST = []
+
+
+    # For each subject
+    for subject in FILTERED_SUBJECT_LIST:
+
+        # Get the fmri files for each subject
+        FMRI_FILES = get_filename(subject, "fmri")["fmri"]
+
+        # Get the fmri files that have the atlas choice
+        FMRI_FILES_WITH_ATLAS = [fmri_file.lower() for fmri_file in FMRI_FILES if ATLAS_CHOICE.lower() in fmri_file]
+
+        # If there are no fmri files with atlases, exit the program
+        if len(FMRI_FILES_WITH_ATLAS) == 0:
+            print("No fmri files with atlases found. Please add fmri files with atlases")
+            sys.exit('Exiting program')
+
+        # Get the atlas path for the atlas choice
+        ATLAS_PATH = [atlas_file for atlas_file in COMMON_ATLAS_FILES if ATLAS_CHOICE in atlas_file][0]
+
+        # Add everything from the old list to the new subject list, and append the correct fmri files
+        NEW_SUBJECT_LIST.append(subject[:6] + FMRI_FILES_WITH_ATLAS)
+    
+    # Return the fmri files with atlas and the atlas path
+    return (ATLAS_PATH, NEW_SUBJECT_LIST)

@@ -188,10 +188,15 @@ def get_mrtrix_registration_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, ATLAS):
 
     # Extract what we need here from the needed file paths
     dwi_filename = NEEDED_FILE_PATHS["filename"]
-    
+
     # Get the folder names
     (_, _, _, _, _, T1_REG_FOLDER_NAME, ATLAS_REG_FOLDER_NAME, _, _, 
         _) = main_mrtrix_folder_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
+    
+    # Create a folder for this atlas in atlas_reg
+    ATLAS_NAME = ATLAS.split(os.sep)[-1].split(".")[0]
+    ATLAS_FOLDER = os.path.join(ATLAS_REG_FOLDER_NAME, ATLAS_NAME)
+    check_output_folders(ATLAS_FOLDER, "MRtrix atlas folder", wipe=False)
 
     # Convert T1 nii to mif, then create 5ttgen, register/map it to the B0 space of DWI, then convert back to nii
     T1_MIF_PATH = os.path.join(T1_REG_FOLDER_NAME, "{}_t1".format(dwi_filename))
@@ -203,12 +208,11 @@ def get_mrtrix_registration_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, ATLAS):
     T1_DWI_CONVERT_INV = os.path.join(T1_REG_FOLDER_NAME, "{}_t12dwi_mrtrix".format(dwi_filename))
     FIVETT_REG_PATH = os.path.join(T1_REG_FOLDER_NAME, "{}_5ttgenreg".format(dwi_filename))
     # Convert atlas nii to mif, then register/map it to the B0 space of DWI
-    ATLAS_DWI_MAP_MAT = os.path.join(ATLAS_REG_FOLDER_NAME, "{}_atlas2dwi_fsl".format(dwi_filename))
-    ATLAS_DWI_CONVERT_INV = os.path.join(ATLAS_REG_FOLDER_NAME, "{}_atlas2dwi_mrtrix".format(dwi_filename))
-    ATLAS_REG_PATH = os.path.join(ATLAS_REG_FOLDER_NAME, "{}_atlasreg".format(dwi_filename))
+    ATLAS_DWI_MAP_MAT = os.path.join(ATLAS_FOLDER, "{}_atlas2dwi_fsl".format(dwi_filename))
+    ATLAS_DWI_CONVERT_INV = os.path.join(ATLAS_FOLDER, "{}_atlas2dwi_mrtrix".format(dwi_filename))
+    ATLAS_REG_PATH = os.path.join(ATLAS_FOLDER, "{}_atlasreg".format(dwi_filename))
     # Getting the name of the atlas without .nii.gz
-    ATLAS_NAME = ATLAS.split("/")[-1].split(".")[0].split("_")[0]
-    ATLAS_MIF_PATH = os.path.join(ATLAS_REG_FOLDER_NAME, "{}_atlas_mif".format(ATLAS_NAME))
+    ATLAS_MIF_PATH = os.path.join(ATLAS_FOLDER, "{}_atlas_mif".format(ATLAS_NAME))
 
     # Return the paths
     return (T1_MIF_PATH, FIVETT_NOREG_PATH, DWI_B0_PATH, DWI_B0_NII, FIVETT_GEN_NII, T1_DWI_MAP_MAT,
@@ -258,12 +262,15 @@ def get_mrtrix_connectome_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, ATLAS):
     (_, _, _, _, _, _, _, _, _, CONNECTIVITY_FOLDER_NAME) = main_mrtrix_folder_paths(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH)
 
     # Get the atlas name
-    ATLAS_NAME = ATLAS.split("/")[-1].split(".")[0].split("_")[0]
+    ATLAS_NAME = ATLAS.split(os.sep)[-1].split(".")[0]
+    # Create folder in connectivity folder for this atlas
+    CONNECTIVITY_ATLAS_FOLDER = os.path.join(CONNECTIVITY_FOLDER_NAME, ATLAS_NAME)
+    check_output_folders(CONNECTIVITY_ATLAS_FOLDER, "MRtrix connectivity atlas folder", wipe=False)
 
     # Connectivity matrix path
-    CONNECTIVITY_PROB_PATH = os.path.join(CONNECTIVITY_FOLDER_NAME, "{subject}_{atlas}_prob_connectivity".format(
+    CONNECTIVITY_PROB_PATH = os.path.join(CONNECTIVITY_ATLAS_FOLDER, "{subject}_{atlas}_prob_connectivity".format(
                                                                             subject=dwi_filename, atlas=ATLAS_NAME))
-    CONNECTIVITY_GLOBAL_PATH = os.path.join(CONNECTIVITY_FOLDER_NAME, "{subject}_{atlas}_global_connectivity".format(
+    CONNECTIVITY_GLOBAL_PATH = os.path.join(CONNECTIVITY_ATLAS_FOLDER, "{subject}_{atlas}_global_connectivity".format(
                                                                             subject=dwi_filename, atlas=ATLAS_NAME))
 
     # Return the paths
