@@ -325,3 +325,26 @@ def determine_similarity(empFC, simFC, technique="Pearson"):
         raise ValueError('The input technique must be "Pearson", "Spearman", or "Euclidean", is ' + technique)
 
     return float(similarity)
+
+# Function to define the noise array
+def get_noise_array(number_of_oscillators, noise_type, noise_amplitude):
+
+    # Check that the input arguments are of the correct type
+    check_type(number_of_oscillators, int, 'number_of_oscillators')
+    check_type(noise_type, str, 'noise_type')
+    check_type(noise_amplitude, float, 'noise_amplitude')
+
+    # If noise type is none, just return zeros
+    if noise_type == "none":
+        noise_array = np.zeros((number_of_oscillators, 1))
+    # If noise type is normal, return normal noise
+    elif noise_type == "normal":
+        noise_array = np.random.normal(0, noise_amplitude, (number_of_oscillators, 1))
+    # If noise type is uniform, return uniform noise
+    elif noise_type == "uniform":
+        noise_array = np.random.uniform(-noise_amplitude, noise_amplitude, (number_of_oscillators, 1))
+    # If noise type is unknown, raise error
+    else:
+        raise ValueError('The input noise_type must be "none", "normal", or "uniform", is ' + noise_type)
+
+    return noise_array

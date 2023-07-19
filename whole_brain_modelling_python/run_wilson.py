@@ -54,6 +54,10 @@ write_path = get_write_path(SUBJECT_SC_PATH, SC_type, wbm_type="kuramoto")
 # Get the number of oscillators
 number_oscillators = SC_matrix.shape[0]
 
+# Define the noise type
+noise_type = "normal"
+noise_amplitude = 0.01
+
 # Defining initial conditions
 initial_conditions = torch.tensor(np.random.rand(number_oscillators, 2))
 
@@ -69,6 +73,8 @@ sim_params = {
     'integration_step_size': integration_step_size,
     'initial_conditions': initial_conditions,
     'number_of_regions': number_oscillators,
+    'noise_amplitude': noise_amplitude,
+    'noise_type' : noise_type,
     'SC': SC_matrix
 }
 

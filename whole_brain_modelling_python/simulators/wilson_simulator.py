@@ -102,26 +102,29 @@ class wilson_model:
         integration_step_size = simulation_params['integration_step_size']
         initial_conditions = simulation_params['initial_conditions']
         number_of_regions = simulation_params['number_of_regions']
+        noise_amplitude = simulation_params['noise_amplitude']
+        noise_type = simulation_params['noise_type']
         SC = simulation_params['SC']
-        # noise_type = simulation_params['noise_type']
-        # time_steps = simulation_params['time_steps']
 
         # Checking that the parameters are valid
         check_type(integration_steps, int, "integration_steps")
         check_type(integration_step_size, float, "integration_step_size")
         check_type(initial_conditions, "tensor", "initial_conditions")
         check_type(number_of_regions, int, "number_of_regions")
+        check_type(noise_amplitude, float, "noise_amplitude")
+        check_type(noise_type, str, "noise_type")
         check_type(SC, np.ndarray, "SC")
-        # check_type(noise_type, int, "noise_type")
-        # check_type(time_steps, np.ndarray, "time_steps")
 
         # Checking the shape of the parameters
         check_shape(initial_conditions, (number_of_regions, 2), "initial_conditions")
         check_shape(SC, (number_of_regions, number_of_regions), "SC")
+
+        # Get the noise array
+        noise_array = get_noise_array(number_of_regions, noise_type, noise_amplitude)
         
         # Setting the initial conditions
-        E = initial_conditions[:, 0]
-        I = initial_conditions[:, 1]
+        initial_E = initial_conditions[:, 0]
+        initial_I = initial_conditions[:, 1]
 
         # Setting the output matrix
         electrical_activity = torch.tensor(np.zeros((number_of_regions, integration_steps)))
@@ -132,54 +135,81 @@ class wilson_model:
             if i % 1000 == 0:
                 print('Integration step', i)
 
-            # If current integration step is greater than delay, then we can delay
-            if i > self.delay:
-                # Initialize the delay input
-                self.delay = np.floor(self.delay).astype(int)
-                delay_matrix = torch.tensor(electrical_activity[:, i - self.delay : i + 1])
+            # Take the first integration step
+            (E_response, I_response) = self.integration_step(initial_E, initial_I, SC, i, electrical_activity, number_of_regions)
             
-                # Multiplying by the appropriate elements in the structural connectivity matrix
-                delay_matrix = torch.tensor(SC) @ delay_matrix # Needs to be times path length - check w pedro
-                delay_matrix = torch.sum(delay_matrix, axis=1)
-
-                # Calculating the coupling matrix
-                coupling_matrix = self.coupling_strength * torch.tensor(SC)
-                coupling_matrix.fill_diagonal_(self.c_ee)
-                coupling_matrix = coupling_matrix @ delay_matrix
-
-            # Calculating the external input
-            external_input = torch.tensor(np.zeros((number_of_regions, 2)))
-            external_input[:, 0] = self.external_e
-            external_input[:, 1] = self.external_i
-
-            # Calculating the input
-            inp = torch.tensor(np.zeros((number_of_regions, 2)))
-            inp[:, 0] = self.c_ee * E - self.c_ei * I + external_input[:, 0]
-            inp[:, 1] = self.c_ie * E - self.c_ii * I + external_input[:, 1]
-
-            # If there is long range delay, add the coupling
-            if i > self.delay:
-                inp[:, 0] = inp[:, 0] + coupling_matrix
-                inp[:, 1] = inp[:, 1] + coupling_matrix
-
-            # Multipling input by alpha
-            inp[:, 0] = self.alpha_e * inp[:, 0]
-            inp[:, 1] = self.alpha_i * inp[:, 1]
-
-            # Calculating the sigmoidal response
-            E_response = self.sigmoidal(inp[:, 0])
-            I_response = self.sigmoidal(inp[:, 1])
-
             # Calculating the derivative
-            E_derivative = (-E + (self.k_e - self.r_e * E) * (E_response)) / self.tau_e
-            I_derivative = (-I + (self.k_i - self.r_i * I) * (I_response)) / self.tau_i
+            E_derivative_1 = (-E + (self.k_e - self.r_e * E) * (E_response)) / self.tau_e
+            I_derivative_1 = (-I + (self.k_i - self.r_i * I) * (I_response)) / self.tau_i
 
-            # Calculating the next state
-            E = E + integration_step_size * E_derivative
-            I = I + integration_step_size * I_derivative
+            # First estimate of the next step
+            E_1 = E + integration_step_size * E_derivative_1 + np.sqrt(integration_step_size) * noise_array
+            I_1 = I + integration_step_size * I_derivative_1 + np.sqrt(integration_step_size) * noise_array
+
+            # Take another integration step
+            (E_response, I_response) = self.integration_step(E, I, SC, i, electrical_activity, number_of_regions)
+
+            # Calculate the derivative
+            E_derivative_2 = (-E + (self.k_e - self.r_e * E) * (E_response)) / self.tau_e
+            I_derivative_2 = (-I + (self.k_i - self.r_i * I) * (I_response)) / self.tau_i
+
+            # Second estimate of the next step
+            E = E + (integration_step_size / 2) * (E_derivative_1 + E_derivative_2) + np.sqrt(integration_step_size) * noise_array
+            I = I + (integration_step_size / 2) * (I_derivative_1 + I_derivative_2) + np.sqrt(integration_step_size) * noise_array
 
             # Storing this in the output
             electrical_activity[:, i] = E
 
         # Returning the output
         return electrical_activity
+    
+    # Function for each integration step
+    def integration_step(self, E, I, SC, integration_step, electrical_activity, number_of_regions):
+        
+        # If current integration step is greater than delay, then we can delay
+        if integration_step > self.delay:
+            # Initialize the delay input
+            self.delay = np.floor(self.delay).astype(int)
+            delay_matrix = torch.tensor(electrical_activity[:, integration_step - self.delay : integration_step + 1])
+        
+            # Multiplying by the appropriate elements in the structural connectivity matrix
+            delay_matrix = torch.tensor(SC) @ delay_matrix # Needs to be times path length - check w pedro
+            delay_matrix = torch.sum(delay_matrix, axis=1)
+
+            # Calculating the coupling matrix
+            coupling_matrix = self.coupling_strength * torch.tensor(SC)
+            coupling_matrix.fill_diagonal_(self.c_ee)
+            coupling_matrix = coupling_matrix @ delay_matrix
+
+        # Calculating the external input
+        external_input = torch.tensor(np.zeros((number_of_regions, 2)))
+        external_input[:, 0] = self.external_e
+        external_input[:, 1] = self.external_i
+
+        # Calculating the input
+        inp = torch.tensor(np.zeros((number_of_regions, 2)))
+        print("E shape", E.shape)
+        print("I shape", I.shape)
+        print("external_input shape", external_input.shape)
+        print("inp shape", inp.shape)
+        inp[:, 0] = self.c_ee * E - self.c_ei * I + external_input[:, 0]
+        inp[:, 1] = self.c_ie * E - self.c_ii * I + external_input[:, 1]
+
+        # If there is long range delay, add the coupling
+        if integration_step > self.delay:
+            inp[:, 0] = inp[:, 0] + coupling_matrix
+            inp[:, 1] = inp[:, 1] + coupling_matrix
+
+        # Multipling input by alpha
+        inp[:, 0] = self.alpha_e * inp[:, 0]
+        inp[:, 1] = self.alpha_i * inp[:, 1]
+
+        # Calculating the sigmoidal response
+        E_response = self.sigmoidal(inp[:, 0])
+        I_response = self.sigmoidal(inp[:, 1])
+
+        # Calculate the input 
+
+        # Return the response
+        return (E_response, I_response)
+    
