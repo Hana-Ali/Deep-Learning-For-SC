@@ -336,13 +336,13 @@ def get_noise_array(number_of_oscillators, noise_type, noise_amplitude):
 
     # If noise type is none, just return zeros
     if noise_type == "none":
-        noise_array = np.zeros((number_of_oscillators, 1))
+        noise_array = np.zeros((number_of_oscillators))
     # If noise type is normal, return normal noise
     elif noise_type == "normal":
-        noise_array = np.random.normal(0, noise_amplitude, (number_of_oscillators, 1))
+        noise_array = np.random.normal(0, noise_amplitude, (number_of_oscillators))
     # If noise type is uniform, return uniform noise
     elif noise_type == "uniform":
-        noise_array = np.random.uniform(-noise_amplitude, noise_amplitude, (number_of_oscillators, 1))
+        noise_array = np.random.uniform(-noise_amplitude, noise_amplitude, (number_of_oscillators))
     # If noise type is unknown, raise error
     else:
         raise ValueError('The input noise_type must be "none", "normal", or "uniform", is ' + noise_type)

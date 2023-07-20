@@ -117,11 +117,6 @@ def parallel_process(SUBJECT_FILES, ATLAS, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, M
         print("Started {} - {}".format(cmd_name, dwi_filename))
         subprocess.run(mrtrix_cmd, shell=True)
 
-    # Once we're done, create a folder in the registered_atlases folder of this atlas name
-    ATLAS_NAME = ATLAS.split(os.sep)[-1].split(".")[0]
-    os.makedirs(os.path.join(REGISTERED_ATLASES_FOLDER, ATLAS_NAME), exist_ok=True)
-
-
 # -------------------------------------------------- Folder Paths and Data Checking -------------------------------------------------- #
 
 def main():
@@ -193,7 +188,7 @@ def main():
         subject = FILTERED_SUBJECT_LIST[subject_idx]
         # Call the parallel process function on this subject
         parallel_process(subject, ATLAS_PATH, MAIN_STUDIO_PATH, MAIN_MRTRIX_PATH, MAIN_FSL_PATH,
-                        DSI_COMMAND)
+                        DSI_COMMAND, REGISTERED_ATLASES_FOLDER)
     else:
         # Get the mapping as a list for multiprocessing to work
         mapping_inputs = list(zip(FILTERED_SUBJECT_LIST, [ATLAS_PATH]*len(FILTERED_SUBJECT_LIST), 
@@ -204,6 +199,10 @@ def main():
         # Use the mapping inputs with starmap to run the parallel processes
         with mp.Pool() as pool:
             pool.starmap(parallel_process, list(mapping_inputs))
+
+    # Once we're done, create a folder in the registered_atlases folder of this atlas name
+    ATLAS_NAME = ATLAS_PATH.split(os.sep)[-1].split(".")[0]
+    os.makedirs(os.path.join(REGISTERED_ATLASES_FOLDER, ATLAS_NAME), exist_ok=True)
 
 
 if __name__ == '__main__':

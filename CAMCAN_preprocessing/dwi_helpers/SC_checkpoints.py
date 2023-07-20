@@ -20,7 +20,7 @@ def check_all_mrtrix_missing_files(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, ATLAS):
     MRTRIX_RESPONSE = check_missing_mrtrix_response(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, RESPONSE_FOLDER_NAME)
 
     # --------------------- MRTRIX FOD CHECK
-    MRTRIX_FOD = check_missing_mrtrix_fod(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, FOD_NORM_FOLDER_NAME)
+    MRTRIX_FOD = check_missing_mrtrix_fod(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, FOD_FOLDER_NAME)
 
     # --------------------- MRTRIX FOD NORM CHECK
     MRTRIX_FOD_NORM = check_missing_mrtrix_fod_norm(NEEDED_FILE_PATHS, MAIN_MRTRIX_PATH, FOD_NORM_FOLDER_NAME)
