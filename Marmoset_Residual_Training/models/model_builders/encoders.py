@@ -1,4 +1,4 @@
-from .network_blocks import *
+from model_builders import *
 
 from functools import partial
 import torch.nn as nn
@@ -82,36 +82,3 @@ class MyronenkoEncoder(nn.Module):
 
         # Return the output
         return x_input
-    
-###############################################################
-####################### U-Net Encoder #######################
-###############################################################
-class UNetEncoder(MyronenkoEncoder):
-
-    # Define the forward pass
-    def forward(self, x_input):
-
-        # Define the outputs
-        outputs = []
-
-        # For each layer in the encoder
-        for layer, downsampling_convolution in self.myronenko_encoder:
-            
-            # Pass the input through the layer
-            x_input = layer(x_input)
-
-            # Insert the output into the outputs
-            outputs.insert(0, x_input)
-
-            # If the downsampling convolution is not None, then we do 1x1x1 convolution
-            if downsampling_convolution is not None:
-                x_input = downsampling_convolution(x_input)
-
-        # Add the last layer to the outputs
-        x_input = self.layers[-1](x_input)
-        outputs.insert(0, x_input)
-
-        # Return the outputs
-        return outputs
-    
-    

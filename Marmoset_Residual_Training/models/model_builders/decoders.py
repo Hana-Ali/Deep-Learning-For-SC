@@ -1,6 +1,5 @@
 import torch.nn as nn
-from .network_funcs import *
-from .network_blocks import *
+from model_builders import *
 from functools import partial
 import torch
 
@@ -298,53 +297,3 @@ class MirroredDecoder(nn.Module):
 
         # Return the output
         return x_input
-    
-###############################################################
-####################### U-Net Decoder #######################
-###############################################################
-class UNetDecoder(MirroredDecoder):
-
-    # Calculate the layer widths
-    def calculate_layer_widths(self, depth):
-
-        # Get them from MirroredDecoder
-        in_width, out_width = super().calculate_layer_widths(depth=depth)
-
-        # Id the deoth is not at the last block
-        if depth != len(self.layer_blocks) - 1:
-
-            # Double the in width
-            in_width *= 2
-
-        # Print out the layer
-        print("Decoder Layer {}:".format(depth), in_width, out_width)
-
-        # Return the in and out width
-        return in_width, out_width
-    
-    # Define the forward pass
-    def forward(self, x_input):
-
-        # x is the first input
-        x = x_input[0]
-
-        # For each pre upsampling convolution, upsampling convolution, and layer
-        for index, (pre_upsampling_convolution, upsampling_convolution, layer) in enumerate(self.mirrored_decoder):
-
-            # Pass the input through the layer
-            x = layer(x)
-
-            # Pass the input through the pre upsampling convolution
-            x = pre_upsampling_convolution(x)
-
-            # Pass the input through the upsampling convolution
-            x = upsampling_convolution(x)
-
-            # Concatenate
-            x = torch.cat((x, x_input[index + 1]), dim=1)
-
-        # Pass the input through the last layer
-        x = self.layers[-1](x)
-
-        # Return the output
-        return x

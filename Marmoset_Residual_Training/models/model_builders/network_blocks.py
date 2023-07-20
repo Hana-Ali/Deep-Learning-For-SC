@@ -19,7 +19,9 @@ class MyronenkoConvolutionBlock(nn.Module):
 
         # If norm layer is not specified, then we use Group norm
         if norm_layer is None:
-            norm_layer = nn.GroupNorm
+            self.norm_layer = nn.GroupNorm
+        else:
+            self.norm_layer = norm_layer
         
         # This will hold the Myronenko block
         myronenko_block = []
@@ -165,7 +167,9 @@ class BasicResidualBlock(nn.Module):
         
         # If the norm layer is not specified, then we use batch norm
         if norm_layer is None:
-            norm_layer = nn.BatchNorm3d
+            self.norm_layer = nn.BatchNorm3d
+        else:
+            self.norm_layer = norm_layer
 
         # If the number of groups is not 1, then we raise an error
         if groups != 1 or base_width != 64:
@@ -176,26 +180,31 @@ class BasicResidualBlock(nn.Module):
             raise NotImplementedError("Dilation > 1 not supported in BasicResidualBlock")
         
         # Add the first convolution
-        conv1 = conv3x3x3(in_channels, out_channels, stride)
+        self.conv1 = conv3x3x3(in_channels, out_channels, stride)
 
         # Add the batch norm
-        bn1 = self.create_norm_layer(out_channels, norm_layer)
+        self.bn1 = self.create_norm_layer(out_channels)
 
         # Add the ReLU
-        relu = nn.ReLU(inplace=True)
+        self.relu = nn.ReLU(inplace=True)
 
         # Add the second convolution
-        conv2 = conv3x3x3(out_channels, out_channels)
+        self.conv2 = conv3x3x3(out_channels, out_channels)
 
         # Add the batch norm
-        bn2 = self.create_norm_layer(out_channels, norm_layer)
+        self.bn2 = self.create_norm_layer(out_channels)
 
         # If the downsample is not None, then we do 1x1x1 convolution
         if downsample is not None:
             self.downsample = downsample
+        else:
+            self.downsample = None
+        
+        # Set the stride
+        self.stride = stride
 
         # Return the block
-        return nn.Sequential(conv1, bn1, relu, conv2, bn2)
+        return nn.Sequential(self.conv1, self.bn1, self.relu, self.conv2, self.bn2)
     
     # Forward pass
     def forward(self, x_input):
@@ -214,15 +223,138 @@ class BasicResidualBlock(nn.Module):
         x += identity
 
         # Apply final ReLU
-        x = nn.ReLU(inplace=True)(x)
+        x = self.relu(x)
 
         # Return the output
         return x
     
     # Create the normalization layer
-    def create_norm_layer(self, out_channels, norm_layer):
-        return norm_layer(out_channels)
+    def create_norm_layer(self, out_channels):
+        return self.norm_layer(out_channels)
     
+##############################################################
+################## Basic Block 1D (for ResNet) ##################
+##############################################################
+class BasicResidualBlock1D(BasicResidualBlock):
 
+    # Constructor
+    def __init__(self, in_channels, out_channels, stride=1, downsample=None, kernel_size=3, norm_layer=None):
+        super(BasicResidualBlock1D, self).__init__()
 
+        # If the norm layer is not specified, then we use batch norm
+        if norm_layer is None:
+            self.norm_layer = nn.BatchNorm1d
+        else:
+            self.norm_layer = norm_layer
+            
+        # Add the first convolution
+        self.conv1 = nn.Conv1d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, stride=stride, kernel_size=kernel_size, 
+                               bias=False, padding=1)
         
+        # Add the batch norm
+        self.bn1 = self.create_norm_layer(out_channels)
+
+        # Add the ReLU
+        self.relu = nn.ReLU(inplace=True)
+
+        # Add the second convolution
+        self.conv2 = nn.Conv1d(in_channels=out_channels, out_channels=out_channels, kernel_size=kernel_size, stride=1, kernel_size=kernel_size,
+                                 bias=False, padding=1)
+        
+        # Add the batch norm
+        self.bn2 = self.create_norm_layer(out_channels)
+
+        # If the downsample is not None, then we do 1x1x1 convolution
+        if downsample is not None:
+            self.downsample = downsample
+        else:
+            self.downsample = None
+
+        # Set the stride
+        self.stride = stride
+
+##############################################################
+################## Bottleneck (for ResNet) ##################
+##############################################################
+class Bottleneck(nn.Module):
+
+    # Define the expansion
+    expansion = 4
+
+    # Constructor
+    def __init__(self, in_channels, out_channels, stride=1, downsample=None, groups=1, 
+                 base_width=64, dilation=1, norm_layer=None):
+        super(Bottleneck, self).__init__()
+        self.bottleneck = self.build_bottleneck(in_channels, out_channels, stride, downsample, groups,
+                                                base_width, dilation, norm_layer)
+        
+    # Build the bottleneck
+    def build_bottleneck(self, in_channels, out_channels, stride, downsample, groups, base_width, dilation, norm_layer):
+
+        # If the norm layer is not specified, then we use batch norm
+        if norm_layer is None:
+            self.norm_layer = nn.BatchNorm3d
+        else:
+            self.norm_layer = norm_layer
+
+        # Define the width
+        width = int(out_channels * (base_width / 64.)) * groups
+
+        # Define the convolution
+        self.conv1 = conv1x1x1(in_channels, width)
+
+        # Define the batch norm
+        self.bn1 = self.create_norm_layer(width)
+
+        # Define the second convolution
+        self.conv2 = conv3x3x3(width, width, stride, groups, dilation)
+
+        # Define the batch norm
+        self.bn2 = self.create_norm_layer(width)
+
+        # Define the third convolution
+        self.conv3 = conv1x1x1(width, out_channels * self.expansion)
+
+        # Define the batch norm
+        self.bn3 = self.create_norm_layer(out_channels * self.expansion)
+
+        # Define the ReLU
+        self.relu = nn.ReLU(inplace=True)
+
+        # If the downsample is not None, then we do 1x1x1 convolution
+        if downsample is not None:
+            self.downsample = downsample
+        else:
+            self.downsample = None
+
+        # Set the stride
+        self.stride = stride
+
+        # Return the block
+        return nn.Sequential(self.conv1, self.bn1, self.relu, self.conv2, self.bn2, self.relu, self.conv3, self.bn3)
+    
+    # Forward pass
+    def forward(self, x_input):
+
+        # Define the identity of x_input, like residual block
+        identity = x_input
+
+        # Pass the input through the network
+        x = self.bottleneck(x_input)
+
+        # If the downsample is not None, then we do 1x1x1 convolution
+        if self.downsample is not None:
+            identity = self.downsample(identity)
+
+        # Add the identity to the output
+        x += identity
+
+        # Apply final ReLU
+        x = self.relu(x)
+
+        # Return the output
+        return x
+    
+    # Create the normalization layer
+    def create_norm_layer(self, *args, **kwargs):
+        return self.norm_layer(*args, **kwargs)
