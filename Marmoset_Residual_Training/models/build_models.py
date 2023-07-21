@@ -6,20 +6,33 @@ from model_builders import *
 from model_options import *
 
 # Function to get the model
-def get_model(model_name, *args, **kwargs):
+def get_model(model_name, input_nc, output_nc, ngf, num_blocks, norm_layer,
+              use_dropout, padding_type):
 
     try:
-        if "unet" in model_name.lower():
-            return getattr(unet, model_name)(*args, **kwargs)
+        if "resnet" in model_name.lower():
+            return ResnetEncoder(input_nc=input_nc, 
+                                 output_nc=output_nc,
+                                 ngf=ngf,
+                                 n_blocks=num_blocks,
+                                 norm_layer=norm_layer,
+                                 use_dropout=use_dropout,
+                                 padding_type=padding_type)
+
     except AttributeError:
         raise ValueError("Model {} not found".format(model_name))
     
 # Function to build or load the model
-def build_or_load_model(model_name, model_filename, n_features, n_outputs, n_gpus=0, bias=None, freeze_bias=False,
-                        strict=False, **kwargs):
+def build_or_load_model(model_name, model_filename, input_nc, output_nc, ngf, 
+                        num_blocks, norm_layer=nn.BatchNorm3d, use_dropout=False, 
+                        padding_type="reflect",
+                        n_gpus=0, bias=None, freeze_bias=False,
+                        strict=False):
 
     # Get the model
-    model = get_model(model_name=model_name, n_features=n_features, n_outputs=n_outputs, **kwargs)
+    model = get_model(model_name=model_name, input_nc=input_nc, output_nc=output_nc,
+                      ngf=ngf, num_blocks=num_blocks, norm_layer=norm_layer,
+                       use_dropout=use_dropout, padding_type=padding_type)
 
     # If there's bias
     if bias is not None:
@@ -105,6 +118,3 @@ def match_tensor_sizes(fixed_tensor, moving_tensor):
             moving_tensor = moving_tensor.narrow(dim=dim, start=0, length=fixed_tensor_size[dim])
     
     return moving_tensor
-
-
-

@@ -22,12 +22,15 @@ class MyronenkoConvolutionBlock(nn.Module):
             self.norm_layer = nn.GroupNorm
         else:
             self.norm_layer = norm_layer
+
+        # Set the number of norm groups
+        self.norm_groups = norm_groups
         
         # This will hold the Myronenko block
         myronenko_block = []
 
         # 1. Add the norm layer
-        myronenko_block += [self.create_norm_layer(in_channels, norm_layer, norm_groups)]
+        myronenko_block += [self.create_norm_layer(in_channels)]
 
         # 2. Add the ReLU layer
         myronenko_block += [nn.ReLU(True)]
@@ -38,18 +41,18 @@ class MyronenkoConvolutionBlock(nn.Module):
         return nn.Sequential(*myronenko_block)
     
     # Create the normalization layer
-    def create_norm_layer(self, in_channels, norm_layer, norm_groups, error_on_non_divisible_norm_groups=False):
+    def create_norm_layer(self, in_channels, error_on_non_divisible_norm_groups=False):
 
         # If the number of in channels is less than the number of norm groups, then we use instance norm
-        if in_channels < norm_groups:
-            return norm_layer(in_channels, in_channels)
+        if in_channels < self.norm_groups:
+            return self.norm_layer(in_channels, in_channels)
         # If the number of in channels is divisible by the number of norm groups, then we use group norm
         elif not error_on_non_divisible_norm_groups and (in_channels % self.norm_groups) > 0:
             print("Setting number of norm groups to {} for this convolution block.".format(in_channels))
             return self.norm_layer(in_channels, in_channels)
         # Otherwise, we use group norm
         else:
-            return norm_layer(norm_groups, in_channels)
+            return self.norm_layer(self.norm_groups, in_channels)
         
     # Forward pass
     def forward(self, x_input):
@@ -248,7 +251,7 @@ class BasicResidualBlock1D(BasicResidualBlock):
             self.norm_layer = norm_layer
             
         # Add the first convolution
-        self.conv1 = nn.Conv1d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, stride=stride, kernel_size=kernel_size, 
+        self.conv1 = nn.Conv1d(in_channels=in_channels, out_channels=out_channels, stride=stride, kernel_size=kernel_size, 
                                bias=False, padding=1)
         
         # Add the batch norm
@@ -258,7 +261,7 @@ class BasicResidualBlock1D(BasicResidualBlock):
         self.relu = nn.ReLU(inplace=True)
 
         # Add the second convolution
-        self.conv2 = nn.Conv1d(in_channels=out_channels, out_channels=out_channels, kernel_size=kernel_size, stride=1, kernel_size=kernel_size,
+        self.conv2 = nn.Conv1d(in_channels=out_channels, out_channels=out_channels, stride=1, kernel_size=kernel_size,
                                  bias=False, padding=1)
         
         # Add the batch norm
@@ -358,3 +361,87 @@ class Bottleneck(nn.Module):
     # Create the normalization layer
     def create_norm_layer(self, *args, **kwargs):
         return self.norm_layer(*args, **kwargs)
+
+##############################################################
+######################## ResNet Block ########################
+##############################################################
+class ResnetBlock(nn.Module):
+
+    # Constructor
+    def __init__(self, dim, padding_type, norm_layer, use_bias, use_dropout):
+        super(ResnetBlock, self).__init__()
+        self.res_block = self.build_resnet(dim, padding_type, norm_layer, use_bias, use_dropout)
+
+    # Build the convolutional block
+    def build_resnet(self, dim, padding_type, norm_layer, use_bias, use_dropout):
+        # This will hold the convolutional blocks
+        resnet_block = []
+        # This will hold the padding
+        padding = 0
+
+        # 1. Add padding
+        resnet_block += [self.get_resnet_padding(padding_type)]
+
+        # 2. Add the first convolutional block
+        resnet_block += self.get_resnet_conv(dim, dim, kernel_size=3, padding=padding, 
+                                        norm_layer=norm_layer, use_activation=True, 
+                                        use_bias=use_bias, use_dropout=use_dropout)
+
+        # 3. Add padding
+        resnet_block += [self.get_resnet_padding(padding_type)]
+
+        # 4. Add the second convolutional block
+        resnet_block += self.get_resnet_conv(dim, dim, kernel_size=3, padding=padding,
+                                        norm_layer=norm_layer, use_activation=False,
+                                        use_bias=use_bias, use_dropout=use_dropout)
+        
+        return nn.Sequential(*resnet_block)
+    
+    # Forward pass
+    def forward(self, x_input):
+        # A forward pass in ResNet is both the input and the input passed in the resnet block
+        return x_input + self.res_block(x_input)
+        
+    # Function to return padding type
+    def get_resnet_padding(self, padding_type):
+        # This holds the allowed padding types
+        allowed_padding = ['reflect', 'replicate', 'zero']
+
+        # Define the padding size
+        padding_size = 1
+
+        # If the padding type is reflect, then we add reflection padding
+        if padding_type == 'reflect':
+            return nn.ReflectionPad3d(padding_size)
+        # If the padding type is replicate, then we add replication padding
+        elif padding_type == 'replicate':
+            return nn.ReplicationPad3d(padding_size)
+        # If the padding type is zero, then we add zero padding
+        elif padding_type == 'zero':
+            return padding_size
+        else:
+            raise NotImplementedError("Padding [{type}] is not implemented. Options are {}".format(
+                                                        type=padding_type, options=(", ").join(allowed_padding)))
+
+    # Function to define convolutional block
+    def get_resnet_conv(self, in_dim, out_dim, kernel_size, padding, norm_layer, use_activation, use_bias=True, use_dropout=False):
+        # This will hold the convolutional block
+        res_block = []
+
+        # 1. Add convolutional layer
+        res_block += [nn.Conv3d(in_dim, out_dim, kernel_size=kernel_size, padding=padding, 
+                                bias=use_bias)]
+
+        # 2. Add normalization layer
+        if norm_layer is not None:
+            res_block += [norm_layer(out_dim)]
+
+        # 3. Add ReLU activation
+        if use_activation:
+            res_block += [nn.ReLU(True)]
+
+        # 4. Add dropout layer
+        if use_dropout:
+            res_block += [nn.Dropout(0.5)]
+
+        return res_block

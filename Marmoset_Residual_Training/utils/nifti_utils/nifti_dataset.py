@@ -10,9 +10,7 @@ class NiftiDataset(torch.utils.data.Dataset):
 
     # Constructor
     def __init__(self, data_path,
-                 which_direction='AtoB',
                  transforms=None,
-                 shuffle_labels=False,
                  train=False,
                  test=False):
         
@@ -25,12 +23,8 @@ class NiftiDataset(torch.utils.data.Dataset):
         self.images_list_size = len(self.images_list)
         self.labels_list_size = len(self.labels_list)
 
-        # Define the direction and transform
-        self.which_direction = which_direction
+        # Define the transforms
         self.transforms = transforms
-
-        # Define the shuffle labels flag
-        self.shuffle_labels = shuffle_labels
 
         # Define the train and test flags
         self.train = train
@@ -56,38 +50,9 @@ class NiftiDataset(torch.utils.data.Dataset):
         # Get the data path
         data_path = self.images_list[index]
 
-        # If shuffling the labels
-        if self.shuffle_labels:
-            
-            # Get a random index
-            random_index = np.random.randint(0, self.labels_list_size - 1)
-            # Get the label path
-            label_path = self.labels_list[random_index]
+        # Get the label path
+        label_path = self.labels_list[index]
         
-        # Otherwise
-        else:
-            
-            # Get the label path
-            label_path = self.labels_list[index]
-
-        # Define data path depending on direction
-        if self.which_direction == 'AtoB':
-            
-            # Define the data path
-            data_path = data_path
-            # Define the label path
-            label_path = label_path
-        
-        elif self.which_direction == 'BtoA':
-            
-            # Copy the data paths
-            data_path_copy = data_path
-            label_path_copy = label_path
-
-            # Reverse the paths
-            data_path = label_path_copy
-            label_path = data_path_copy
-
         # Read the image and label
         image = self.read_image(data_path)
 
@@ -105,10 +70,8 @@ class NiftiDataset(torch.utils.data.Dataset):
             # Read the label
             label = self.read_image(label_path)
             
-            # If segmentation is false
-            if not Segmentation:
-                # Normalize the label
-                label = self.Normalize(label)
+            # Normalize the label
+            label = self.Normalize(label)
             
             # Cast the label to a tensor
             cast_image_filter.SetOutputPixelType(self.bit)

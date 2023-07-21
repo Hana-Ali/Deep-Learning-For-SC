@@ -6,6 +6,7 @@ import os
 import torch
 import regex as re
 from collections import OrderedDict
+import json
 
 # Function to check if directory exists
 def check_directory(path):
@@ -86,3 +87,14 @@ def list_files(path, sort=True):
 
     # Return the list
     return images_list
+
+# Function to load a json file
+def load_json(file_name):
+    with open(file_name, 'r') as f:
+        return json.load(f)
+    
+# Function to dump a json file
+def dump_json(dictionary, filename):
+    with open(filename, 'w') as f:
+        json.dump(dictionary, f, indent=4, sort_keys=True)
+

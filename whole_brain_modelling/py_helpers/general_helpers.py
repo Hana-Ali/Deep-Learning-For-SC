@@ -3,10 +3,15 @@ import json
 import glob
 import shutil
 import os
+import torch
 
 # Check type of array and raise error if wrong
 def check_type(inp, input_type, input_name):
-    if not isinstance(inp, input_type):
+    # If the type is tensor, check if it's a tensor
+    if input_type == "tensor":
+        if not torch.is_tensor(inp):
+            raise TypeError('The input ' + input_name + ' must be a tensor')
+    elif not isinstance(inp, input_type):
         raise TypeError('The input ' + input_name + ' must be a ' + input_type.__name__ + ', is a ' + type(inp).__name__)
 
 # Check shape of array and raise error if wrong

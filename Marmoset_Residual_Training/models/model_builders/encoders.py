@@ -1,4 +1,4 @@
-from model_builders import *
+from .network_blocks import *
 
 from functools import partial
 import torch.nn as nn
@@ -82,3 +82,116 @@ class MyronenkoEncoder(nn.Module):
 
         # Return the output
         return x_input
+    
+import torch.nn as nn
+
+##############################################################
+####################### ResNet Encoder #######################
+##############################################################
+class ResnetEncoder(nn.Module):
+
+    # Constructor 
+    def __init__(self, input_nc, output_nc, ngf=64, n_blocks=6, norm_layer=nn.BatchNorm3d, use_dropout=False, padding_type='reflect'):
+        """
+        Parameters:
+            input_nc (int) -- the number of channels in input images
+            output_nc (int) -- the number of channels in output images
+            ngf (int) -- the number of filters in the last conv layer
+            n_blocks (int) -- the number of residual blocks
+            norm_layer -- normalization layer
+            use_dropout (bool) -- if use dropout layers
+            padding_type (str) -- the name of padding layer in conv layers: reflect | replicate | zero
+        """
+
+        # Initialize parent class
+        super(ResnetEncoder, self).__init__()
+
+        # Initialize the self attributes
+        self.input_nc = input_nc
+        self.output_nc = output_nc
+        self.ngf = ngf
+        self.n_blocks = n_blocks
+        self.norm_layer = norm_layer
+        self.use_dropout = use_dropout
+        self.padding_type = padding_type
+
+        # Whatever this is
+        if type(norm_layer) == partial:
+            self.use_bias = norm_layer.func == nn.InstanceNorm3d
+        else:
+            self.use_bias = norm_layer == nn.InstanceNorm3d
+
+        # Define the model
+        self.model = self.define_model()
+
+    # Define the model
+    def define_model(self):
+        """
+        Define the model architecture
+        """
+
+        # Initialize the model and padding size
+        model = []
+        padding_size = 3
+
+        # Define the padding layer
+        if self.padding_type == 'reflect':
+            padding_layer = nn.ReflectionPad3d(padding_size)
+        elif self.padding_type == 'replicate':
+            padding_layer = nn.ReplicationPad3d(padding_size)
+        elif self.padding_type == 'zero':
+            padding_layer = nn.ZeroPad3d(padding_size)
+        else:
+            raise NotImplementedError('padding [%s] is not implemented' % self.padding_type)
+        
+        # 1. Add the first block
+        model.extend([padding_layer, 
+                      nn.Conv3d(self.input_nc, self.ngf, kernel_size=7, padding=0, bias=self.use_bias), 
+                      self.norm_layer(self.ngf), nn.ReLU(True)])
+        
+        # 2. Add the downsample block
+        number_downsampling = 2
+        for i in range(number_downsampling):
+            mult = 2**i
+            model += [nn.Conv3d(self.ngf * mult, self.ngf * mult * 2, kernel_size=3, 
+                                stride=2, padding=1, bias=self.use_bias), 
+                          self.norm_layer(self.ngf * mult * 2), 
+                          nn.ReLU(True)]
+            
+        # 3. Add the residual blocks
+        mult = 2**number_downsampling
+        for i in range(self.n_blocks):
+            model += [ResnetBlock(self.ngf * mult, padding_type=self.padding_type, 
+                                  norm_layer=self.norm_layer, use_dropout=self.use_dropout, 
+                                  use_bias=self.use_bias)]
+            
+        # 4. Add more downsampling blocks
+        for i in range(number_downsampling):
+            mult = 2**(number_downsampling - i)
+            model += [nn.Conv3d(self.ngf * mult, int(self.ngf * mult / 2), 
+                                kernel_size=3, stride=2, padding=1, bias=self.use_bias), 
+                          self.norm_layer(int(self.ngf * mult / 2)), 
+                          nn.ReLU(True)]
+            
+        # 5. Add the last convolutional block then the linear
+        model += [nn.Conv3d(int(self.ngf * mult / 2), int(self.ngf * mult / 4),
+                            kernel_size=3, stride=2, padding=1, bias=self.use_bias),
+                             self.norm_layer(int(self.ngf * mult / 4)), nn.ReLU(True)]
+            
+        # 4. Add the last block as a 1x1x1 convolution
+        model += [nn.Conv3d(int(self.ngf * mult / 4), 1, kernel_size=3, stride=2, padding=1, bias=self.use_bias)]
+
+        # 5. Pooling to make it 1x1x1
+        model += [nn.AdaptiveAvgPool3d((1, 1, 1))]
+        
+        # Return the model
+        return nn.Sequential(*model)
+    
+    # Forward pass
+    def forward(self, input_x):
+        """
+        Forward pass
+        """
+
+        # Return the model
+        return self.model(input_x)
