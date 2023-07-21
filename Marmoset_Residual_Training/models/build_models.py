@@ -2,8 +2,8 @@ import os
 import torch
 import math
 
-from model_builders import *
-from model_options import *
+from .model_builders import *
+from .model_options import *
 
 # Function to get the model
 def get_model(model_name, input_nc, output_nc, ngf, num_blocks, norm_layer,

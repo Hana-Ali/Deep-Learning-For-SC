@@ -1,7 +1,7 @@
 from .general_funcs import *
 import numpy as np
 import shutil
-import loss_funcs
+from utils.training_utils import loss_funcs
 import os
 
 # Define the epoch training

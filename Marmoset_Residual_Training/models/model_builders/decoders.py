@@ -1,6 +1,6 @@
 import torch.nn as nn
-from model_builders import *
 from functools import partial
+from .network_blocks import *
 import torch
 
 ###############################################################

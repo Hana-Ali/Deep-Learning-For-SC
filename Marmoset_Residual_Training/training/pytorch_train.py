@@ -260,7 +260,7 @@ def run_pytorch_training(config, model_filename, training_log_filename, verbose=
         validation_set = NiftiDataset(config["validation_path"], transforms=None, train=True)
 
         # Define the validation loader
-        validation_loader = torch.utils.data.DataLoader(validation_set, batch_size=config["batch_size"], shuffle=True,
+        validation_loader = torch.utils.data.DataLoader(validation_set,
                                                         batch_size=config["validation_batch_size"] // in_config("points_per_subject",
                                                                                                         config, 1),
                                                         shuffle=False,

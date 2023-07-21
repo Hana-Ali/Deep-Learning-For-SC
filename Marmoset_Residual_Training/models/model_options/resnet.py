@@ -1,5 +1,5 @@
 import torch
-from model_builders import *
+from models.model_builders import *
 
 ##############################################################
 ########################### ResNet ###########################
