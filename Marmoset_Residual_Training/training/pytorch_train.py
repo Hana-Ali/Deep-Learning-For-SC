@@ -79,64 +79,65 @@ def train(model, optimizer, criterion, n_epochs, training_loader, validation_loa
         # Train the model
         loss = epoch_training(training_loader, model, criterion, optimizer=optimizer, epoch=epoch, n_gpus=n_gpus,
                               regularized=regularized, vae=vae, scaler=scaler)
+        break
 
-        try:
-            training_loader.dataset.on_epoch_end()
-        except AttributeError:
-            warnings.warn("'on_epoch_end' method not implemented for the {} dataset.".format(
-                type(training_loader.dataset)))
+        # try:
+        #     training_loader.dataset.on_epoch_end()
+        # except AttributeError:
+        #     warnings.warn("'on_epoch_end' method not implemented for the {} dataset.".format(
+        #         type(training_loader.dataset)))
             
-        # Clear the cache
-        if n_gpus:
-            torch.cuda.empty_cache()
+        # # Clear the cache
+        # if n_gpus:
+        #     torch.cuda.empty_cache()
 
-        # Predict validation set
-        if validation_loader:
-            val_loss = epoch_validation(validation_loader, model, criterion, n_gpus=n_gpus, regularized=regularized,
-                                          vae=vae, use_amp=scaler is not None)
-        else:
-            val_loss = None
+        # # Predict validation set
+        # if validation_loader:
+        #     val_loss = epoch_validation(validation_loader, model, criterion, n_gpus=n_gpus, regularized=regularized,
+        #                                   vae=vae, use_amp=scaler is not None)
+        # else:
+        #     val_loss = None
 
-        # Update the training log
-        training_log.append([epoch, loss, get_learning_rate(optimizer), val_loss])
+        # # Update the training log
+        # training_log.append([epoch, loss, get_learning_rate(optimizer), val_loss])
 
-        # Update the dataframe
-        pd.DataFrame(training_log, columns=training_log_header).set_index("epoch").to_csv(training_log_filename)
+        # # Update the dataframe
+        # pd.DataFrame(training_log, columns=training_log_header).set_index("epoch").to_csv(training_log_filename)
 
-        # Find the minimum epoch
-        min_epoch = np.asarray(training_log)[:, training_log_header.index(metric_to_monitor)].argmin()
+        # # Find the minimum epoch
+        # min_epoch = np.asarray(training_log)[:, training_log_header.index(metric_to_monitor)].argmin()
 
-        # Check the scheduler
-        if scheduler:
-            # If the scheduler is ReduceLROnPlateau
-            if validation_loader and isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
-                scheduler.step(val_loss)
-            # If the scheduler is training
-            elif isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
-                scheduler.step(loss)
-            else:
-                scheduler.step()
+        # # Check the scheduler
+        # if scheduler:
+        #     # If the scheduler is ReduceLROnPlateau
+        #     if validation_loader and isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+        #         scheduler.step(val_loss)
+        #     # If the scheduler is training
+        #     elif isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+        #         scheduler.step(loss)
+        #     else:
+        #         scheduler.step()
 
-        # Save the model
-        torch.save(model.state_dict(), model_filename)
+        # # Save the model
+        # torch.save(model.state_dict(), model_filename)
 
-        # If save best
-        if save_best and min_epoch == len(training_log) - 1:
-            best_filename = model_filename.replace(".h5", "_best.h5")
-            forced_copy(model_filename, best_filename)
+        # # If save best
+        # if save_best and min_epoch == len(training_log) - 1:
+        #     best_filename = model_filename.replace(".h5", "_best.h5")
+        #     forced_copy(model_filename, best_filename)
 
-        # If save every n epochs
-        if save_every_n_epochs and epoch % save_every_n_epochs == 0:
-            epoch_filename = model_filename.replace(".h5", "_{}.h5".format(epoch))
-            forced_copy(model_filename, epoch_filename)
+        # # If save every n epochs
+        # if save_every_n_epochs and epoch % save_every_n_epochs == 0:
+        #     epoch_filename = model_filename.replace(".h5", "_{}.h5".format(epoch))
+        #     forced_copy(model_filename, epoch_filename)
 
-        # If save last n models
-        if save_last_n_models and save_last_n_models > 1:
-            if not save_every_n_epochs or not ((epoch - save_last_n_models) % save_every_n_epochs) == 0:
-                to_delete = model_filename.replace(".h5", "_{}.h5".format(epoch - save_last_n_models))
-                remove_file(to_delete)
-            epoch_filename = model_filename.replace(".h5", "_{}.h5".format(epoch))
-            forced_copy(model_filename, epoch_filename)
+        # # If save last n models
+        # if save_last_n_models and save_last_n_models > 1:
+        #     if not save_every_n_epochs or not ((epoch - save_last_n_models) % save_every_n_epochs) == 0:
+        #         to_delete = model_filename.replace(".h5", "_{}.h5".format(epoch - save_last_n_models))
+        #         remove_file(to_delete)
+        #     epoch_filename = model_filename.replace(".h5", "_{}.h5".format(epoch))
+        #     forced_copy(model_filename, epoch_filename)
 
 
 # Define the trainer wrapping function
@@ -202,7 +203,7 @@ def run_pytorch_training(config, model_filename, training_log_filename, verbose=
     if "weights" in config and config["weights"] is not None:
         criterion = loss_funcs.WeightedLoss(torch.tensor(config["weights"]), criterion)
 
-    print("Criterion is: {}".format(criterion.__class__.__name__))
+    print("Criterion is: {}".format(criterion))
     
     # Define the optimizer
     optimizer_kwargs = dict()
@@ -234,28 +235,6 @@ def run_pytorch_training(config, model_filename, training_log_filename, verbose=
                                                 pin_memory=pin_memory,
                                                 prefetch_factor=prefetch_factor)
 
-    # for i, data in enumerate(train_loader):
-
-    #     print(i)
-    #     print(data)
- 
-
-    b0_images, wmfod_norms, residuals, injection_centers = next(iter(train_loader))
-    print(f"b0_images shape: {b0_images.size()}")
-    print(f"wmfod_norms shape: {wmfod_norms.size()}")
-    print(f"residuals shape: {residuals.size()}")
-    print(f"injection_centers shape: {injection_centers.size()}")
-
-
-    # Squeeze
-    b0_images = b0_images.squeeze(0).squeeze(0).detach().numpy()
-    wmfod_norms = wmfod_norms.squeeze(0).squeeze(0).detach().numpy()
-    residuals = residuals.squeeze(0).squeeze(0).detach().numpy()
-
-    print(f"b0_images shape: {b0_images.shape}")
-    print(f"wmfod_norms shape: {wmfod_norms.shape}")
-    print(f"residuals shape: {residuals.shape}")
-
     # # If test input
     # if test_input:
 
@@ -280,41 +259,40 @@ def run_pytorch_training(config, model_filename, training_log_filename, verbose=
     #             y_image.to_filename(model_filename.replace(".h5",
     #                                                        "_target_test_{}.nii.gz".format(index)))
 
-    # # If skipping validation
-    # if 'skip_validation' in config and config['skip_validation']:
-    #     validation_loader = None
-    #     metric_to_monitor = "loss"
-    # else:
-    #     # Get the dataset
-    #     validation_set = NiftiDataset(config["validation_path"], transforms=None, train=True)
+    # If skipping validation
+    if 'skip_val' in config and config['skip_val']:
+        validation_loader = None
+        metric_to_monitor = "loss"
+    else:
+        # Get the dataset
+        validation_set = NiftiDataset(config["validation_path"], transforms=None, train=True)
 
-    #     # Define the validation loader
-    #     validation_loader = torch.utils.data.DataLoader(validation_set,
-    #                                                     batch_size=config["validation_batch_size"] // in_config("points_per_subject",
-    #                                                                                                     config, 1),
-    #                                                     shuffle=False,
-    #                                                     num_workers=n_workers,
-    #                                                     collate_fn=collate_fn,
-    #                                                     pin_memory=pin_memory,
-    #                                                     prefetch_factor=prefetch_factor)
+        # Define the validation loader
+        validation_loader = torch.utils.data.DataLoader(validation_set,
+                                                        batch_size=config["validation_batch_size"],
+                                                        shuffle=False,
+                                                        num_workers=n_workers,
+                                                        collate_fn=collate_fn,
+                                                        pin_memory=pin_memory,
+                                                        prefetch_factor=prefetch_factor)
         
-    # # Train the model
-    # train(model=model, optimizer=optimizer, criterion=criterion, n_epochs=config["n_epochs"], verbose=bool(verbose),
-    #     training_loader=training_loader, validation_loader=validation_loader, model_filename=model_filename,
-    #     training_log_filename=training_log_filename,
-    #     metric_to_monitor=metric_to_monitor,
-    #     early_stopping_patience=in_config("early_stopping_patience", config),
-    #     save_best=in_config("save_best", config, False),
-    #     learning_rate_decay_patience=in_config("decay_patience", config),
-    #     regularized=in_config("regularized", config, regularized),
-    #     n_gpus=n_gpus,
-    #     vae=in_config("vae", config, False),
-    #     decay_factor=in_config("decay_factor", config),
-    #     min_lr=in_config("min_learning_rate", config),
-    #     learning_rate_decay_step_size=in_config("decay_step_size", config),
-    #     save_every_n_epochs=in_config("save_every_n_epochs", config),
-    #     save_last_n_models=in_config("save_last_n_models", config),
-    #     amp=amp)
+    # Train the model
+    train(model=model, optimizer=optimizer, criterion=criterion, n_epochs=config["n_epochs"], verbose=bool(verbose),
+        training_loader=train_loader, validation_loader=validation_loader, model_filename=model_filename,
+        training_log_filename=training_log_filename,
+        metric_to_monitor=metric_to_monitor,
+        early_stopping_patience=in_config("early_stopping_patience", config),
+        save_best=in_config("save_best", config, False),
+        learning_rate_decay_patience=in_config("decay_patience", config),
+        regularized=in_config("regularized", config, regularized),
+        n_gpus=n_gpus,
+        vae=in_config("vae", config, False),
+        decay_factor=in_config("decay_factor", config),
+        min_lr=in_config("min_learning_rate", config),
+        learning_rate_decay_step_size=in_config("decay_step_size", config),
+        save_every_n_epochs=in_config("save_every_n_epochs", config),
+        save_last_n_models=in_config("save_last_n_models", config),
+        amp=amp)
 
         
 

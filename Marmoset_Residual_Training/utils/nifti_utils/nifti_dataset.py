@@ -25,18 +25,10 @@ class NiftiDataset(torch.utils.data.Dataset):
         # Get all the nii.gz files
         nii_gz_files = glob_files(self.data_path, "nii.gz")
 
-        # Filter out for the FOD images
-        self.wmfod_norm = [file for file in nii_gz_files if "wmfod_norm" in file]
-
         # Filter out the B0 images
         self.b0_images = [file for file in nii_gz_files if "b0" in file]
         self.b0_resized_images = [file for file in self.b0_images if "resized" in file]
         self.b0_notresized_images = [file for file in self.b0_images if "resized" not in file]
-
-        # Filter out the probabilistic tracks (INPUTS 1)
-        self.prob_tracks = [file for file in nii_gz_files if "track_tckmapped" in file]
-        self.prob_tracks_flipped = [file for file in self.prob_tracks if "flipped" in file]
-        self.prob_tracks_notflipped = [file for file in self.prob_tracks if "flipped" not in file]
 
         # Filter out the residuals (TARGETS)
         self.residuals = [file for file in nii_gz_files if "subtracted" in file]
@@ -51,20 +43,12 @@ class NiftiDataset(torch.utils.data.Dataset):
          
         # Define the size of the lists
         self.b0_notresized_size = len(self.b0_notresized_images)
-        self.wmfod_norm_size = len(self.wmfod_norm)
         self.residuals_notflipped_size = len(self.residuals_notflipped)
 
         # Sort the lists to make sure they are in the same order
         self.b0_notresized_images.sort()
-        self.wmfod_norm.sort()
         self.residuals_notflipped.sort()
         self.injection_centers.sort()
-
-        # # Read an image
-        # image = self.read_image(self.wmfod_norm[0])
-
-        # # Get the image shape
-        # print("Image shape after reading: {}".format(image.shape))
 
         # Define the transforms
         self.transforms = transforms
@@ -80,15 +64,8 @@ class NiftiDataset(torch.utils.data.Dataset):
         # Read the image using nibabel
         image = nib.load(image_path)
 
-        print("Image shape after nibabel: {}".format(image.shape))
-
         # Get the image data
         image = image.get_fdata()
-
-        # # Convert to a pytorch tensor
-        # image = torch.from_numpy(image).unsqueeze(0).unsqueeze(0).float()
-
-        # print("Image shape after converting to tensor: {}".format(image.shape))
 
         # Return the image
         return image
@@ -99,9 +76,6 @@ class NiftiDataset(torch.utils.data.Dataset):
         # Get the b0 image path
         b0_image_path = self.b0_notresized_images[index]
 
-        # Get the wmfod path
-        wmfod_path = self.wmfod_norm[index]
-
         # Get the residual path
         residual_path = self.residuals_notflipped[index]
 
@@ -111,9 +85,6 @@ class NiftiDataset(torch.utils.data.Dataset):
         # Read the b0 image
         b0_image_array = self.read_image(b0_image_path)
 
-        # Read the wmfod image
-        wmfod_array = self.read_image(wmfod_path)
-
         # Read the residual image
         residual_array = self.read_image(residual_path)
 
@@ -121,11 +92,10 @@ class NiftiDataset(torch.utils.data.Dataset):
         injection_center = np.loadtxt(injection_center_path, delimiter=',')
 
         # Define a dictionary to store the images
-        sample = {'b0' : b0_image_array, 'wmfod': wmfod_array,
-                'residual': residual_array, 'injection_center': injection_center}
+        sample = {'b0' : b0_image_array, 'residual': residual_array, 'injection_center': injection_center}
 
         # Return the nps. This is the final output to feed the network
-        return sample["b0"], sample["wmfod"], sample["residual"], sample["injection_center"]
+        return sample["b0"], sample["residual"], sample["injection_center"]
     
     def __len__(self):
         return len(self.b0_images)

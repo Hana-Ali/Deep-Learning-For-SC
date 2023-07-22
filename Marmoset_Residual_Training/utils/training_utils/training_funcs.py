@@ -28,76 +28,82 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, n_gpus=None
     end = time.time()
 
     # For each batch
-    for i, (images, target) in enumerate(train_loader):
+    for i, (b0, residual, injection_center) in enumerate(train_loader):
+
+        print("Batch: {}".format(i))
+        print("B0: {}".format(b0.shape))
+        print("Residual: {}".format(residual.shape))
+        print("Injection center: {}".format(injection_center.shape))
 
         # Measure the data loading time
         data_time.update(time.time() - end)
 
         # If print GPU memory
-        if n_gpus:
-            torch.cuda.empty_cache()
-            if print_gpu_memory:
-                for i_gpu in range(n_gpus):
-                    print("Memory allocated (device {}):".format(i_gpu),
-                          human_readable_size(torch.cuda.memory_allocated(i_gpu)))
-                    print("Max memory allocated (device {}):".format(i_gpu),
-                          human_readable_size(torch.cuda.max_memory_allocated(i_gpu)))
-                    print("Memory cached (device {}):".format(i_gpu),
-                          human_readable_size(torch.cuda.memory_cached(i_gpu)))
-                    print("Max memory cached (device {}):".format(i_gpu),
-                          human_readable_size(torch.cuda.max_memory_cached(i_gpu)))
+        # if n_gpus:
+        #     torch.cuda.empty_cache()
+        #     if print_gpu_memory:
+        #         for i_gpu in range(n_gpus):
+        #             print("Memory allocated (device {}):".format(i_gpu),
+        #                   human_readable_size(torch.cuda.memory_allocated(i_gpu)))
+        #             print("Max memory allocated (device {}):".format(i_gpu),
+        #                   human_readable_size(torch.cuda.max_memory_allocated(i_gpu)))
+        #             print("Memory cached (device {}):".format(i_gpu),
+        #                   human_readable_size(torch.cuda.memory_cached(i_gpu)))
+        #             print("Max memory cached (device {}):".format(i_gpu),
+        #                   human_readable_size(torch.cuda.max_memory_cached(i_gpu)))
 
         # Zero the parameter gradients
         optimizer.zero_grad()
 
         # Get the loss and batch size
-        loss, batch_size = batch_loss(model, images, target, criterion, n_gpus=n_gpus, regularized=regularized,
-                                      vae=vae, use_amp=use_amp)
+        loss, batch_size = batch_loss(model, b0, residual, injection_center, criterion, 
+                                      n_gpus=n_gpus, regularized=regularized, vae=vae, use_amp=use_amp)
+        break
         
-        # Empty cache
-        if n_gpus:
-            torch.cuda.empty_cache()
+    #     # Empty cache
+    #     if n_gpus:
+    #         torch.cuda.empty_cache()
 
-        # Update the loss
-        losses.update(loss.item(), batch_size)
+    #     # Update the loss
+    #     losses.update(loss.item(), batch_size)
 
-        # If scaler
-        if scaler:
+    #     # If scaler
+    #     if scaler:
                 
-            # Scale the loss
-            scaler.scale(loss).backward()
+    #         # Scale the loss
+    #         scaler.scale(loss).backward()
 
-            # Unscale the optimizer
-            scaler.step(optimizer)
+    #         # Unscale the optimizer
+    #         scaler.step(optimizer)
 
-            # Update the scaler
-            scaler.update()
+    #         # Update the scaler
+    #         scaler.update()
 
-        # Else
-        else:
+    #     # Else
+    #     else:
                 
-            # Compute the gradients
-            loss.backward()
+    #         # Compute the gradients
+    #         loss.backward()
 
-            # Update the parameters
-            optimizer.step()
+    #         # Update the parameters
+    #         optimizer.step()
 
-        # Delete the loss
-        del loss
+    #     # Delete the loss
+    #     del loss
 
-        # Measure the elapsed time
-        batch_time.update(time.time() - end)
-        end = time.time()
+    #     # Measure the elapsed time
+    #     batch_time.update(time.time() - end)
+    #     end = time.time()
 
-        # If print frequency
-        if i % print_frequency == 0:
-            progress.display(i)
+    #     # If print frequency
+    #     if i % print_frequency == 0:
+    #         progress.display(i)
 
-    # Return the losses
-    return losses.avg
+    # # Return the losses
+    # return losses.avg
 
 # Define the batch loss
-def batch_loss(model, images, target, criterion, n_gpus=None, regularized=False, vae=False, use_amp=False):
+def batch_loss(model, b0, residual, injection_center, criterion, n_gpus=None, regularized=False, vae=False, use_amp=False):
 
     # If number of GPUs
     if n_gpus:
@@ -105,47 +111,55 @@ def batch_loss(model, images, target, criterion, n_gpus=None, regularized=False,
         # Empty cache
         torch.cuda.empty_cache()
 
-        # Get the images and target
-        images = images.cuda()
-        target = target.cuda()
+        # Cast all the data to float
+        b0 = b0.float()
+        residual = residual.float()
+        injection_center = injection_center.float()
+
+        # Get all the data on the GPU
+        b0 = b0.cuda()
+        residual = residual.cuda()
+        injection_center = injection_center.cuda()
     
     # Compute the output
     if use_amp:
         with torch.cuda.amp.autocast():
-            return _batch_loss(model, images, target, criterion, regularized=regularized, vae=vae)
+            return _batch_loss(model, b0, residual, injection_center, criterion, regularized=regularized, vae=vae)
     else:
-        return _batch_loss(model, images, target, criterion, regularized=regularized, vae=vae)
+        return _batch_loss(model, b0, residual, injection_center, criterion, regularized=regularized, vae=vae)
     
 # Define the batch loss
-def _batch_loss(model, images, target, criterion, regularized=False, vae=False):
+def _batch_loss(model, b0, residual, injection_center, criterion, regularized=False, vae=False):
 
     # Compute the output
-    output = model(images)
+    output = model(b0)
 
-    # Get the batch size
-    batch_size = images.size(0)
+    print("Output: {}".format(output))
 
-    # If regularized
-    if regularized:
+    # # Get the batch size
+    # batch_size = images.size(0)
+
+    # # If regularized
+    # if regularized:
         
-        # Try to get the loss from VAE
-        try:
-            output, output_vae, mu, logvar = output
-            loss = criterion(output, output_vae, mu, logvar, images, target)
-        # If it's not a VAE thing
-        except ValueError:
-            pred_y, pred_x = output
-            loss = criterion(pred_y, pred_x, images, target)
+    #     # Try to get the loss from VAE
+    #     try:
+    #         output, output_vae, mu, logvar = output
+    #         loss = criterion(output, output_vae, mu, logvar, images, target)
+    #     # If it's not a VAE thing
+    #     except ValueError:
+    #         pred_y, pred_x = output
+    #         loss = criterion(pred_y, pred_x, images, target)
 
-    # If VAE
-    elif vae:
-        pred_x, mu, logvar = output
-        loss = criterion(pred_x, mu, logvar, target)
-    else:
-        loss = criterion(output, target)
+    # # If VAE
+    # elif vae:
+    #     pred_x, mu, logvar = output
+    #     loss = criterion(pred_x, mu, logvar, target)
+    # else:
+    #     loss = criterion(output, target)
 
-    # Return the loss
-    return loss, batch_size
+    # # Return the loss
+    # return loss, batch_size
 
 # Define the epoch validation
 def epoch_validation(val_loader, model, criterion, n_gpus, print_freq=1, regularized=False, vae=False,
