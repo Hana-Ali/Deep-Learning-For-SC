@@ -2,38 +2,7 @@ import sys
 from py_helpers.general_helpers import *
 import numpy as np
 
-import SimpleITK as sitk
-
 import shutil
-
-import subprocess
-import nibabel as nib
-
-# Flip the image
-def flip_image(image):
-
-    # Get the image array
-    image = sitk.ReadImage(image)
-    image_array = np.transpose(sitk.GetArrayFromImage(image), (2, 1, 0))
-
-    # Get the spacing, direction and origin of the image
-    spacing = image.GetSpacing()
-    direction = image.GetDirection()
-    origin = image.GetOrigin()
-
-    # Flip the image array
-    image_array = np.flipud(image_array)
-
-    # Get the new image
-    new_image = sitk.GetImageFromArray(np.transpose(image_array, (2, 1, 0)))
-
-    # Set the new spacing, direction and origin
-    new_image.SetSpacing(spacing)
-    new_image.SetDirection(direction)
-    new_image.SetOrigin(origin)
-
-    # Return the new image
-    return new_image
 
 
 # Main function
