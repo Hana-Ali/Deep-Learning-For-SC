@@ -3,6 +3,8 @@ from .network_blocks import *
 from functools import partial
 import torch.nn as nn
 
+import torch
+
 ###############################################################
 ####################### Myronenko Encoder #######################
 ###############################################################
@@ -149,17 +151,14 @@ class ResnetEncoder(nn.Module):
                       nn.Conv3d(self.input_nc, self.ngf, kernel_size=7, padding=0, bias=self.use_bias), 
                       self.norm_layer(self.ngf), nn.ReLU(True)])
         
-        # 2. Add the downsample block
-        number_downsampling = 2
-        for i in range(number_downsampling):
-            mult = 2**i
-            model += [nn.Conv3d(self.ngf * mult, self.ngf * mult * 2, kernel_size=3, 
-                                stride=2, padding=1, bias=self.use_bias), 
-                          self.norm_layer(self.ngf * mult * 2), 
-                          nn.ReLU(True)]
-            
-        # 3. Add the residual blocks
+        # 2. Add one convolution
+        number_downsampling = 2            
         mult = 2**number_downsampling
+        model += [nn.Conv3d(self.ngf, self.ngf * mult, kernel_size=3,
+                    stride=1, padding=1, bias=False),
+                        self.norm_layer(self.ngf * mult), nn.ReLU(True)]
+
+        # 3. Add the residual blocks
         for i in range(self.n_blocks):
             model += [ResnetBlock(self.ngf * mult, padding_type=self.padding_type, 
                                   norm_layer=self.norm_layer, use_dropout=self.use_dropout, 
@@ -183,6 +182,9 @@ class ResnetEncoder(nn.Module):
 
         # 5. Pooling to make it 1x1x1
         model += [nn.AdaptiveAvgPool3d((1, 1, 1))]
+
+        # 6. Add the linear layer - for the injection center
+        model += [nn.Linear(4, 1)]
         
         # Return the model
         return nn.Sequential(*model)
@@ -199,10 +201,23 @@ class ResnetEncoder(nn.Module):
             raise NotImplementedError('normalization layer [%s] is not found' % norm_layer)
     
     # Forward pass
-    def forward(self, input_x):
+    def forward(self, input_x, injection_center):
         """
         Forward pass
         """
 
+        # Do all the convolutions on the cube first
+        for layer in self.model[:-1]:
+            input_x = layer(input_x)
+
+        # Squeeze the input to match dimensions
+        input_x = input_x.squeeze(0).squeeze(0).float()
+
+        # Concatenate the injection center 
+        input_x = torch.cat((input_x, injection_center), dim=2)
+
+        # Then do the last layer
+        input_x = self.model[-1](input_x)
+
         # Return the model
-        return self.model(input_x)
+        return input_x

@@ -183,6 +183,8 @@ def run_pytorch_training(config, model_filename, training_log_filename, verbose=
         Model metrics.
     """
 
+    # print(torch.summary)
+
     # Build or load the model
     model = build_or_load_model(model_name, model_filename, input_nc=config["input_nc"], 
                                 output_nc=config["output_nc"], ngf=config["ngf"], 

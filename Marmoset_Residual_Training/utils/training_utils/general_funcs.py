@@ -4,6 +4,7 @@ import torch.optim
 import torch.utils.data
 import torch.utils.data.distributed
 import time
+import numpy as np
 
 try:
     from torch.utils.data._utils.collate import default_collate
@@ -119,4 +120,58 @@ def human_readable_size(size_bytes):
 # Check if it's in config
 def in_config(string, dictionary, if_not_in_config_return=None):
     return dictionary[string] if string in dictionary else if_not_in_config_return
+
+# Function to grab the cube around a certain voxel
+def grab_cube_around_voxel(image, voxel_coordinates, kernel_size):
+
+    # Get the voxel coordinates
+    voxel_x, voxel_y, voxel_z = voxel_coordinates
+
+    # Create the cube
+    cube_size = kernel_size * 2
+    cube = np.zeros((cube_size, cube_size, cube_size))
+
+    print("Shape of image: ", image.shape)
+
+    # For every dimension
+    for x in range(cube_size):
+        for y in range(cube_size):
+            for z in range(cube_size):
+
+                # Get the coordinates
+                x_coord = voxel_x - kernel_size + x
+                y_coord = voxel_y - kernel_size + y
+                z_coord = voxel_z - kernel_size + z
+
+                # If the coordinates are out of bounds, set to the boundary
+                x_coord = set_value_if_out_of_bounds(image, x_coord, image.shape[2])
+                y_coord = set_value_if_out_of_bounds(image, y_coord, image.shape[3])
+                z_coord = set_value_if_out_of_bounds(image, z_coord, image.shape[4])
+
+                # Get the value at the coordinate
+                value = image[0, 0, x_coord, y_coord, z_coord]
+
+                # Set the value in the cube
+                cube[x, y, z] = value.item()
+
+    # Return the cube
+    return cube
+
+# Function to set the value if out of bounds
+def set_value_if_out_of_bounds(image, coordinate, bound):
+
+    # If the coordinate is out of bounds
+    if coordinate < 0:
+        coordinate = 0
+    elif coordinate >= bound:
+        coordinate = bound - 1
+
+    # Return the coordinate
+    return coordinate
+
+
+
+
+
+
 

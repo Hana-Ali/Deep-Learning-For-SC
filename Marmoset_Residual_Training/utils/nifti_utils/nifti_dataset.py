@@ -22,33 +22,61 @@ class NiftiDataset(torch.utils.data.Dataset):
         # 3. Residuals (TARGETS)
         # Remember that the FOD, injection center, and residuals are what we train with
         
-        # Get all the nii.gz files
-        nii_gz_files = glob_files(self.data_path, "nii.gz")
-
-        # Filter out the B0 images
-        self.b0_images = [file for file in nii_gz_files if "b0" in file]
-        self.b0_resized_images = [file for file in self.b0_images if "resized" in file]
-        self.b0_notresized_images = [file for file in self.b0_images if "resized" not in file]
-
-        # Filter out the residuals (TARGETS)
-        self.residuals = [file for file in nii_gz_files if "subtracted" in file]
-        self.residuals_flipped = [file for file in self.residuals if "flipped" in file]
-        self.residuals_notflipped = [file for file in self.residuals if "unflipped" in file]
-
-        # Get all the csv files
+        # Get all the nii.gz and csv files
+        nii_gz_files = glob_files(self.data_path, "nii.gz")        
         csv_files = glob_files(self.data_path, "csv")
 
-        # Filter out the injection centers
-        self.injection_centers = [file for file in csv_files if "inj_center" in file]
-         
-        # Define the size of the lists
-        self.b0_notresized_size = len(self.b0_notresized_images)
-        self.residuals_notflipped_size = len(self.residuals_notflipped)
+        # Filter out the B0 images (INPUTS 1)
+        b0_images = [file for file in nii_gz_files if "b0" in file and "resized" not in file]
 
-        # Sort the lists to make sure they are in the same order
-        self.b0_notresized_images.sort()
-        self.residuals_notflipped.sort()
-        self.injection_centers.sort()
+        # Filter out the injection centers (INPUTS 2)
+        injection_centers = [file for file in csv_files if "inj_center" in file]
+
+        # Filter out the residuals (TARGETS)
+        residuals = [file for file in nii_gz_files if "subtracted" in file]
+
+        # Prepare the lists
+        self.b0_images = []
+        self.residuals = []
+        self.injection_centers = []
+
+        # For every item in the residuals
+        for i in range(len(residuals)):
+
+            # Get the residual path
+            residual_path = residuals[i]
+
+            # Get the region ID
+            region_id = residual_path.split(os.sep)[-2]
+
+            # Get whether it's flipped or not
+            is_not_flipped = "unflipped" in residual_path
+
+            # Get the b0 path that corresponds to the region ID
+            b0_path = [file for file in b0_images if region_id in file]
+
+            # Get the injection center that corresponds to the region ID
+            injection_center_path = [file for file in injection_centers if region_id in file][0]
+
+            # If it's empty, choose a random b0 image
+            if b0_path == []:
+                b0_path = np.random.choice(b0_images)
+            else:
+                b0_path = b0_path[0]
+
+            # Append the B0 image to the list
+            self.b0_images.append(b0_path)
+
+            # Append the residual to the list, and add the is_flipped flag
+            self.residuals.append((residual_path, not is_not_flipped))
+
+            # Append the injection center to the list
+            self.injection_centers.append(injection_center_path)
+
+        # Define the size of the lists
+        self.b0_size = len(self.b0_images)
+        self.residuals_size = len(self.residuals)
+        self.injection_centers_size = len(self.injection_centers)
 
         # Define the transforms
         self.transforms = transforms
@@ -67,6 +95,9 @@ class NiftiDataset(torch.utils.data.Dataset):
         # Get the image data
         image = image.get_fdata()
 
+        # Expand the dimensions of the image
+        image = np.expand_dims(image, axis=0)
+
         # Return the image
         return image
     
@@ -74,10 +105,11 @@ class NiftiDataset(torch.utils.data.Dataset):
     def __getitem__(self, index):
 
         # Get the b0 image path
-        b0_image_path = self.b0_notresized_images[index]
+        b0_image_path = self.b0_images[index]
 
-        # Get the residual path
-        residual_path = self.residuals_notflipped[index]
+        # Get the residual path and the is_flipped flag
+        residual_path = self.residuals[index][0]
+        is_flipped = self.residuals[index][1]
 
         # Get the injection center path
         injection_center_path = self.injection_centers[index]
@@ -92,7 +124,7 @@ class NiftiDataset(torch.utils.data.Dataset):
         injection_center = np.loadtxt(injection_center_path, delimiter=',')
 
         # Define a dictionary to store the images
-        sample = {'b0' : b0_image_array, 'residual': residual_array, 'injection_center': injection_center}
+        sample = {'b0' : b0_image_array, 'residual': (residual_array, is_flipped), 'injection_center': injection_center}
 
         # Return the nps. This is the final output to feed the network
         return sample["b0"], sample["residual"], sample["injection_center"]
