@@ -1,9 +1,8 @@
 from utils.utility_funcs import *
-import SimpleITK as sitk
+import nibabel as nib
 import numpy as np
 import torch
-
-Segmentation = False
+import glob
 
 # Define the NiftiDataset class
 class NiftiDataset(torch.utils.data.Dataset):
@@ -16,12 +15,56 @@ class NiftiDataset(torch.utils.data.Dataset):
         
         # Define the data paths
         self.data_path = data_path
-        self.images_list = list_files(os.path.join(data_path, 'images'))
-        self.labels_list = list_files(os.path.join(data_path, 'labels'))
 
+        # Define the following paths that we use in the model
+        # 1. DWI/FOD images (INPUTS 1)
+        # 2. Injection center (INPUTS 2)
+        # 3. Residuals (TARGETS)
+        # Remember that the FOD, injection center, and residuals are what we train with
+        
+        # Get all the nii.gz files
+        nii_gz_files = glob_files(self.data_path, "nii.gz")
+
+        # Filter out for the FOD images
+        self.wmfod_norm = [file for file in nii_gz_files if "wmfod_norm" in file]
+
+        # Filter out the B0 images
+        self.b0_images = [file for file in nii_gz_files if "b0" in file]
+        self.b0_resized_images = [file for file in self.b0_images if "resized" in file]
+        self.b0_notresized_images = [file for file in self.b0_images if "resized" not in file]
+
+        # Filter out the probabilistic tracks (INPUTS 1)
+        self.prob_tracks = [file for file in nii_gz_files if "track_tckmapped" in file]
+        self.prob_tracks_flipped = [file for file in self.prob_tracks if "flipped" in file]
+        self.prob_tracks_notflipped = [file for file in self.prob_tracks if "flipped" not in file]
+
+        # Filter out the residuals (TARGETS)
+        self.residuals = [file for file in nii_gz_files if "subtracted" in file]
+        self.residuals_flipped = [file for file in self.residuals if "flipped" in file]
+        self.residuals_notflipped = [file for file in self.residuals if "unflipped" in file]
+
+        # Get all the csv files
+        csv_files = glob_files(self.data_path, "csv")
+
+        # Filter out the injection centers
+        self.injection_centers = [file for file in csv_files if "inj_center" in file]
+         
         # Define the size of the lists
-        self.images_list_size = len(self.images_list)
-        self.labels_list_size = len(self.labels_list)
+        self.b0_notresized_size = len(self.b0_notresized_images)
+        self.wmfod_norm_size = len(self.wmfod_norm)
+        self.residuals_notflipped_size = len(self.residuals_notflipped)
+
+        # Sort the lists to make sure they are in the same order
+        self.b0_notresized_images.sort()
+        self.wmfod_norm.sort()
+        self.residuals_notflipped.sort()
+        self.injection_centers.sort()
+
+        # # Read an image
+        # image = self.read_image(self.wmfod_norm[0])
+
+        # # Get the image shape
+        # print("Image shape after reading: {}".format(image.shape))
 
         # Define the transforms
         self.transforms = transforms
@@ -30,16 +73,22 @@ class NiftiDataset(torch.utils.data.Dataset):
         self.train = train
         self.test = test
 
-        # Define the bit
-        self.bit = sitk.sitkFloat32
 
     # Function to read an image
     def read_image(self, image_path):
         
-        # Read the image
-        reader = sitk.ImageFileReader()
-        reader.SetFileName(image_path)
-        image = reader.Execute()
+        # Read the image using nibabel
+        image = nib.load(image_path)
+
+        print("Image shape after nibabel: {}".format(image.shape))
+
+        # Get the image data
+        image = image.get_fdata()
+
+        # # Convert to a pytorch tensor
+        # image = torch.from_numpy(image).unsqueeze(0).unsqueeze(0).float()
+
+        # print("Image shape after converting to tensor: {}".format(image.shape))
 
         # Return the image
         return image
@@ -47,92 +96,44 @@ class NiftiDataset(torch.utils.data.Dataset):
     # Function to get item
     def __getitem__(self, index):
 
-        # Get the data path
-        data_path = self.images_list[index]
+        # Get the b0 image path
+        b0_image_path = self.b0_notresized_images[index]
 
-        # Get the label path
-        label_path = self.labels_list[index]
-        
-        # Read the image and label
-        image = self.read_image(data_path)
+        # Get the wmfod path
+        wmfod_path = self.wmfod_norm[index]
 
-        # Normalize the image
-        image = self.Normalize(image)
+        # Get the residual path
+        residual_path = self.residuals_notflipped[index]
 
-        # Cast the image and label to a tensor
-        cast_image_filter = sitk.CastImageFilter()
-        cast_image_filter.SetOutputPixelType(self.bit)
-        image = cast_image_filter.Execute(image)
+        # Get the injection center path
+        injection_center_path = self.injection_centers[index]
 
-        # If training or testing
-        if self.train or self.test:
-            
-            # Read the label
-            label = self.read_image(label_path)
-            
-            # Normalize the label
-            label = self.Normalize(label)
-            
-            # Cast the label to a tensor
-            cast_image_filter.SetOutputPixelType(self.bit)
-            label = cast_image_filter.Execute(label)
+        # Read the b0 image
+        b0_image_array = self.read_image(b0_image_path)
 
-        # If neither
-        else:
-            
-            # Create a label image
-            label = sitk.Image(image.GetSize(), self.bit)
-            
-            # Set the origin and spacing of the label
-            label.SetOrigin(image.GetOrigin())
-            label.SetSpacing(image.GetSpacing())
+        # Read the wmfod image
+        wmfod_array = self.read_image(wmfod_path)
 
-        # Define the sample
-        sample = {'image': image, 'label': label}
+        # Read the residual image
+        residual_array = self.read_image(residual_path)
 
-        # If there is a transform
-        if self.transforms:
-            # For each transform
-            for transform in self.transforms:
-                # Apply the transform
-                sample = transform(sample)
+        # Load the injection center into a numpy array
+        injection_center = np.loadtxt(injection_center_path, delimiter=',')
 
-        # Convert sample to a tensor
-        image_np = abs(sitk.GetArrayFromImage(sample['image']))
-        label_np = abs(sitk.GetArrayFromImage(sample['label']))
-
-        if Segmentation:
-            label_np = abs(np.around(label_np))
-
-        # To unify matrix dimension order between SimpleITK([x,y,z]) and numpy([z,y,x])  (actually it´s the contrary)
-        image_np = np.transpose(image_np, (2, 1, 0))
-        label_np = np.transpose(label_np, (2, 1, 0))
-
-        label_np = (label_np - 127.5) / 127.5
-        image_np = (image_np - 127.5) / 127.5
-
-        image_np = image_np[np.newaxis, :, :, :]
-        label_np = label_np[np.newaxis, :, :, :]
+        # Define a dictionary to store the images
+        sample = {'b0' : b0_image_array, 'wmfod': wmfod_array,
+                'residual': residual_array, 'injection_center': injection_center}
 
         # Return the nps. This is the final output to feed the network
-        return torch.from_numpy(image_np), torch.from_numpy(label_np)
+        return sample["b0"], sample["wmfod"], sample["residual"], sample["injection_center"]
+    
+    def __len__(self):
+        return len(self.b0_images)
 
-    # Function to normalize an image
-    def Normalize(self, image):
 
-        # Define the normalizer
-        normalizer = sitk.NormalizeImageFilter()
-        rescaler = sitk.RescaleIntensityImageFilter()
-
-        # Set the maximum and minimum of rescaler
-        rescaler.SetOutputMaximum(255)
-        rescaler.SetOutputMinimum(0)
-
-        # Normalize the image (mean and std)
-        image = normalizer.Execute(image)
-        # Rescale the image (0 to 255)
-        image = rescaler.Execute(image)
-
-        # Return the image
-        return image
-
+# Function to glob files
+def glob_files(PATH_NAME, file_format):
+    INPUT_FILES = []
+    for file in glob.glob(os.path.join(PATH_NAME, os.path.join("**", "*.{}".format(file_format))), recursive=True):
+        INPUT_FILES.append(file)
+    return INPUT_FILES

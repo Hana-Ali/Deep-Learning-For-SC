@@ -53,11 +53,16 @@ def get_main_paths(hpc):
             BMINDS_DATA_FOLDER = "/mnt/d/Brain-MINDS"
             
             BMINDS_OUTPUTS_DMRI_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "processed_dMRI"))
-            BMINDS_OUTPUTS_INJECTIONS_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "processed_injections"))
+            BMINDS_OUTPUTS_DMRI_BMA_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "processed_BMA_dMRI"))
+            BMINDS_OUTPUTS_INVIVO_BMA_FOLDER = os.path.realpath(os.path.join(BMINDS_OUTPUTS_DMRI_BMA_FOLDER, "in_vivo"))
+            BMINDS_OUTPUTS_EXVIVO_BMA_FOLDER = os.path.realpath(os.path.join(BMINDS_OUTPUTS_DMRI_BMA_FOLDER, "ex_vivo"))
+            BMINDS_OUTPUTS_INJECTIONS_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "processed_injections"))   
             
             BMINDS_BMA_MAIN_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "BMA_dMRI"))
             BMINDS_BMA_INVIVO_FOLDER = os.path.realpath(os.path.join(BMINDS_BMA_MAIN_FOLDER, "in_vivo"))
+            BMINDS_BMA_EXVIVO_FOLDER = os.path.realpath(os.path.join(BMINDS_BMA_MAIN_FOLDER, "ex_vivo"))
             BMINDS_BMA_INVIVO_DWI_FOLDER = os.path.realpath(os.path.join(BMINDS_BMA_INVIVO_FOLDER, "DWI"))
+            BMINDS_BMA_EXVIVO_DWI_FOLDER = os.path.realpath(os.path.join(BMINDS_BMA_EXVIVO_FOLDER, "DWI"))
 
             BMINDS_CORE_FOLDER = os.path.realpath(os.path.join(BMINDS_DATA_FOLDER, "BMCR_core_data"))
             BMINDS_DWI_FOLDER = os.path.realpath(os.path.join(BMINDS_CORE_FOLDER, "dMRI_raw"))

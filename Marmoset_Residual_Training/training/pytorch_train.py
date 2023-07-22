@@ -141,8 +141,8 @@ def train(model, optimizer, criterion, n_epochs, training_loader, validation_loa
 
 # Define the trainer wrapping function
 def run_pytorch_training(config, model_filename, training_log_filename, verbose=1, use_multiprocessing=False,
-                         n_workers=1, max_queue_size=5, model_name='resnet_34', n_gpus=1, regularized=False,
-                         directory=None, test_input=1, metric_to_monitor="loss", model_metrics=(), 
+                         n_workers=1, model_name='resnet', n_gpus=1, regularized=False,
+                         test_input=1, metric_to_monitor="loss", model_metrics=(), 
                          bias=None, pin_memory=False, amp=False,
                          prefetch_factor=1, **unused_args):
     """
@@ -190,6 +190,8 @@ def run_pytorch_training(config, model_filename, training_log_filename, verbose=
                                 n_gpus=n_gpus, bias=bias, freeze_bias=in_config("freeze_bias", config, False),
                                 strict=False)
     
+    print("Model is: {}".format(model.__class__.__name__))
+
     # Set the model to train mode
     model.train()
 
@@ -199,6 +201,8 @@ def run_pytorch_training(config, model_filename, training_log_filename, verbose=
     # If weighted loss
     if "weights" in config and config["weights"] is not None:
         criterion = loss_funcs.WeightedLoss(torch.tensor(config["weights"]), criterion)
+
+    print("Criterion is: {}".format(criterion.__class__.__name__))
     
     # Define the optimizer
     optimizer_kwargs = dict()
@@ -211,81 +215,106 @@ def run_pytorch_training(config, model_filename, training_log_filename, verbose=
     optimizer = build_optimizer(optimizer_name=config["optimizer"],
                                 model_parameters=model.parameters(),
                                 **optimizer_kwargs)
+    
+    print("Optimizer is: {}".format(optimizer.__class__.__name__))
 
     # Get default collate
     from torch.utils.data.dataloader import default_collate
     collate_fn = default_collate
 
     # Get the dataset
-    train_set = NiftiDataset(config["data_path"], transforms=None, train=True)
+    train_set = NiftiDataset(config["main_data_path"], transforms=None, train=True)
 
     # Define the training loader
-    training_loader = torch.utils.data.DataLoader(train_set,
-                                                batch_size=config["batch_size"] // in_config('points_per_subject', config, 1),
-                                                shuffle=True,
+    train_loader = torch.utils.data.DataLoader(train_set,
+                                                batch_size=config["batch_size"],
+                                                shuffle=False,
                                                 num_workers=n_workers,
                                                 collate_fn=collate_fn,
                                                 pin_memory=pin_memory,
-                                                prefetch_factor=prefetch_factor)    
-    # If test input
-    if test_input:
+                                                prefetch_factor=prefetch_factor)
 
-        # For each of the test inputs
-        for index in test_input:
+    # for i, data in enumerate(train_loader):
 
-            # Get the test input
-            x, y = train_set[index]
+    #     print(i)
+    #     print(data)
+ 
 
-            # Turn into numpy
-            if not isinstance(x, np.ndarray):
-                x = x.numpy()
-                y = y.numpy()
+    b0_images, wmfod_norms, residuals, injection_centers = next(iter(train_loader))
+    print(f"b0_images shape: {b0_images.size()}")
+    print(f"wmfod_norms shape: {wmfod_norms.size()}")
+    print(f"residuals shape: {residuals.size()}")
+    print(f"injection_centers shape: {injection_centers.size()}")
 
-            x = np.moveaxis(x, 0, -1)
-            x_image = nib.Nifti1Image(x.squeeze(), affine=np.diag(np.ones(4)))
-            x_image.to_filename(model_filename.replace(".h5",
-                                                       "_input_test_{}.nii.gz".format(index)))
-            if len(y.shape) >= 3:
-                y = np.moveaxis(y, 0, -1)
-                y_image = nib.Nifti1Image(y.squeeze(), affine=np.diag(np.ones(4)))
-                y_image.to_filename(model_filename.replace(".h5",
-                                                           "_target_test_{}.nii.gz".format(index)))
 
-    # If skipping validation
-    if 'skip_validation' in config and config['skip_validation']:
-        validation_loader = None
-        metric_to_monitor = "loss"
-    else:
-        # Get the dataset
-        validation_set = NiftiDataset(config["validation_path"], transforms=None, train=True)
+    # Squeeze
+    b0_images = b0_images.squeeze(0).squeeze(0).detach().numpy()
+    wmfod_norms = wmfod_norms.squeeze(0).squeeze(0).detach().numpy()
+    residuals = residuals.squeeze(0).squeeze(0).detach().numpy()
 
-        # Define the validation loader
-        validation_loader = torch.utils.data.DataLoader(validation_set,
-                                                        batch_size=config["validation_batch_size"] // in_config("points_per_subject",
-                                                                                                        config, 1),
-                                                        shuffle=False,
-                                                        num_workers=n_workers,
-                                                        collate_fn=collate_fn,
-                                                        pin_memory=pin_memory,
-                                                        prefetch_factor=prefetch_factor)
+    print(f"b0_images shape: {b0_images.shape}")
+    print(f"wmfod_norms shape: {wmfod_norms.shape}")
+    print(f"residuals shape: {residuals.shape}")
+
+    # # If test input
+    # if test_input:
+
+    #     # For each of the test inputs
+    #     for index in test_input:
+
+    #         # Get the test input
+    #         x, y = train_set[index]
+
+    #         # Turn into numpy
+    #         if not isinstance(x, np.ndarray):
+    #             x = x.numpy()
+    #             y = y.numpy()
+
+    #         x = np.moveaxis(x, 0, -1)
+    #         x_image = nib.Nifti1Image(x.squeeze(), affine=np.diag(np.ones(4)))
+    #         x_image.to_filename(model_filename.replace(".h5",
+    #                                                    "_input_test_{}.nii.gz".format(index)))
+    #         if len(y.shape) >= 3:
+    #             y = np.moveaxis(y, 0, -1)
+    #             y_image = nib.Nifti1Image(y.squeeze(), affine=np.diag(np.ones(4)))
+    #             y_image.to_filename(model_filename.replace(".h5",
+    #                                                        "_target_test_{}.nii.gz".format(index)))
+
+    # # If skipping validation
+    # if 'skip_validation' in config and config['skip_validation']:
+    #     validation_loader = None
+    #     metric_to_monitor = "loss"
+    # else:
+    #     # Get the dataset
+    #     validation_set = NiftiDataset(config["validation_path"], transforms=None, train=True)
+
+    #     # Define the validation loader
+    #     validation_loader = torch.utils.data.DataLoader(validation_set,
+    #                                                     batch_size=config["validation_batch_size"] // in_config("points_per_subject",
+    #                                                                                                     config, 1),
+    #                                                     shuffle=False,
+    #                                                     num_workers=n_workers,
+    #                                                     collate_fn=collate_fn,
+    #                                                     pin_memory=pin_memory,
+    #                                                     prefetch_factor=prefetch_factor)
         
-    # Train the model
-    train(model=model, optimizer=optimizer, criterion=criterion, n_epochs=config["n_epochs"], verbose=bool(verbose),
-        training_loader=training_loader, validation_loader=validation_loader, model_filename=model_filename,
-        training_log_filename=training_log_filename,
-        metric_to_monitor=metric_to_monitor,
-        early_stopping_patience=in_config("early_stopping_patience", config),
-        save_best=in_config("save_best", config, False),
-        learning_rate_decay_patience=in_config("decay_patience", config),
-        regularized=in_config("regularized", config, regularized),
-        n_gpus=n_gpus,
-        vae=in_config("vae", config, False),
-        decay_factor=in_config("decay_factor", config),
-        min_lr=in_config("min_learning_rate", config),
-        learning_rate_decay_step_size=in_config("decay_step_size", config),
-        save_every_n_epochs=in_config("save_every_n_epochs", config),
-        save_last_n_models=in_config("save_last_n_models", config),
-        amp=amp)
+    # # Train the model
+    # train(model=model, optimizer=optimizer, criterion=criterion, n_epochs=config["n_epochs"], verbose=bool(verbose),
+    #     training_loader=training_loader, validation_loader=validation_loader, model_filename=model_filename,
+    #     training_log_filename=training_log_filename,
+    #     metric_to_monitor=metric_to_monitor,
+    #     early_stopping_patience=in_config("early_stopping_patience", config),
+    #     save_best=in_config("save_best", config, False),
+    #     learning_rate_decay_patience=in_config("decay_patience", config),
+    #     regularized=in_config("regularized", config, regularized),
+    #     n_gpus=n_gpus,
+    #     vae=in_config("vae", config, False),
+    #     decay_factor=in_config("decay_factor", config),
+    #     min_lr=in_config("min_learning_rate", config),
+    #     learning_rate_decay_step_size=in_config("decay_step_size", config),
+    #     save_every_n_epochs=in_config("save_every_n_epochs", config),
+    #     save_last_n_models=in_config("save_last_n_models", config),
+    #     amp=amp)
 
         
 

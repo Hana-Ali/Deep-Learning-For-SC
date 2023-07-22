@@ -111,7 +111,7 @@ class ResnetEncoder(nn.Module):
         self.output_nc = output_nc
         self.ngf = ngf
         self.n_blocks = n_blocks
-        self.norm_layer = norm_layer
+        self.norm_layer = self.get_norm_layer(norm_layer)
         self.use_dropout = use_dropout
         self.padding_type = padding_type
 
@@ -186,6 +186,17 @@ class ResnetEncoder(nn.Module):
         
         # Return the model
         return nn.Sequential(*model)
+    
+    # Get the normalization layer
+    def get_norm_layer(self, norm_layer):
+
+        # If the norm layer is batch norm, we return it
+        if "batch" in norm_layer.lower():
+            return nn.BatchNorm3d
+        elif "instance" in norm_layer.lower():
+            return nn.InstanceNorm3d
+        else:
+            raise NotImplementedError('normalization layer [%s] is not found' % norm_layer)
     
     # Forward pass
     def forward(self, input_x):

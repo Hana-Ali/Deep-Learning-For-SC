@@ -115,13 +115,16 @@ def create_data_list(BMINDS_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_FILES, BMI
                      BMCR=True):
     DATA_LISTS = []
     RESIZED_DATA_LISTS = []
+    EXTRACTED_DATA_LISTS = []
+
     # Get the initial lists
     (DWI_LIST, STREAMLINE_LIST, INJECTION_LIST) = create_initial_lists(BMINDS_DWI_FILES, BMINDS_BVAL_FILES,
                                                                         BMINDS_BVEC_FILES, BMINDS_STREAMLINE_FILES,
                                                                         BMINDS_INJECTION_FILES, BMCR=BMCR)
     
     # Join all DWIs with the same region name but different bvals and bvecs using mrtrix
-    (CONCATENATED_DWI_LIST, RESIZED_CONCAT_DWI_LIST) = join_dwi_diff_bvals_bvecs(DWI_LIST, BMCR=BMCR) 
+    (CONCATENATED_DWI_LIST, RESIZED_CONCAT_DWI_LIST,
+     EXTRACTED_DATA_LISTS) = join_dwi_diff_bvals_bvecs(DWI_LIST, BMCR=BMCR) 
 
     # Join the two lists based on common subject name
     DATA_LISTS = concatenate_common_subject_name(CONCATENATED_DWI_LIST, STREAMLINE_LIST, INJECTION_LIST,
@@ -132,8 +135,12 @@ def create_data_list(BMINDS_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_FILES, BMI
         RESIZED_DATA_LISTS = concatenate_common_subject_name(RESIZED_CONCAT_DWI_LIST, STREAMLINE_LIST, INJECTION_LIST,
                                                             BMINDS_ATLAS_FILE, BMINDS_ATLAS_LABEL_FILE, BMINDS_STPT_FILE,
                                                             BMCR=BMCR)
+        # Do the same for the extracted data
+        EXTRACTED_DATA_LISTS = concatenate_common_subject_name(EXTRACTED_DATA_LISTS, STREAMLINE_LIST, INJECTION_LIST,
+                                                                BMINDS_ATLAS_FILE, BMINDS_ATLAS_LABEL_FILE, BMINDS_STPT_FILE,
+                                                                BMCR=BMCR)
                 
-    return (DATA_LISTS, RESIZED_DATA_LISTS)     
+    return (DATA_LISTS, RESIZED_DATA_LISTS, EXTRACTED_DATA_LISTS)     
 
 # Function to join based on common subject name
 def concatenate_common_subject_name(DWI_LIST, STREAMLINE_LIST, INJECTION_LIST, BMINDS_ATLAS_FILE, 

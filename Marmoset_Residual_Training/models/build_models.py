@@ -8,7 +8,7 @@ from .model_options import *
 # Function to get the model
 def get_model(model_name, input_nc, output_nc, ngf, num_blocks, norm_layer,
               use_dropout, padding_type):
-
+    
     try:
         if "resnet" in model_name.lower():
             return ResnetEncoder(input_nc=input_nc, 

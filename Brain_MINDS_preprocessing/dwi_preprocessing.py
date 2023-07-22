@@ -96,19 +96,21 @@ def main():
     check_globbed_files(BMINDS_MBCA_TRANSFORM_FILE, "BMINDS_MBCA_TRANSFORM_FILE")
 
     # --------------- Create list of all data for each zone name --------------- #
-    (ALL_DATA_LIST, RESIZED_ALL_DATA_LIST) = create_data_list(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_FILES, 
+    (ALL_DATA_LIST, RESIZED_ALL_DATA_LIST,
+     EXTRACTED_DATA_LISTS) = create_data_list(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_FILES, 
                                                                 BMINDS_STREAMLINE_FILES, BMINDS_INJECTION_FILES, BMINDS_ATLAS_FILE, 
-                                                                BMINDS_ATLAS_LABEL_FILE, BMINDS_STPT_FILE, resize=True)
+                                                                BMINDS_ATLAS_LABEL_FILE, BMINDS_STPT_FILE, BMCR=True)
 
     print("Length of All Data List: {}".format(len(ALL_DATA_LIST)))
     print("Length of Resized All Data List: {}".format(len(RESIZED_ALL_DATA_LIST)))
+    print("Length of Extracted Data Lists: {}".format(len(EXTRACTED_DATA_LISTS)))
 
     # --------------- Preprocessing the data to get the right file formats --------------- #
     if hpc:
         # Get the current region based on the command-line
         region_idx = int(sys.argv[2])
         # Get the data of the indexed region in the list
-        (REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT) = RESIZED_ALL_DATA_LIST[region_idx]
+        (REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT) = EXTRACTED_DATA_LISTS[region_idx]
         # Call the parallel process function on this region
         parallel_process(REGION_ID, DWI_FILES, STREAMLINE_FILES, INJECTION_FILES, ATLAS_STPT)
     else:

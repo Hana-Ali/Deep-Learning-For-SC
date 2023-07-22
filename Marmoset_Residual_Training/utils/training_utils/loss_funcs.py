@@ -1,5 +1,13 @@
-from torch.nn.functional import l1_loss, mse_loss
 import torch
+from torch.nn.functional import l1_loss, mse_loss
+
+# Define the L1 loss
+def l1_loss(output, target):
+    return l1_loss(output, target)
+
+# Define the MSE loss
+def mse_loss(output, target):
+    return mse_loss(output, target)
 
 # Define the weighted loss
 def weighted_loss(output, target, weights, criterion, weighted_dimension=1):

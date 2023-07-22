@@ -118,6 +118,29 @@ def resize_dwi_by_scale(region_item, scale_x=0.5, scale_y=0.5, scale_z=0.5, K=8,
     # Return the resized path
     return RESIZED_PATH
 
+# Function to extract the first K shells of the dwi
+def extract_K_shells_dwi(region_item, K=8, verbose=True):
+
+    # Define the resized DWI path
+    extracted_name = region_item[0].split(os.sep)[-1].split(".")[0] + "_extracted.nii"
+    EXTRACTED_PATH = os.path.join((os.sep).join(region_item[0].split(os.sep)[:-1]), extracted_name)
+    
+    # Check if the paths already exist
+    if os.path.exists(EXTRACTED_PATH):
+        if verbose:
+            print("Extracted DWI path {} already exists. Continuing...".format(EXTRACTED_PATH))
+        return EXTRACTED_PATH
+
+    # We only want to get the first K directions to match the shells
+    print("Extracting first {} shells of bvals and bvecs".format(K))
+    resized_image = nib.load(region_item[0])
+    first_K_directions = resized_image.slicer[:, :, :, :K]
+    print("First K directions shape: {}".format(first_K_directions.shape))
+    nib.save(first_K_directions, EXTRACTED_PATH)
+
+    # Return the resized path
+    return EXTRACTED_PATH
+
 # Function to extract the first K shells of the bvals and bvecs
 def extract_K_shells_bvals_bvecs(region_item, K=8, verbose=False):
 
@@ -157,6 +180,7 @@ def join_dwi_diff_bvals_bvecs(DWI_LIST, BMCR=True):
     # This stores all the concat paths
     ALL_CONCAT_PATHS = []
     RESIZED_ALL_CONCAT_PATHS = []
+    EXTRACTED_ALL_CONCAT_PATHS = []
     
     # For each DWI file
     for dwi in DWI_LIST:
@@ -176,8 +200,9 @@ def join_dwi_diff_bvals_bvecs(DWI_LIST, BMCR=True):
 
         # Create list of all resized DWIs, BVALs and BVECs for this same region
         if BMCR:
-            print("Resizing region {}".format(region_ID))
-            resized_region_list = get_resized_bval_bvec_lists(same_region_list)
+            print("Resizing and extracting region {}".format(region_ID))
+            (resized_region_list, 
+             extracted_region_list) = get_resized_bval_bvec_lists(same_region_list)
         
             # Convert to mif and concatenate for both the normal and resized DWIs
             (CONCAT_NII_PATH, CONCAT_MIF_PATH, CONCAT_BVALS_PATH, 
@@ -185,6 +210,9 @@ def join_dwi_diff_bvals_bvecs(DWI_LIST, BMCR=True):
         
             (RESIZED_CONCAT_NII_PATH, RESIZED_CONCAT_MIF_PATH, RESIZED_CONCAT_BVALS_PATH, 
             RESIZED_CONCAT_BVECS_PATH) = convert_and_concatenate(resized_region_list, resized=True)
+
+            (EXTRACTED_CONCAT_NII_PATH, EXTRACTED_CONCAT_MIF_PATH, EXTRACTED_CONCAT_BVALS_PATH,
+             EXTRACTED_CONCAT_BVECS_PATH) = convert_and_concatenate(extracted_region_list, extracted=True)
         else:
             # Given the same region list, convert to mif (don't actually concat anything)
             (CONCAT_NII_PATH, CONCAT_MIF_PATH, CONCAT_BVALS_PATH,
@@ -193,34 +221,42 @@ def join_dwi_diff_bvals_bvecs(DWI_LIST, BMCR=True):
             (RESIZED_CONCAT_NII_PATH, RESIZED_CONCAT_MIF_PATH, RESIZED_CONCAT_BVALS_PATH, 
             RESIZED_CONCAT_BVECS_PATH) = (None, None, None, None)
 
+            (EXTRACTED_CONCAT_NII_PATH, EXTRACTED_CONCAT_MIF_PATH, EXTRACTED_CONCAT_BVALS_PATH,
+                EXTRACTED_CONCAT_BVECS_PATH) = (None, None, None, None)
+
         # Add the concatenated path to the list
         ALL_CONCAT_PATHS.append([CONCAT_NII_PATH, CONCAT_MIF_PATH, CONCAT_BVALS_PATH, CONCAT_BVECS_PATH])
         RESIZED_ALL_CONCAT_PATHS.append([RESIZED_CONCAT_NII_PATH, RESIZED_CONCAT_MIF_PATH, RESIZED_CONCAT_BVALS_PATH, RESIZED_CONCAT_BVECS_PATH])
+        EXTRACTED_ALL_CONCAT_PATHS.append([EXTRACTED_CONCAT_NII_PATH, EXTRACTED_CONCAT_MIF_PATH, EXTRACTED_CONCAT_BVALS_PATH, EXTRACTED_CONCAT_BVECS_PATH])
 
     # Return all the concatenated paths
-    return (ALL_CONCAT_PATHS, RESIZED_ALL_CONCAT_PATHS)
+    return (ALL_CONCAT_PATHS, RESIZED_ALL_CONCAT_PATHS, EXTRACTED_ALL_CONCAT_PATHS)
 
 # Function to get the resized DWI, bval and bvec paths
 def get_resized_bval_bvec_lists(same_region_list, verbose=False):
     
     # This stores the resized paths - resets with every new region
     RESIZE_PATHS = []
+    EXTRACTED_PATHS = []
     FIRST_K_SHELL_BVALS_BVECS = []
     resized_region_list = []
+    extracted_region_list = []
 
     # Resize and extract the first K shells for all the DWIs
     for region_item in same_region_list:
         # Resize the DWI and extract the first K shells
         RESIZE_PATHS.append(resize_dwi_by_scale(region_item, scale_x=0.5, scale_y=0.5, scale_z=0.5, K=8))
+        EXTRACTED_PATHS.append(extract_K_shells_dwi(region_item, K=8))
         FIRST_K_SHELL_BVALS_BVECS.append(extract_K_shells_bvals_bvecs(region_item, K=8))
         # Create a new list with the resized and first K shells
         resized_region_list.append([RESIZE_PATHS[-1], FIRST_K_SHELL_BVALS_BVECS[-1][0], FIRST_K_SHELL_BVALS_BVECS[-1][1]])
+        extracted_region_list.append([EXTRACTED_PATHS[-1], FIRST_K_SHELL_BVALS_BVECS[-1][0], FIRST_K_SHELL_BVALS_BVECS[-1][1]])
 
     # Return the resized region list
-    return resized_region_list
+    return (resized_region_list, extracted_region_list)
 
 # Function to do all the conversion and concatenation
-def convert_and_concatenate(DWI_LIST, resized=False):
+def convert_and_concatenate(DWI_LIST, resized=False, extracted=False):
     
     # This stores the MIF - resets with every new region
     MIF_PATHS = []
@@ -233,7 +269,7 @@ def convert_and_concatenate(DWI_LIST, resized=False):
     # Create string for what mifs to concatenate
     mif_files_string = " ".join(MIF_PATHS)
     # Get the concatenated path
-    CONCAT_MIF_PATH = concatenate_mif(MIF_PATHS, mif_files_string, resized=resized)
+    CONCAT_MIF_PATH = concatenate_mif(MIF_PATHS, mif_files_string, resized=resized, extracted=extracted)
 
     # Convert back to nii
     (CONCAT_NII_PATH, CONCAT_BVALS_PATH, CONCAT_BVECS_PATH) = convert_to_nii(CONCAT_MIF_PATH)
@@ -291,7 +327,7 @@ def convert_to_mif_BMA(region_item, verbose=False):
     return (region_item[0], MIF_PATH, region_item[1], region_item[2])
 
 # Concatenate MIF
-def concatenate_mif(MIF_PATHS, mif_files_string, resized=False, verbose=False):
+def concatenate_mif(MIF_PATHS, mif_files_string, resized=False, extracted=False, verbose=False):
     # Define the output concatentated path
     CONCAT_FOLDER = os.path.join((os.sep).join(MIF_PATHS[0].split(os.sep)[:-2]), "Concatenated_Data")
     check_output_folders(CONCAT_FOLDER, "CONCAT_FOLDER", wipe=False)
@@ -299,6 +335,8 @@ def concatenate_mif(MIF_PATHS, mif_files_string, resized=False, verbose=False):
     # Define the output concatentated path depending on resized or not
     if resized:
         CONCAT_PATH = os.path.join(CONCAT_FOLDER, "DWI_concatenated_resized.mif")
+    elif extracted:
+        CONCAT_PATH = os.path.join(CONCAT_FOLDER, "DWI_concatenated_extracted.mif")
     else:
         CONCAT_PATH = os.path.join(CONCAT_FOLDER, "DWI_concatenated.mif")
     
@@ -463,7 +501,7 @@ def create_initial_lists(BMINDS_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BVEC_FILES,
         for dwi_file in BMINDS_DWI_FILES:
 
             # Check that it's not a concat or resized file - skip if it is
-            if "concat" in dwi_file or "resized" in dwi_file:
+            if "concat" in dwi_file or "resized" in dwi_file or "extracted" in dwi_file:
                 continue
 
             # Get the region ID
