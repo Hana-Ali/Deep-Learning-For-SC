@@ -184,7 +184,10 @@ class ResnetEncoder(nn.Module):
         model += [nn.AdaptiveAvgPool3d((1, 1, 1))]
 
         # 6. Add the linear layer - for the injection center
-        model += [nn.Linear(4, 1)]
+        model += [nn.Linear(4, 4)]
+        
+        # 7. Add the linear layer - for the image coordinates
+        model += [nn.Linear(7, 1)]
         
         # Return the model
         return nn.Sequential(*model)
@@ -201,13 +204,13 @@ class ResnetEncoder(nn.Module):
             raise NotImplementedError('normalization layer [%s] is not found' % norm_layer)
     
     # Forward pass
-    def forward(self, input_x, injection_center):
+    def forward(self, input_x, injection_center, image_coordinates):
         """
         Forward pass
         """
 
         # Do all the convolutions on the cube first
-        for layer in self.model[:-1]:
+        for layer in self.model[:-2]:
             input_x = layer(input_x)
 
         # Squeeze the input to match dimensions
@@ -216,8 +219,14 @@ class ResnetEncoder(nn.Module):
         # Concatenate the injection center 
         input_x = torch.cat((input_x, injection_center), dim=2)
 
-        # Then do the last layer
+        # Do the first linear layer
+        input_x = self.model[-2](input_x)
+                
+        # Concatenate the image coordinates
+        input_x = torch.cat((input_x, image_coordinates), dim=2)
+        
+        # Do the second linear layer
         input_x = self.model[-1](input_x)
-
+        
         # Return the model
         return input_x

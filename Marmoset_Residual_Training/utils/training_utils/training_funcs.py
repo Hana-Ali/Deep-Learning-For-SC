@@ -71,24 +71,44 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, n_gpus=None
 
         # Define the kernel size (cube will be 2 * kernel_size) - HYPERPARAMETER
         kernel_size = 16
-
+        
+        # Create a tensor of the same shape as the residual hemisphere
+        predictions_tensor = torch.empty_like(residual_hemisphere).float().cuda()
+        
         # For every voxel of the residual
         for x in range(residual_hemisphere.shape[x_coord]):
+            
+            # Print out the x coordinate
+            print("At x coordinate: {}".format(x))
+            
             for y in range(residual_hemisphere.shape[y_coord]):
+                
+                # Print out the y coordinate
+                print("At y coordinate: {}".format(y))
+                
                 for z in range(residual_hemisphere.shape[z_coord]):
-
+                    
+                    # Get the x, y, z into a torch tensor
+                    image_coordinates = torch.from_numpy(np.array([x, y, z])).unsqueeze(0).unsqueeze(0).float()
+                    
                     # Get the voxel value from the residual
                     residual_voxel = residual_hemisphere[:, :, x, y, z].unsqueeze(0)
-
+                    
                     # Get the cube in the DWI that corresponds to the voxel
                     b0_cube = grab_cube_around_voxel(image=b0_hemisphere, voxel_coordinates=[x, y, z], kernel_size=kernel_size)
                     
                     # Turn the cube into a tensor
                     b0_cube = torch.from_numpy(b0_cube).unsqueeze(0).unsqueeze(0).float()
                     
-                    # Get the loss and batch size
-                    loss, batch_size = batch_loss(model, b0_cube, residual_voxel, injection_center, criterion,
-                                                    n_gpus=n_gpus, regularized=regularized, vae=vae, use_amp=use_amp)
+                    # Get the model output
+                    (predicted_residual, loss, batch_size)  = batch_loss(model, b0_cube, injection_center, image_coordinates, 
+                                                                         residual_voxel, criterion,
+                                                                         n_gpus=n_gpus, use_amp=use_amp)
+                                        
+                    # Set the value of the model output in the corresponding location in predictions tensor
+                    predictions_tensor[:, :, x, y, z] = predicted_residual.item()
+                    
+                    del predicted_residual
                     
                     # Empty cache
                     if n_gpus:
@@ -121,19 +141,21 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, n_gpus=None
                     # Delete the loss
                     del loss
 
-                    # Measure the elapsed time
-                    batch_time.update(time.time() - end)
-                    end = time.time()
+                # Measure the elapsed time
+                batch_time.update(time.time() - end)
+                end = time.time()
 
-                    # If print frequency
-                    if i % print_frequency == 0:
-                        progress.display(i)
+                        # # If print frequency
+                        # if i % print_frequency == 0:
+                        #     progress.display(i)
+                # Print out the progress after every x coordinate is done
+                progress.display(i)
 
     # Return the losses
     return losses.avg
 
-# Define the batch loss
-def batch_loss(model, b0_cube, residual_voxel, injection_center, criterion, n_gpus=None, regularized=False, vae=False, use_amp=False):
+# Define the function to get model output
+def batch_loss(model, b0_cube, injection_center, image_coordinates, residual_voxel, criterion, n_gpus=None, use_amp=False):
     
     # If number of GPUs
     if n_gpus:
@@ -145,34 +167,36 @@ def batch_loss(model, b0_cube, residual_voxel, injection_center, criterion, n_gp
         b0_cube = b0_cube.float()
         residual_voxel = residual_voxel.float()
         injection_center = injection_center.float()
+        image_coordinates = image_coordinates.float()
 
         # Get all the data on the GPU
         b0_cube = b0_cube.cuda()
         residual_voxel = residual_voxel.cuda()
         injection_center = injection_center.cuda()
+        image_coordinates = image_coordinates.cuda()
     
     # Compute the output
     if use_amp:
         with torch.cuda.amp.autocast():
-            return _batch_loss(model, b0_cube, residual_voxel, injection_center, criterion, regularized=regularized, vae=vae)
+            return _batch_loss(model, b0_cube, injection_center, image_coordinates, residual_voxel, criterion)
     else:
-        return _batch_loss(model, b0_cube, residual_voxel, injection_center, criterion, regularized=regularized, vae=vae)
+        return _batch_loss(model, b0_cube, injection_center, image_coordinates, residual_voxel, criterion)
     
 # Define the batch loss
-def _batch_loss(model, b0_cube, residual_voxel, injection_center, criterion, regularized=False, vae=False):
+def _batch_loss(model, b0_cube, injection_center, image_coordinates, residual_voxel, criterion):
 
 
     # Compute the output
-    output = model(b0_cube, injection_center)
+    predicted_residual = model(b0_cube, injection_center, image_coordinates)
                     
     # Find the loss between the output and the voxel value
-    loss = criterion(output, residual_voxel)
+    loss = criterion(predicted_residual, residual_voxel)
     
     # Get the batch size
     batch_size = b0_cube.size(0)
 
     # Return the loss
-    return loss, batch_size
+    return predicted_residual, loss, batch_size
 
 # Define the epoch validation
 def epoch_validation(val_loader, model, criterion, n_gpus, print_freq=1, regularized=False, vae=False,
