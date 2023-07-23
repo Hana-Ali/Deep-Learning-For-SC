@@ -239,24 +239,19 @@ class ResnetEncoder(nn.Module):
         # Do all the convolutions on the cube first
         for layer in self.img_model:
             input_x = layer(input_x)
-            print("Input shape: {}".format(input_x.shape))
             
         # Do the convolutional layers for the injection center
         injection_center = self.non_img_model(injection_center)
-        print("injection_center shape: {}".format(injection_center.shape))
         
         # Do the convolutional layers for the image coordinates
         image_coordinates = self.non_img_model(image_coordinates)
-        print("image_coordinates shape: {}".format(image_coordinates.shape))
         
         # Concatenate the data along the number of channels
         input_x = torch.cat((input_x, injection_center), dim=1)
         input_x = torch.cat((input_x, image_coordinates), dim=1)
-        print("After concatenation shape: {}".format(input_x.shape))
         
         # Do the joint processing
         joint_data = self.joint_model(input_x)
-        print("Final shape: {}".format(joint_data.shape))
                         
         # Return the model
-        return input_x
+        return joint_data

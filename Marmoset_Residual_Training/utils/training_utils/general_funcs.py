@@ -151,7 +151,7 @@ def grab_cube_around_voxel(image, voxel_coordinates, kernel_size):
 
                 # Set the value in the cube
                 cube[x, y, z] = value.item()
-
+        
     # Return the cube
     return cube
 

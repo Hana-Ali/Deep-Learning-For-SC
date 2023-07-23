@@ -55,13 +55,6 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, n_gpus=None
         # Zero the parameter gradients
         optimizer.zero_grad()
         
-        # Create a new tensor of size 16 x 16 x 3, that has the injection center
-        injection_center = np.tile(injection_center, (16, 16, 16, 1))
-                
-        # Turn the data into a torch tensor
-        injection_center = torch.from_numpy(injection_center).unsqueeze(0).float()
-        injection_center = torch.permute(injection_center, (0, 4, 1, 2, 3))
-        
         # Get the midpoint of the x dimension
         x_midpoint = int(residual.shape[x_coord] / 2)
 
@@ -76,45 +69,61 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, n_gpus=None
         # Define the kernel size (cube will be 2 * kernel_size) - HYPERPARAMETER
         kernel_size = 16
         
+        # Create a new tensor of size kernel_size x kernel_size x 3, that has the injection center
+        injection_center = np.tile(injection_center, (kernel_size, kernel_size, kernel_size, 1))
+                
+        # Turn the data into a torch tensor
+        injection_center = torch.from_numpy(injection_center).unsqueeze(0).float()
+        injection_center = torch.permute(injection_center, (0, 4, 1, 2, 3))
+        
         # Create a tensor of the same shape as the residual hemisphere
         predictions_tensor = torch.empty_like(residual_hemisphere).float().cuda()
         
-        # For every voxel of the residual
-        for x in range(residual_hemisphere.shape[x_coord]):
+        # Make a range that skips the kernel size * 2, to make the non-overlapping patches of the residuals
+        x_centers = np.arange(start=0, stop=residual_hemisphere.shape[x_coord], step=kernel_size * 2)
+        y_centers = np.arange(start=0, stop=residual_hemisphere.shape[y_coord], step=kernel_size * 2)
+        z_centers = np.arange(start=0, stop=residual_hemisphere.shape[z_coord], step=kernel_size * 2)
+        
+        print("Number of x_centers: {}".format(x_centers.shape))
+        print("Number of y_centers: {}".format(y_centers.shape))
+        print("Number of z_centers: {}".format(z_centers.shape))
+        
+        # For every x_center
+        for x in x_centers:
             
-            # Print out the x coordinate
-            print("At x coordinate: {}".format(x))
+            # Print out the x coord
+            print("Current x coordinate: {}".format(x))
             
-            for y in range(residual_hemisphere.shape[y_coord]):
+            # For every y_center
+            for y in y_centers:
                 
-                # Print out the y coordinate
-                print("At y coordinate: {}".format(y))
-                
-                for z in range(residual_hemisphere.shape[z_coord]):
+                # Print out the y coord
+                print("Current y coordinate: {}".format(y))
+                                
+                # For every z_center
+                for z in z_centers:
                     
-                    # Get the x, y, z into a torch tensor
-                    image_coordinates = np.tile(np.array([x, y, z]), (16, 16, 16, 1))
+                    # Get the x, y, z coordinate into a torch tensor
+                    image_coordinates = np.tile(np.array([x, y, z]), (kernel_size, kernel_size, kernel_size, 1))
                     image_coordinates = torch.from_numpy(image_coordinates).unsqueeze(0).float()
                     image_coordinates = torch.permute(image_coordinates, (0, 4, 1, 2, 3))
                     
-                    # Get the voxel value from the residual
-                    residual_voxel = residual_hemisphere[:, :, x, y, z].unsqueeze(0)
+                    # Get the cube in the residual that corresponds to this coordinate
+                    residual_cube = grab_cube_around_voxel(image=residual_hemisphere, voxel_coordinates=[x, y, z], kernel_size=int(kernel_size / 2))
                     
-                    # Get the cube in the DWI that corresponds to the voxel
+                    # Get the cube in the DWI that corresponds to this coordinate
                     b0_cube = grab_cube_around_voxel(image=b0_hemisphere, voxel_coordinates=[x, y, z], kernel_size=kernel_size)
                     
-                    # Turn the cube into a tensor
+                    # Turn the cubes into tensors
+                    residual_cube = torch.from_numpy(residual_cube).unsqueeze(0).unsqueeze(0).float()
                     b0_cube = torch.from_numpy(b0_cube).unsqueeze(0).unsqueeze(0).float()
                     
                     # Get the model output
-                    print("Before model, injection_center and image_coordinates are {}, {}".format(injection_center.shape, image_coordinates.shape))
                     (predicted_residual, loss, batch_size)  = batch_loss(model, b0_cube, injection_center, image_coordinates, 
-                                                                         residual_voxel, criterion,
+                                                                         residual_cube, criterion,
                                                                          n_gpus=n_gpus, use_amp=use_amp)
-                                        
-                    # Set the value of the model output in the corresponding location in predictions tensor
-                    predictions_tensor[:, :, x, y, z] = predicted_residual.item()
                     
+                    # Change this to actually add to the predictions tensor if you want
                     del predicted_residual
                     
                     # Empty cache
@@ -148,21 +157,18 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, n_gpus=None
                     # Delete the loss
                     del loss
 
-                # Measure the elapsed time
-                batch_time.update(time.time() - end)
-                end = time.time()
+            # Measure the elapsed time for every x value
+            batch_time.update(time.time() - end)
+            end = time.time()
 
-                        # # If print frequency
-                        # if i % print_frequency == 0:
-                        #     progress.display(i)
-                # Print out the progress after every x coordinate is done
-                progress.display(i)
-
+            # Print out the progress after every x coordinate is done
+            progress.display(i)
+                    
     # Return the losses
     return losses.avg
 
 # Define the function to get model output
-def batch_loss(model, b0_cube, injection_center, image_coordinates, residual_voxel, criterion, n_gpus=None, use_amp=False):
+def batch_loss(model, b0_cube, injection_center, image_coordinates, residual_cube, criterion, n_gpus=None, use_amp=False):
     
     # If number of GPUs
     if n_gpus:
@@ -172,32 +178,32 @@ def batch_loss(model, b0_cube, injection_center, image_coordinates, residual_vox
 
         # Cast all the data to float
         b0_cube = b0_cube.float()
-        residual_voxel = residual_voxel.float()
+        residual_cube = residual_cube.float()
         injection_center = injection_center.float()
         image_coordinates = image_coordinates.float()
 
         # Get all the data on the GPU
         b0_cube = b0_cube.cuda()
-        residual_voxel = residual_voxel.cuda()
+        residual_cube = residual_cube.cuda()
         injection_center = injection_center.cuda()
         image_coordinates = image_coordinates.cuda()
     
     # Compute the output
     if use_amp:
         with torch.cuda.amp.autocast():
-            return _batch_loss(model, b0_cube, injection_center, image_coordinates, residual_voxel, criterion)
+            return _batch_loss(model, b0_cube, injection_center, image_coordinates, residual_cube, criterion)
     else:
-        return _batch_loss(model, b0_cube, injection_center, image_coordinates, residual_voxel, criterion)
+        return _batch_loss(model, b0_cube, injection_center, image_coordinates, residual_cube, criterion)
     
 # Define the batch loss
-def _batch_loss(model, b0_cube, injection_center, image_coordinates, residual_voxel, criterion):
+def _batch_loss(model, b0_cube, injection_center, image_coordinates, residual_cube, criterion):
 
 
     # Compute the output
     predicted_residual = model(b0_cube, injection_center, image_coordinates)
-                    
+    
     # Find the loss between the output and the voxel value
-    loss = criterion(predicted_residual, residual_voxel)
+    loss = criterion(predicted_residual, residual_cube)
     
     # Get the batch size
     batch_size = b0_cube.size(0)
