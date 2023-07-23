@@ -54,9 +54,13 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, n_gpus=None
 
         # Zero the parameter gradients
         optimizer.zero_grad()
+        
+        # Create a new tensor of size 16 x 16 x 3, that has the injection center
+        injection_center = np.tile(injection_center, (16, 16, 16, 1))
                 
         # Turn the data into a torch tensor
-        injection_center = injection_center.unsqueeze(0).float()
+        injection_center = torch.from_numpy(injection_center).unsqueeze(0).float()
+        injection_center = torch.permute(injection_center, (0, 4, 1, 2, 3))
         
         # Get the midpoint of the x dimension
         x_midpoint = int(residual.shape[x_coord] / 2)
@@ -89,7 +93,9 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, n_gpus=None
                 for z in range(residual_hemisphere.shape[z_coord]):
                     
                     # Get the x, y, z into a torch tensor
-                    image_coordinates = torch.from_numpy(np.array([x, y, z])).unsqueeze(0).unsqueeze(0).float()
+                    image_coordinates = np.tile(np.array([x, y, z]), (16, 16, 16, 1))
+                    image_coordinates = torch.from_numpy(image_coordinates).unsqueeze(0).float()
+                    image_coordinates = torch.permute(image_coordinates, (0, 4, 1, 2, 3))
                     
                     # Get the voxel value from the residual
                     residual_voxel = residual_hemisphere[:, :, x, y, z].unsqueeze(0)
@@ -101,6 +107,7 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, n_gpus=None
                     b0_cube = torch.from_numpy(b0_cube).unsqueeze(0).unsqueeze(0).float()
                     
                     # Get the model output
+                    print("Before model, injection_center and image_coordinates are {}, {}".format(injection_center.shape, image_coordinates.shape))
                     (predicted_residual, loss, batch_size)  = batch_loss(model, b0_cube, injection_center, image_coordinates, 
                                                                          residual_voxel, criterion,
                                                                          n_gpus=n_gpus, use_amp=use_amp)

@@ -16,7 +16,7 @@
     "norm_layer": "BatchNorm3d",
     "num_blocks": 6,
     "optimizer": "Adam",
-    "output_nc": 1,
+    "output_nc": 3,
     "padding_type": "reflect",
     "regularized": false,
     "save_best": true,

@@ -93,7 +93,7 @@ import torch.nn as nn
 class ResnetEncoder(nn.Module):
 
     # Constructor 
-    def __init__(self, input_nc, output_nc, ngf=64, n_blocks=6, norm_layer=nn.BatchNorm3d, use_dropout=False, padding_type='reflect'):
+    def __init__(self, input_nc, output_nc=1, ngf=64, n_blocks=6, norm_layer=nn.BatchNorm3d, use_dropout=False, padding_type='reflect'):
         """
         Parameters:
             input_nc (int) -- the number of channels in input images
@@ -123,11 +123,13 @@ class ResnetEncoder(nn.Module):
         else:
             self.use_bias = norm_layer == nn.InstanceNorm3d
 
-        # Define the model
-        self.model = self.define_model()
+        # Define the models
+        self.img_model = self.define_img_model()
+        self.non_img_model = self.define_non_img_model()
+        self.joint_model = self.define_joint_model()
 
     # Define the model
-    def define_model(self):
+    def define_img_model(self):
         """
         Define the model architecture
         """
@@ -152,7 +154,8 @@ class ResnetEncoder(nn.Module):
                       self.norm_layer(self.ngf), nn.ReLU(True)])
         
         # 2. Add one convolution
-        number_downsampling = 2            
+        number_downsampling = 2
+        self.number_downsampling = number_downsampling
         mult = 2**number_downsampling
         model += [nn.Conv3d(self.ngf, self.ngf * mult, kernel_size=3,
                     stride=1, padding=1, bias=False),
@@ -168,27 +171,51 @@ class ResnetEncoder(nn.Module):
         for i in range(number_downsampling):
             mult = 2**(number_downsampling - i)
             model += [nn.Conv3d(self.ngf * mult, int(self.ngf * mult / 2), 
-                                kernel_size=3, stride=2, padding=1, bias=self.use_bias), 
+                                kernel_size=3, stride=1, padding=1, bias=self.use_bias), 
                           self.norm_layer(int(self.ngf * mult / 2)), 
                           nn.ReLU(True)]
             
-        # 5. Add the last convolutional block then the linear
+        # 5. Add another convolutional block for vibes
         model += [nn.Conv3d(int(self.ngf * mult / 2), int(self.ngf * mult / 4),
-                            kernel_size=3, stride=2, padding=1, bias=self.use_bias),
+                            kernel_size=3, stride=1, padding=1, bias=self.use_bias),
                              self.norm_layer(int(self.ngf * mult / 4)), nn.ReLU(True)]
             
-        # 4. Add the last block as a 1x1x1 convolution
-        model += [nn.Conv3d(int(self.ngf * mult / 4), 1, kernel_size=3, stride=2, padding=1, bias=self.use_bias)]
-
-        # 5. Pooling to make it 1x1x1
-        model += [nn.AdaptiveAvgPool3d((1, 1, 1))]
-
-        # 6. Add the linear layer - for the injection center
-        model += [nn.Linear(4, 4)]
+        # 4. Add the last block to make the number of channels as the output_nc and reduce spatial space
+        model += [nn.Conv3d(int(self.ngf * mult / 4), self.output_nc, kernel_size=3, stride=2, padding=1, bias=self.use_bias)]
         
-        # 7. Add the linear layer - for the image coordinates
-        model += [nn.Linear(7, 1)]
+        # Return the model
+        return nn.Sequential(*model)
+    
+    # Define the processing for the non-image inputs
+    def define_non_img_model(self):
         
+        # Stores the model
+        model = []
+        
+        # Add convolutions for the injection centers and image coordinates - expected to have self.output_nc channels
+        for i in range(self.number_downsampling):
+            model += [nn.Conv3d(self.output_nc, self.output_nc, kernel_size=3, stride=1, padding=1, bias=self.use_bias),
+                      self.norm_layer(self.output_nc), 
+                          nn.ReLU(True)]
+            
+        # Return the model
+        return nn.Sequential(*model)
+            
+    # Define joint processing for everything
+    def define_joint_model(self):
+        
+        # Stores the model
+        model = []
+        
+        # Add final convolutions for image and non-image data - expected to have self.output_nc * 3 channels
+        for i in range(self.number_downsampling):
+            model += [nn.Conv3d(self.output_nc * 3, self.output_nc * 3, kernel_size=3, stride=1, padding=1, bias=self.use_bias),
+                      self.norm_layer(self.output_nc * 3), 
+                          nn.ReLU(True)]
+            
+        # Final convolution to make the number of channels 1
+        model += [nn.Conv3d(self.output_nc * 3, int(self.output_nc / self.output_nc), kernel_size=3, stride=1, padding=1, bias=self.use_bias)]
+            
         # Return the model
         return nn.Sequential(*model)
     
@@ -210,23 +237,26 @@ class ResnetEncoder(nn.Module):
         """
 
         # Do all the convolutions on the cube first
-        for layer in self.model[:-2]:
+        for layer in self.img_model:
             input_x = layer(input_x)
-
-        # Squeeze the input to match dimensions
-        input_x = input_x.squeeze(0).squeeze(0).float()
-
-        # Concatenate the injection center 
-        input_x = torch.cat((input_x, injection_center), dim=2)
-
-        # Do the first linear layer
-        input_x = self.model[-2](input_x)
-                
-        # Concatenate the image coordinates
-        input_x = torch.cat((input_x, image_coordinates), dim=2)
+            print("Input shape: {}".format(input_x.shape))
+            
+        # Do the convolutional layers for the injection center
+        injection_center = self.non_img_model(injection_center)
+        print("injection_center shape: {}".format(injection_center.shape))
         
-        # Do the second linear layer
-        input_x = self.model[-1](input_x)
+        # Do the convolutional layers for the image coordinates
+        image_coordinates = self.non_img_model(image_coordinates)
+        print("image_coordinates shape: {}".format(image_coordinates.shape))
         
+        # Concatenate the data along the number of channels
+        input_x = torch.cat((input_x, injection_center), dim=1)
+        input_x = torch.cat((input_x, image_coordinates), dim=1)
+        print("After concatenation shape: {}".format(input_x.shape))
+        
+        # Do the joint processing
+        joint_data = self.joint_model(input_x)
+        print("Final shape: {}".format(joint_data.shape))
+                        
         # Return the model
         return input_x
