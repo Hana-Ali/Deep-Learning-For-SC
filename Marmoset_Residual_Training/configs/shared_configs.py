@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 """
 Here we define the configurations that are shared between training and testing of the model.
 
@@ -171,6 +172,8 @@ class SharedConfigs():
         return self.config
 
 =======
+=======
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
 """
 Here we define the configurations that are shared between training and testing of the model.
 
@@ -342,4 +345,7 @@ class SharedConfigs():
         # Return the config
         return self.config
 
+<<<<<<< HEAD
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
+=======
 >>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004

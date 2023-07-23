@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 import sys
 from py_helpers.general_helpers import *
 import numpy as np
@@ -49,6 +50,8 @@ def main():
 if __name__ == "__main__":
     main()
 =======
+=======
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
 import sys
 from py_helpers.general_helpers import *
 import numpy as np
@@ -98,4 +101,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+<<<<<<< HEAD
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
+=======
 >>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004

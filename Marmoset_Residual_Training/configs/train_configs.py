@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 """
 Settings for training. Imports from base configs
 """
@@ -38,6 +39,8 @@ class TrainConfigs(SharedConfigs):
 
         # Return the parser
 =======
+=======
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
 """
 Settings for training. Imports from base configs
 """
@@ -76,5 +79,8 @@ class TrainConfigs(SharedConfigs):
         self.isTrain = True
 
         # Return the parser
+<<<<<<< HEAD
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
+=======
 >>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
         return parser

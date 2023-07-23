@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 from .encoders import *
 from .decoders import *
 
@@ -111,6 +112,8 @@ class ConvolutionalAutoEncoder(nn.Module):
         return self.convolutional_autoencoder(x)
         
 =======
+=======
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
 from .encoders import *
 from .decoders import *
 
@@ -222,4 +225,7 @@ class ConvolutionalAutoEncoder(nn.Module):
     def forward(self, x):
         return self.convolutional_autoencoder(x)
         
+<<<<<<< HEAD
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
+=======
 >>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004

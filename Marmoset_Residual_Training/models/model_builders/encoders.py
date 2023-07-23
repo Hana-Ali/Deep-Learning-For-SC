@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 from .network_blocks import *
 
 from functools import partial
@@ -223,6 +224,8 @@ class ResnetEncoder(nn.Module):
         # Return the model
         return input_x
 =======
+=======
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
 from .network_blocks import *
 
 from functools import partial
@@ -446,4 +449,7 @@ class ResnetEncoder(nn.Module):
 
         # Return the model
         return input_x
+<<<<<<< HEAD
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
+=======
 >>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004

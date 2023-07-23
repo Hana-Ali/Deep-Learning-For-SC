@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 import torch
 import torch.nn.parallel
 import torch.optim
@@ -175,6 +176,8 @@ def set_value_if_out_of_bounds(image, coordinate, bound):
 
 
 =======
+=======
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
 import torch
 import torch.nn.parallel
 import torch.optim
@@ -352,4 +355,7 @@ def set_value_if_out_of_bounds(image, coordinate, bound):
 
 
 
+<<<<<<< HEAD
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
+=======
 >>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004

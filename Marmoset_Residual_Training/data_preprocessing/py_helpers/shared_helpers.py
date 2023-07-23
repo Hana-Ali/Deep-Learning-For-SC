@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 import os
 import sys
 from .general_helpers import *
@@ -486,6 +487,8 @@ def create_initial_lists(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BV
     # Return the lists
     return (DWI_LIST, STREAMLINE_LIST, INJECTION_LIST)
 =======
+=======
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
 import os
 import sys
 from .general_helpers import *
@@ -972,4 +975,7 @@ def create_initial_lists(BMINDS_UNZIPPED_DWI_FILES, BMINDS_BVAL_FILES, BMINDS_BV
 
     # Return the lists
     return (DWI_LIST, STREAMLINE_LIST, INJECTION_LIST)
+<<<<<<< HEAD
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
+=======
 >>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004

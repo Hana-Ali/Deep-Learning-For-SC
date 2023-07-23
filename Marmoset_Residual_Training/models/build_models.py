@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 import os
 import torch
 import math
@@ -120,6 +121,8 @@ def match_tensor_sizes(fixed_tensor, moving_tensor):
     
     return moving_tensor
 =======
+=======
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
 import os
 import torch
 import math
@@ -240,4 +243,7 @@ def match_tensor_sizes(fixed_tensor, moving_tensor):
             moving_tensor = moving_tensor.narrow(dim=dim, start=0, length=fixed_tensor_size[dim])
     
     return moving_tensor
+<<<<<<< HEAD
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
+=======
 >>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004

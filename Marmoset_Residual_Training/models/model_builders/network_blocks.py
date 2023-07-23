@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 """
 Layers and blocks for use in the models.
 """
@@ -446,6 +447,8 @@ class ResnetBlock(nn.Module):
             res_block += [nn.Dropout(0.5)]
 
 =======
+=======
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
 """
 Layers and blocks for use in the models.
 """
@@ -892,5 +895,8 @@ class ResnetBlock(nn.Module):
         if use_dropout:
             res_block += [nn.Dropout(0.5)]
 
+<<<<<<< HEAD
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
+=======
 >>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
         return res_block

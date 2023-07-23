@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 import os
 import glob
 import sys
@@ -125,6 +126,8 @@ def check_input_folders(folder, name, verbose=False):
             print("--- {} folder found. Continuing...".format(name))
         
 =======
+=======
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
 import os
 import glob
 import sys
@@ -250,4 +253,7 @@ def check_input_folders(folder, name, verbose=False):
         if verbose:
             print("--- {} folder found. Continuing...".format(name))
         
+<<<<<<< HEAD
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
+=======
 >>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004

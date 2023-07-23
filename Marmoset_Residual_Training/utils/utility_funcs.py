@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 """
 Functions for general use
 """
@@ -100,6 +101,8 @@ def dump_json(dictionary, filename):
         json.dump(dictionary, f, indent=4, sort_keys=True)
 
 =======
+=======
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
 """
 Functions for general use
 """
@@ -200,4 +203,7 @@ def dump_json(dictionary, filename):
     with open(filename, 'w') as f:
         json.dump(dictionary, f, indent=4, sort_keys=True)
 
+<<<<<<< HEAD
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
+=======
 >>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004

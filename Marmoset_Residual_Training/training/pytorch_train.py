@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 from utils import *
 import time
 import shutil
@@ -301,6 +302,8 @@ def run_pytorch_training(config, model_filename, training_log_filename, verbose=
 
 
 =======
+=======
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
 from utils import *
 import time
 import shutil
@@ -602,4 +605,7 @@ def run_pytorch_training(config, model_filename, training_log_filename, verbose=
         
 
 
+<<<<<<< HEAD
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
+=======
 >>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004

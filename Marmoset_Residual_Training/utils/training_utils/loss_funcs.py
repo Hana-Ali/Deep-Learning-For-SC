@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 import torch
 from torch.nn.functional import l1_loss, mse_loss
 
@@ -39,6 +40,8 @@ class WeightedLoss(object):
     def __call__(self, output, target):
         return weighted_loss(output, target, self.weights, self.criterion, weighted_dimension=self.weighted_dimension)
 =======
+=======
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
 import torch
 from torch.nn.functional import l1_loss, mse_loss
 
@@ -78,4 +81,7 @@ class WeightedLoss(object):
     # Define the call function
     def __call__(self, output, target):
         return weighted_loss(output, target, self.weights, self.criterion, weighted_dimension=self.weighted_dimension)
+<<<<<<< HEAD
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
+=======
 >>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004

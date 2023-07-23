@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 import os
 import numpy as np
 import nibabel as nib
@@ -120,6 +121,8 @@ def train_epoch(epoch, data_loader, model, criterion, optimizer, device, current
 
 
 =======
+=======
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
 import os
 import numpy as np
 import nibabel as nib
@@ -240,4 +243,7 @@ def train_epoch(epoch, data_loader, model, criterion, optimizer, device, current
 
 
 
+<<<<<<< HEAD
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
+=======
 >>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004

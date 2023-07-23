@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 import torch.nn as nn
 from functools import partial
 from .network_blocks import *
@@ -299,6 +300,8 @@ class MirroredDecoder(nn.Module):
         # Return the output
         return x_input
 =======
+=======
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
 import torch.nn as nn
 from functools import partial
 from .network_blocks import *
@@ -598,4 +601,7 @@ class MirroredDecoder(nn.Module):
 
         # Return the output
         return x_input
+<<<<<<< HEAD
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
+=======
 >>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004

@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 from .general_funcs import *
 import numpy as np
 import shutil
@@ -265,6 +266,8 @@ def remove_file(filename):
 def build_optimizer(optimizer_name, model_parameters, learning_rate=1e-4):
     return getattr(torch.optim, optimizer_name)(model_parameters, lr=learning_rate)
 =======
+=======
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
 from .general_funcs import *
 import numpy as np
 import shutil
@@ -586,4 +589,7 @@ def remove_file(filename):
 # Function to build optimizer
 def build_optimizer(optimizer_name, model_parameters, learning_rate=1e-4):
     return getattr(torch.optim, optimizer_name)(model_parameters, lr=learning_rate)
+<<<<<<< HEAD
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
+=======
 >>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004

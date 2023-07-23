@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 """
 Settings for testing. Imports from base configs
 """
@@ -30,6 +31,8 @@ class TestConfigs(SharedConfigs):
         # Return the parser
         return parser
 =======
+=======
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
 """
 Settings for testing. Imports from base configs
 """
@@ -60,4 +63,7 @@ class TestConfigs(SharedConfigs):
 
         # Return the parser
         return parser
+<<<<<<< HEAD
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
+=======
 >>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004

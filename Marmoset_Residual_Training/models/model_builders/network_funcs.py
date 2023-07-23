@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 import torch.nn as nn
 
 # Define 3x3x3 convolution
@@ -14,6 +15,8 @@ def conv3x3x3(in_channels, out_channels, stride=1, groups=1, padding=None, dilat
 def conv1x1x1(in_planes, out_planes, stride=1):
     """1x1x1 convolution"""
 =======
+=======
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
 import torch.nn as nn
 
 # Define 3x3x3 convolution
@@ -28,5 +31,8 @@ def conv3x3x3(in_channels, out_channels, stride=1, groups=1, padding=None, dilat
 # Define 1x1x1 convolution
 def conv1x1x1(in_planes, out_planes, stride=1):
     """1x1x1 convolution"""
+<<<<<<< HEAD
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
+=======
 >>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
     return nn.Conv3d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)

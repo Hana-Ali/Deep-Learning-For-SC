@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 import torch
 from models.model_builders import *
 
@@ -268,6 +269,8 @@ def resnext_101_32x8d(pretrained=False, progress=True, **kwargs):
     return _resnet('resnext_101_32x8d', Bottleneck, [3, 4, 23, 3],
                    pretrained, progress, **kwargs)
 =======
+=======
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
 import torch
 from models.model_builders import *
 
@@ -536,5 +539,8 @@ def resnext_101_32x8d(pretrained=False, progress=True, **kwargs):
     kwargs['width_per_group'] = 8
     return _resnet('resnext_101_32x8d', Bottleneck, [3, 4, 23, 3],
                    pretrained, progress, **kwargs)
+<<<<<<< HEAD
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
+=======
 >>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
         

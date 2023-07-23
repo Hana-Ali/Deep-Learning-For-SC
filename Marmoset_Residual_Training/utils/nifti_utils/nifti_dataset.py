@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 from utils.utility_funcs import *
 import nibabel as nib
 import numpy as np
@@ -141,6 +142,8 @@ def glob_files(PATH_NAME, file_format):
         INPUT_FILES.append(file)
     return INPUT_FILES
 =======
+=======
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
 from utils.utility_funcs import *
 import nibabel as nib
 import numpy as np
@@ -282,4 +285,7 @@ def glob_files(PATH_NAME, file_format):
     for file in glob.glob(os.path.join(PATH_NAME, os.path.join("**", "*.{}".format(file_format))), recursive=True):
         INPUT_FILES.append(file)
     return INPUT_FILES
+<<<<<<< HEAD
+>>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
+=======
 >>>>>>> d2d815127215b7b2d0d29b4150a09d943a4f1004
