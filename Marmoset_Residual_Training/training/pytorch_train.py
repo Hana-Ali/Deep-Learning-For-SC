@@ -80,8 +80,9 @@ def train(model, optimizer, criterion, n_epochs, training_loader, validation_loa
             break
 
         # Train the model
-        loss, predictions_array = epoch_training(training_loader, model, criterion, optimizer=optimizer, epoch=epoch, n_gpus=n_gpus,
-                                                  regularized=regularized, vae=vae, scaler=scaler)
+        loss = epoch_training(training_loader, model, criterion, optimizer=optimizer, epoch=epoch, 
+                              residual_arrays_path=residual_arrays_path, n_gpus=n_gpus,
+                              regularized=regularized, vae=vae, scaler=scaler)
 
         try:
             training_loader.dataset.on_epoch_end()
@@ -100,10 +101,6 @@ def train(model, optimizer, criterion, n_epochs, training_loader, validation_loa
         else:
             val_loss = None
         
-        # Dump the predicted residuals array
-        predictions_path = os.path.join(residual_arrays_path, "epoch_{}".format(epoch))
-        np.save(predictions_path, predictions_array)
-        
         # Update the training log
         training_log.append([epoch, loss, get_learning_rate(optimizer), val_loss])
 
@@ -112,6 +109,7 @@ def train(model, optimizer, criterion, n_epochs, training_loader, validation_loa
 
         # Find the minimum epoch
         min_epoch = np.asarray(training_log)[:, training_log_header.index(metric_to_monitor)].argmin()
+        
 
         # Check the scheduler
         if scheduler:

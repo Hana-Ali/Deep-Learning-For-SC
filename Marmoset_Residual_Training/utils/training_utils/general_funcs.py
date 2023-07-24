@@ -25,6 +25,11 @@ class AverageMeter(object):
         self.name = name
         self.fmt = fmt
         self.reset()
+        
+        self.val = 0
+        self.avg = 0
+        self.sum = 0
+        self.count = 0 
 
     # Reset the meter
     def reset(self):
@@ -37,12 +42,17 @@ class AverageMeter(object):
 
     # Update the meter
     def update(self, val, n=1):
-            
+                    
         # Update the attributes
         self.val = val
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
+        
+        # print("Value is: {}".format(self.val))
+        # print("Sum is: {}".format(self.sum))
+        # print("Count is: {}".format(self.count))
+        # print("Average is: {}".format(self.avg))
 
     # Return the string representation
     def __str__(self):
@@ -166,3 +176,105 @@ def set_value_if_out_of_bounds(image, coordinate, bound):
 
     # Return the coordinate
     return coordinate
+
+# Function to pad 3D array to a shape
+def pad_to_shape(input_array, kernel_size):
+    
+    # Divide by two as we want to make sure it pads up to cover half the kernel
+    kernel_size = kernel_size // 2
+    
+    print("Kernel size is: {}".format(kernel_size))
+    
+    # Get the number of values for each axes that need to be added to fit multiple of kernel
+    padding_needed = [((kernel_size - (axis % kernel_size)) % kernel_size) for axis in input_array.shape[2:]]
+    
+    print("Old shape is: {}".format(input_array.shape[2:]))
+    print("Padding needed is: {}".format(padding_needed))
+    
+    # Create a list that describes the new shape based on what's needed to make it a multiple
+    new_shape = []
+    for i in range(input_array.ndim - 2):
+        new_shape.append(input_array.shape[i + 2] + padding_needed[i])
+    
+    print("New shape is: {}".format(new_shape))
+    
+    # Reshape the array with the padding
+    reshaped_array = to_shape(input_array, new_shape)
+
+    # Return the new array
+    return reshaped_array
+
+# Function to do the actual padding
+def to_shape(input_array, shape):
+    
+    # Get the needed shape
+    y_, x_, z_ = shape
+    
+    # Since it's a tensor, we need to first squeeze it
+    input_array = input_array.numpy().squeeze(0).squeeze(0)
+    
+    # Get the actual shape
+    y, x, z = input_array.shape
+    
+    # Get the amount of padding needed for each dimension
+    y_pad = (y_-y)
+    x_pad = (x_-x)
+    z_pad = (z_-z)
+    
+    print("og array shape: {}".format(input_array.shape))
+    
+    # Pad the array
+    padded_array = np.pad(input_array,((y_pad//2, y_pad//2 + y_pad%2), 
+                                       (x_pad//2, x_pad//2 + x_pad%2),
+                                       (z_pad//2, z_pad//2 + z_pad%2)),
+                                        mode = 'constant')
+    
+    print("padded array shape: {}".format(padded_array.shape))
+    
+    # Now we need to turn it into a tensor again and unsqueeze
+    padded_array = torch.from_numpy(padded_array).unsqueeze(0).unsqueeze(0)
+    
+    
+    print("padded tensor shape: {}".format(padded_array.shape))
+
+    # Return the padded array
+    return padded_array
+
+# Function to get the indices to start and end at for creating the centers array
+def get_centers(residual_hemisphere, kernel_size, overlapping):
+    
+    # Define the shape coordinates
+    x_coord = 2
+    y_coord = 3
+    z_coord = 4
+    
+    # Define half the kernel_size
+    half_kernel = kernel_size // 2
+    
+    # The start is kernel_size - 1
+    start = half_kernel - 1
+    
+    # The end is just the shape end minus the half kernel
+    end_x = residual_hemisphere.shape[x_coord] - half_kernel + 1
+    end_y = residual_hemisphere.shape[y_coord] - half_kernel + 1
+    end_z = residual_hemisphere.shape[z_coord] - half_kernel + 1
+    
+    print("End x is: {}".format(end_x))
+    print("End y is: {}".format(end_y))
+    print("End z is: {}".format(end_z))
+    
+    # Get the skipping step, depending on whether the cubes should overlap or not
+    if overlapping:
+        # Skip just half_kernel * 2, so the center don't overlap but the sides do
+        skipping_step = half_kernel
+    else:
+        # Skip half_kernel * 4, so that neither the centers not the sides overlap
+        skipping_step = half_kernel * 2
+        
+    # Get the centers based on the skipping step above
+    x_centers = np.arange(start=start, stop=end_x, step=skipping_step)
+    y_centers = np.arange(start=start, stop=end_y, step=skipping_step)
+    z_centers = np.arange(start=start, stop=end_z, step=skipping_step)
+    
+    # Return the centers
+    return x_centers, y_centers, z_centers

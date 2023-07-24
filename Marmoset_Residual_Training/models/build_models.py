@@ -18,6 +18,11 @@ def get_model(model_name, input_nc, output_nc, ngf, num_blocks, norm_layer,
                                  norm_layer=norm_layer,
                                  use_dropout=use_dropout,
                                  padding_type=padding_type)
+        elif "upanet" in model_name.lower():
+            return UPANets(input_nc=input_nc,
+                           output_nc=output_nc,
+                           num_blocks=num_blocks,
+                           img_size=32)
 
     except AttributeError:
         raise ValueError("Model {} not found".format(model_name))

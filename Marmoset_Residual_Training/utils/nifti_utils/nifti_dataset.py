@@ -1,5 +1,5 @@
 from utils.utility_funcs import *
-import nibabel as nib
+import SimpleITK as sitk
 import numpy as np
 import torch
 import glob
@@ -89,15 +89,40 @@ class NiftiDataset(torch.utils.data.Dataset):
     # Function to read an image
     def read_image(self, image_path):
         
-        # Read the image using nibabel
-        image = nib.load(image_path)
-
-        # Get the image data
-        image = image.get_fdata()
-                
-        # Expand the dimensions of the image
-        image = np.expand_dims(image, axis=0)
-
+        # Read the image using SimpleITK
+        reader = sitk.ImageFileReader()
+        reader.SetFileName(image_path)
+        image = reader.Execute()
+        
+        # Normalize the image
+        image = self.normalize_image(image)
+        
+        # Get the data from the image
+        image_data = np.transpose(sitk.GetArrayFromImage(image), axes=(2, 1, 0))
+        
+        # Expand the dimension of the image
+        image_data = np.expand_dims(image_data, axis=0)
+        
+        # Return the image data
+        return image_data
+    
+    # Function to normalize an image
+    def normalize_image(self, image):
+        
+        # Define the normalizer
+        normalizer = sitk.NormalizeImageFilter()
+        rescaler = sitk.RescaleIntensityImageFilter()
+        
+        # Set the maximum and minimum of rescaler
+        rescaler.SetOutputMaximum(255)
+        rescaler.SetOutputMinimum(0)
+        
+        # Normalize the image (mean and std)
+        image = normalizer.Execute(image)
+        
+        # Rescale the image (0 -> 255)
+        image = rescaler.Execute(image)
+        
         # Return the image
         return image
     
