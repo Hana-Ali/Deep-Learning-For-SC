@@ -152,9 +152,9 @@ def grab_cube_around_voxel(image, voxel_coordinates, kernel_size):
                 z_coord = voxel_z - kernel_size + z
 
                 # If the coordinates are out of bounds, set to the boundary
-                x_coord = set_value_if_out_of_bounds(image, x_coord, image.shape[2])
-                y_coord = set_value_if_out_of_bounds(image, y_coord, image.shape[3])
-                z_coord = set_value_if_out_of_bounds(image, z_coord, image.shape[4])
+                x_coord = set_value_if_out_of_bounds(x_coord, image.shape[2])
+                y_coord = set_value_if_out_of_bounds(y_coord, image.shape[3])
+                z_coord = set_value_if_out_of_bounds(z_coord, image.shape[4])
 
                 # Get the value at the coordinate
                 value = image[0, 0, x_coord, y_coord, z_coord]
@@ -166,37 +166,30 @@ def grab_cube_around_voxel(image, voxel_coordinates, kernel_size):
     return cube
 
 # Function to set the value if out of bounds
-def set_value_if_out_of_bounds(image, coordinate, bound):
+def set_value_if_out_of_bounds(value, bound):
 
-    # If the coordinate is out of bounds
-    if coordinate < 0:
-        coordinate = 0
-    elif coordinate >= bound:
-        coordinate = bound - 1
+    # If the value is out of bounds
+    if value < 0:
+        value = 0
+    elif value >= bound:
+        value = bound - 1
 
-    # Return the coordinate
-    return coordinate
+    # Return the value
+    return value
 
 # Function to pad 3D array to a shape
 def pad_to_shape(input_array, kernel_size):
     
     # Divide by two as we want to make sure it pads up to cover half the kernel
     kernel_size = kernel_size // 2
-    
-    print("Kernel size is: {}".format(kernel_size))
-    
+         
     # Get the number of values for each axes that need to be added to fit multiple of kernel
     padding_needed = [((kernel_size - (axis % kernel_size)) % kernel_size) for axis in input_array.shape[2:]]
-    
-    print("Old shape is: {}".format(input_array.shape[2:]))
-    print("Padding needed is: {}".format(padding_needed))
-    
+               
     # Create a list that describes the new shape based on what's needed to make it a multiple
     new_shape = []
     for i in range(input_array.ndim - 2):
         new_shape.append(input_array.shape[i + 2] + padding_needed[i])
-    
-    print("New shape is: {}".format(new_shape))
     
     # Reshape the array with the padding
     reshaped_array = to_shape(input_array, new_shape)
@@ -220,23 +213,17 @@ def to_shape(input_array, shape):
     y_pad = (y_-y)
     x_pad = (x_-x)
     z_pad = (z_-z)
-    
-    print("og array shape: {}".format(input_array.shape))
-    
+        
     # Pad the array
-    padded_array = np.pad(input_array,((y_pad//2, y_pad//2 + y_pad%2), 
-                                       (x_pad//2, x_pad//2 + x_pad%2),
-                                       (z_pad//2, z_pad//2 + z_pad%2)),
+    padded_array = np.pad(input_array,((y_pad//2, y_pad//2 + y_pad%2 + 1), 
+                                       (x_pad//2, x_pad//2 + x_pad%2 + 1),
+                                       (z_pad//2, z_pad//2 + z_pad%2 + 1)),
                                         mode = 'constant')
-    
-    print("padded array shape: {}".format(padded_array.shape))
-    
+        
     # Now we need to turn it into a tensor again and unsqueeze
     padded_array = torch.from_numpy(padded_array).unsqueeze(0).unsqueeze(0)
     
     
-    print("padded tensor shape: {}".format(padded_array.shape))
-
     # Return the padded array
     return padded_array
 
@@ -259,17 +246,13 @@ def get_centers(residual_hemisphere, kernel_size, overlapping):
     end_y = residual_hemisphere.shape[y_coord] - half_kernel + 1
     end_z = residual_hemisphere.shape[z_coord] - half_kernel + 1
     
-    print("End x is: {}".format(end_x))
-    print("End y is: {}".format(end_y))
-    print("End z is: {}".format(end_z))
-    
     # Get the skipping step, depending on whether the cubes should overlap or not
     if overlapping:
-        # Skip just half_kernel * 2, so the center don't overlap but the sides do
+        # Skip just half_kernel, so the center don't overlap but the sides do
         skipping_step = half_kernel
     else:
-        # Skip half_kernel * 4, so that neither the centers not the sides overlap
-        skipping_step = half_kernel * 2
+        # Skip the kernel size, so that neither the centers not the sides overlap
+        skipping_step = kernel_size
         
     # Get the centers based on the skipping step above
     x_centers = np.arange(start=start, stop=end_x, step=skipping_step)
@@ -278,3 +261,22 @@ def get_centers(residual_hemisphere, kernel_size, overlapping):
     
     # Return the centers
     return x_centers, y_centers, z_centers
+
+# Function to get the indices for the predictions array
+def get_predictions_indexing(x, y, z, half_kernel, predictions_array):
+    
+    # Get the shape of the predictions_array
+    shape_x, shape_y, shape_z = predictions_array.shape
+    
+    # Define the start indices
+    start_idx_x = set_value_if_out_of_bounds(x - (half_kernel - 1), shape_x)
+    start_idx_y = set_value_if_out_of_bounds(y - (half_kernel - 1), shape_y)
+    start_idx_z = set_value_if_out_of_bounds(z - (half_kernel - 1), shape_z)
+    
+    # Define the end indices
+    end_idx_x = set_value_if_out_of_bounds(x + (half_kernel + 1), shape_x)
+    end_idx_y = set_value_if_out_of_bounds(y + (half_kernel + 1), shape_y)
+    end_idx_z = set_value_if_out_of_bounds(z + (half_kernel + 1), shape_z)
+    
+    # Return the indices
+    return (start_idx_x, start_idx_y, start_idx_z, end_idx_x, end_idx_y, end_idx_z)

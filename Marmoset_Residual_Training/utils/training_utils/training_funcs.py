@@ -68,13 +68,14 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
             residual_hemisphere = residual[:, :, :x_midpoint, :, :]
 
         # Define the kernel size (cube will be 2 * kernel_size) - HYPERPARAMETER
-        kernel_size = 16
+        kernel_size = 8
+        half_kernel = kernel_size // 2
         
         # Pad the b0 and residuals to be of a shape that is a multiple of the kernel_size
         b0_hemisphere = pad_to_shape(b0_hemisphere, kernel_size)
         residual_hemisphere = pad_to_shape(residual_hemisphere, kernel_size)
-        print("padded b0 shape: {}".format(b0_hemisphere.shape))
-        print("padded residual shape: {}".format(residual_hemisphere.shape))
+        # print("padded b0 shape: {}".format(b0_hemisphere.shape))
+        # print("padded residual shape: {}".format(residual_hemisphere.shape))
         
         # Create a new tensor of size kernel_size x kernel_size x 3, that has the injection center
         injection_center = np.tile(injection_center, (kernel_size, kernel_size, kernel_size, 1))
@@ -85,15 +86,17 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
         
         # Create a tensor of the same shape as the residual hemisphere
         predictions_array = np.zeros_like(residual_hemisphere.numpy().squeeze(0).squeeze(0))
-        print("predictions_array shape: {}".format(predictions_array.shape))
+        # print("predictions_array shape: {}".format(predictions_array.shape))
             
         # Get the start and end indices, as well as skipping step size
-        overlapping = True
+        overlapping = False
         x_centers, y_centers, z_centers = get_centers(residual_hemisphere, kernel_size, overlapping)
         
         print("Number of x_centers: {}, {}".format(x_centers.shape, x_centers))
         print("Number of y_centers: {}, {}".format(y_centers.shape, y_centers))
         print("Number of z_centers: {}, {}".format(z_centers.shape, z_centers))
+        
+        # print("Residual hemisphere shape: {}".format(residual_hemisphere.shape))
         
         # For every x_center
         for x in x_centers:
@@ -131,18 +134,27 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
                     
                     # Get the residual as a numpy array
                     predicted_residual = predicted_residual.cpu().detach().numpy().squeeze(0).squeeze(0)
+                    # print("shape of predicted residuals: {}".format(predicted_residual.shape))
                     
+                    # Get the start of indexing for this new array
+                    (start_idx_x, start_idx_y, start_idx_z,
+                     end_idx_x, end_idx_y, end_idx_z) = get_predictions_indexing(x, y, z, half_kernel, predictions_array)
                     # Add this to the predicted tensor at the correct spot - note that if the cubes overlap then the areas
                     # of overlap are rewritten each time
-                    predictions_array[x - (kernel_size // 2):x + (kernel_size // 2),
-                                       y - (kernel_size // 2):y + (kernel_size // 2),
-                                       z - (kernel_size // 2):z + (kernel_size // 2)] = predicted_residual
+                    # print("Indexing starts: ", start_idx_x, start_idx_y, start_idx_x)
+                    # print("Indexing ends: ", end_idx_x, end_idx_y, end_idx_z)
+                    # print("shape of this subsection: {}".format(predictions_array[start_idx_x : end_idx_x,
+                    #                                                               start_idx_y : end_idx_y,
+                    #                                                               start_idx_z : end_idx_z].shape))
+                    predictions_array[start_idx_x : end_idx_x,
+                                      start_idx_y : end_idx_y,
+                                      start_idx_z : end_idx_z] = predicted_residual
                     
-                    print("predicted residual is: {}".format(predicted_residual.cpu().detach().numpy().squeeze(0).squeeze(0)))
-                    print("predictions_array is: {}".format(predictions_array[x - (kernel_size // 2):x + (kernel_size // 2),
-                                                                               y - (kernel_size // 2):y + (kernel_size // 2),
-                                                                               z - (kernel_size // 2):z + (kernel_size // 2)]))
-                    print("shape of predictions_array is: {}".format(predictions_array.shape))
+                    # print("predicted residual is: {}".format(predicted_residual))
+                    # print("predictions_array is: {}".format(predictions_array[start_idx_x : end_idx_x,
+                    #                                                           start_idx_y : end_idx_y,
+                    #                                                           start_idx_z : end_idx_z]))
+                    # print("shape of predictions_array is: {}".format(predictions_array.shape))
                     
                     
                     # Change this to actually add to the predictions tensor if you want

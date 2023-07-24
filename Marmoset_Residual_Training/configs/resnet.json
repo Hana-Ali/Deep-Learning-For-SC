@@ -14,7 +14,7 @@
     "n_epochs": 100,
     "ngf": 64,
     "norm_layer": "BatchNorm3d",
-    "num_blocks": 6,
+    "num_blocks": 3,
     "optimizer": "Adam",
     "output_nc": 3,
     "padding_type": "reflect",
