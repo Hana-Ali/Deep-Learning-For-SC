@@ -67,7 +67,7 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, n_gpus=None
             residual_hemisphere = residual[:, :, :x_midpoint, :, :]
 
         # Define the kernel size (cube will be 2 * kernel_size) - HYPERPARAMETER
-        kernel_size = 16
+        kernel_size = 8
         
         # Create a new tensor of size kernel_size x kernel_size x 3, that has the injection center
         injection_center = np.tile(injection_center, (kernel_size, kernel_size, kernel_size, 1))
@@ -77,7 +77,10 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, n_gpus=None
         injection_center = torch.permute(injection_center, (0, 4, 1, 2, 3))
         
         # Create a tensor of the same shape as the residual hemisphere
-        predictions_tensor = torch.empty_like(residual_hemisphere).float().cuda()
+        # predictions_tensor = torch.empty_like(residual_hemisphere).float().cuda()
+        
+        # Create a predictions list to store the results
+        predictions_array = []
         
         # Make a range that skips the kernel size * 2, to make the non-overlapping patches of the residuals
         x_centers = np.arange(start=0, stop=residual_hemisphere.shape[x_coord], step=kernel_size * 2)
@@ -97,8 +100,8 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, n_gpus=None
             # For every y_center
             for y in y_centers:
                 
-                # Print out the y coord
-                print("Current y coordinate: {}".format(y))
+                # # Print out the y coord
+                # print("Current y coordinate: {}".format(y))
                                 
                 # For every z_center
                 for z in z_centers:
@@ -122,6 +125,8 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, n_gpus=None
                     (predicted_residual, loss, batch_size)  = batch_loss(model, b0_cube, injection_center, image_coordinates, 
                                                                          residual_cube, criterion,
                                                                          n_gpus=n_gpus, use_amp=use_amp)
+                    # Append the predicted residual to a numpy array
+                    predictions_array.append(predicted_residual.cpu().detach().numpy())
                     
                     # Change this to actually add to the predictions tensor if you want
                     del predicted_residual
@@ -164,8 +169,8 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, n_gpus=None
             # Print out the progress after every x coordinate is done
             progress.display(i)
                     
-    # Return the losses
-    return losses.avg
+    # Return the losses and prediction array
+    return losses.avg, np.array(predictions_array)
 
 # Define the function to get model output
 def batch_loss(model, b0_cube, injection_center, image_coordinates, residual_cube, criterion, n_gpus=None, use_amp=False):

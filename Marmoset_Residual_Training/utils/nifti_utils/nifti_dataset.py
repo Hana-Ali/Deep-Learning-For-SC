@@ -27,13 +27,13 @@ class NiftiDataset(torch.utils.data.Dataset):
         csv_files = glob_files(self.data_path, "csv")
 
         # Filter out the B0 images (INPUTS 1)
-        b0_images = [file for file in nii_gz_files if "b0" in file and "resized" not in file]
+        b0_images = [file for file in nii_gz_files if "b0" in file and "resized" in file]
 
         # Filter out the injection centers (INPUTS 2)
         injection_centers = [file for file in csv_files if "inj_center" in file]
 
         # Filter out the residuals (TARGETS)
-        residuals = [file for file in nii_gz_files if "subtracted" in file]
+        residuals = [file for file in nii_gz_files if "subtracted" in file and "resized" in file]
 
         # Prepare the lists
         self.b0_images = []
@@ -94,7 +94,7 @@ class NiftiDataset(torch.utils.data.Dataset):
 
         # Get the image data
         image = image.get_fdata()
-
+                
         # Expand the dimensions of the image
         image = np.expand_dims(image, axis=0)
 
@@ -116,7 +116,7 @@ class NiftiDataset(torch.utils.data.Dataset):
 
         # Read the b0 image
         b0_image_array = self.read_image(b0_image_path)
-
+        
         # Read the residual image
         residual_array = self.read_image(residual_path)
 
