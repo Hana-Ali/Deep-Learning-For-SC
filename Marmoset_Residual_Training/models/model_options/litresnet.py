@@ -1,4 +1,4 @@
-import os
+import time
 import torch
 import torch.nn as nn
 import numpy as np
@@ -111,6 +111,9 @@ class LitResNet(LightningModule):
         # Create losses list
         losses = []
 
+        # Start the timer
+        start = time.time()
+
         # For every x_center
         for x in x_centers:
 
@@ -179,6 +182,8 @@ class LitResNet(LightningModule):
                     
                     # Dictionary
                     self.log_dict({"train_loss_curr": loss, "train_loss_avg": np.average(np.array(losses))}, prog_bar=True)
+
+            print("Finished one y in {} seconds".format(time.time() - start))
                     
         # Dump the predicted residuals array
         print("Saving...")
