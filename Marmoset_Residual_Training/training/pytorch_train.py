@@ -16,8 +16,8 @@ from utils.training_utils import loss_funcs
 import nibabel as nib
 
 # Main train function
-def train(model, optimizer, criterion, n_epochs, training_loader, validation_loader, training_log_filename,
-          model_filename, residual_arrays_path, metric_to_monitor="val_loss", early_stopping_patience=None,
+def train(model, optimizer, criterion, n_epochs, training_loader, validation_loader, test_loader, training_log_filename,
+          model_filename, residual_arrays_path, separate_hemisphere=True, metric_to_monitor="val_loss", early_stopping_patience=None,
           learning_rate_decay_patience=None, save_best=False, n_gpus=1, verbose=True, regularized=False,
           vae=False, decay_factor=0.1, min_lr=0., learning_rate_decay_step_size=None, save_every_n_epochs=None,
           save_last_n_models=None, amp=False):
@@ -25,9 +25,6 @@ def train(model, optimizer, criterion, n_epochs, training_loader, validation_loa
     # Make a list of the training log
     training_log = []
     
-    print("Metric to monitor is: ", metric_to_monitor)
-    print("Residual arrays path is: ", residual_arrays_path)
-
     # If the training log filename is not None
     if os.path.exists(training_log_filename):
         # Load the training log
@@ -81,8 +78,8 @@ def train(model, optimizer, criterion, n_epochs, training_loader, validation_loa
 
         # Train the model
         loss = epoch_training(training_loader, model, criterion, optimizer=optimizer, epoch=epoch, 
-                              residual_arrays_path=residual_arrays_path, n_gpus=n_gpus,
-                              regularized=regularized, vae=vae, scaler=scaler)
+                              residual_arrays_path=residual_arrays_path, separate_hemisphere=separate_hemisphere,
+                              n_gpus=n_gpus, regularized=regularized, vae=vae, scaler=scaler)
 
         try:
             training_loader.dataset.on_epoch_end()
@@ -210,8 +207,6 @@ def run_pytorch_training(config, model_filename, training_log_filename, residual
     # If weighted loss
     if "weights" in config and config["weights"] is not None:
         criterion = loss_funcs.WeightedLoss(torch.tensor(config["weights"]), criterion)
-
-    print("Criterion is: {}".format(criterion))
     
     # Define the optimizer
     optimizer_kwargs = dict()
@@ -225,70 +220,58 @@ def run_pytorch_training(config, model_filename, training_log_filename, residual
                                 model_parameters=model.parameters(),
                                 **optimizer_kwargs)
     
-    print("Optimizer is: {}".format(optimizer.__class__.__name__))
-
     # Get default collate
     from torch.utils.data.dataloader import default_collate
     collate_fn = default_collate
 
     # Get the dataset
-    train_set = NiftiDataset(config["main_data_path"], transforms=None, train=True)
+    dataset = NiftiDataset(config["main_data_path"], transforms=None, train=True)
+    
+    # Define the split size
+    proportions = [.75, .10, .15]
+    lengths = [int(p * len(dataset)) for p in proportions]
+    lengths[-1] = len(dataset) - sum(lengths[:-1])
 
+    # Split the data
+    seed = torch.Generator().manual_seed(42)
+    train_set, val_set, test_set = torch.utils.data.random_split(dataset, lengths)
+        
     # Define the training loader
     train_loader = torch.utils.data.DataLoader(train_set,
                                                 batch_size=config["batch_size"],
-                                                shuffle=False,
+                                                shuffle=config["shuffle_dataset"],
                                                 num_workers=n_workers,
                                                 collate_fn=collate_fn,
                                                 pin_memory=pin_memory,
                                                 prefetch_factor=prefetch_factor)
+    
+    # Define the validation loader
+    val_loader = torch.utils.data.DataLoader(val_set,
+                                            batch_size=config["batch_size"],
+                                            shuffle=config["shuffle_dataset"],
+                                            num_workers=n_workers,
+                                            collate_fn=collate_fn,
+                                            pin_memory=pin_memory,
+                                            prefetch_factor=prefetch_factor)
+    
+    # Define the test loader
+    test_loader = torch.utils.data.DataLoader(test_set,
+                                                batch_size=config["batch_size"],
+                                                shuffle=config["shuffle_dataset"],
+                                                num_workers=n_workers,
+                                                collate_fn=collate_fn,
+                                                pin_memory=pin_memory,
+                                                prefetch_factor=prefetch_factor)
+    
+    # Define the metric to monitor
+    metric_to_monitor = "train_loss"
 
-    # # If test input
-    # if test_input:
-
-    #     # For each of the test inputs
-    #     for index in test_input:
-
-    #         # Get the test input
-    #         x, y = train_set[index]
-
-    #         # Turn into numpy
-    #         if not isinstance(x, np.ndarray):
-    #             x = x.numpy()
-    #             y = y.numpy()
-
-    #         x = np.moveaxis(x, 0, -1)
-    #         x_image = nib.Nifti1Image(x.squeeze(), affine=np.diag(np.ones(4)))
-    #         x_image.to_filename(model_filename.replace(".h5",
-    #                                                    "_input_test_{}.nii.gz".format(index)))
-    #         if len(y.shape) >= 3:
-    #             y = np.moveaxis(y, 0, -1)
-    #             y_image = nib.Nifti1Image(y.squeeze(), affine=np.diag(np.ones(4)))
-    #             y_image.to_filename(model_filename.replace(".h5",
-    #                                                        "_target_test_{}.nii.gz".format(index)))
-
-    # If skipping validation
-    if 'skip_val' in config and config['skip_val']:
-        validation_loader = None
-        metric_to_monitor = "train_loss"
-    else:
-        # Get the dataset
-        validation_set = NiftiDataset(config["validation_path"], transforms=None, train=True)
-
-        # Define the validation loader
-        validation_loader = torch.utils.data.DataLoader(validation_set,
-                                                        batch_size=config["validation_batch_size"],
-                                                        shuffle=False,
-                                                        num_workers=n_workers,
-                                                        collate_fn=collate_fn,
-                                                        pin_memory=pin_memory,
-                                                        prefetch_factor=prefetch_factor)
         
     # Train the model
     train(model=model, optimizer=optimizer, criterion=criterion, n_epochs=config["n_epochs"], verbose=bool(verbose),
-        training_loader=train_loader, validation_loader=validation_loader, model_filename=model_filename,
-        training_log_filename=training_log_filename, residual_arrays_path=residual_arrays_path,
-        metric_to_monitor=metric_to_monitor,
+        training_loader=train_loader, validation_loader=val_loader, test_loader=test_loader, model_filename=model_filename,
+        training_log_filename=training_log_filename, residual_arrays_path=residual_arrays_path, 
+        separate_hemisphere=config["separate_hemisphere"], metric_to_monitor=metric_to_monitor,
         early_stopping_patience=in_config("early_stopping_patience", config),
         save_best=in_config("save_best", config, False),
         learning_rate_decay_patience=in_config("decay_patience", config),

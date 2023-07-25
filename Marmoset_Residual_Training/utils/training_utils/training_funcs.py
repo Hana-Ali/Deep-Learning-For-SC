@@ -3,10 +3,11 @@ import numpy as np
 import shutil
 from utils.training_utils import loss_funcs
 import os
+import time
 
 # Define the epoch training
-def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_arrays_path, n_gpus=None, print_frequency=1,
-                   regularized=False, print_gpu_memory=False, vae=False, scaler=None):
+def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_arrays_path, separate_hemisphere, 
+                   n_gpus=None, print_frequency=1, regularized=False, print_gpu_memory=False, vae=False, scaler=None):
     
     # Define the meters
     batch_time = AverageMeter("Time", ":6.3f")
@@ -58,15 +59,32 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
         
         # Get the midpoint of the x dimension
         x_midpoint = int(residual.shape[x_coord] / 2)
+        
+        # If we want to separate by hemisphere
+        if separate_hemisphere:
 
-        # Get the left or right hemisphere, depending on whether it's flipped or not
-        if is_flipped: # Flipped means we go from 256 -> 128 because it's on the left (can check mrtrix to verify this)
-            b0_hemisphere = b0[:, :, x_midpoint:, :, :]
-            residual_hemisphere = residual[:, :, x_midpoint:, :, :]
-        else: # Not flipped means we go from 0 -> 128 because it's on the right (can check mrtrix to verify this)
-            b0_hemisphere = b0[:, :, :x_midpoint, :, :]
-            residual_hemisphere = residual[:, :, :x_midpoint, :, :]
+            # Define the half shape
+            half_shape = (b0.shape[0], b0.shape[1], x_midpoint, b0.shape[3], b0.shape[4])
 
+            # Define the hemisphere tensors with the correct shape
+            b0_hemisphere = torch.empty(half_shape)
+            residual_hemisphere = torch.empty(half_shape)
+
+            # Get the left or right hemisphere, depending on whether it's flipped or not
+            for item in range(b0.shape[0]):
+                if is_flipped[item]: # Flipped means we go from 256 -> 128 because it's on the left (can check mrtrix to verify this)
+                    b0_hemisphere[item, :, :, :, :] = b0[item, :, x_midpoint:, :, :]
+                    residual_hemisphere[item, :, :, :, :] = residual[item, :, x_midpoint:, :, :]
+                else: # Not flipped means we go from 0 -> 128 because it's on the right (can check mrtrix to verify this)
+                    b0_hemisphere[item, :, :, :, :] = b0[item, :, :x_midpoint, :, :]
+                    residual_hemisphere[item, :, :, :, :] = residual[item, :, :x_midpoint, :, :]
+                    
+        # If we don't want to separate by hemisphere, we instead just use the things as they are
+        else:
+            
+            # Define the hemispheres as the inputs themselves
+            b0_hemisphere, residual_hemisphere = b0, residual
+            
         # Define the kernel size (cube will be 2 * kernel_size) - HYPERPARAMETER
         kernel_size = 8
         half_kernel = kernel_size // 2
@@ -74,19 +92,33 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
         # Pad the b0 and residuals to be of a shape that is a multiple of the kernel_size
         b0_hemisphere = pad_to_shape(b0_hemisphere, kernel_size)
         residual_hemisphere = pad_to_shape(residual_hemisphere, kernel_size)
-        # print("padded b0 shape: {}".format(b0_hemisphere.shape))
-        # print("padded residual shape: {}".format(residual_hemisphere.shape))
         
-        # Create a new tensor of size kernel_size x kernel_size x 3, that has the injection center
-        injection_center = np.tile(injection_center, (kernel_size, kernel_size, kernel_size, 1))
+        # Get the batch size
+        batch_size = b0_hemisphere.shape[0]
                 
-        # Turn the data into a torch tensor
-        injection_center = torch.from_numpy(injection_center).unsqueeze(0).float()
-        injection_center = torch.permute(injection_center, (0, 4, 1, 2, 3))
+        # Create a new tensor of size batch_size x 3 x kernel_size x kernel_size x kernel_size, that has the injection center
+        tiles_shape = [batch_size, injection_center.shape[1], kernel_size, kernel_size, kernel_size]
+        injections_tiles = torch.empty(tiles_shape)
+        
+        injection_center_tiled = np.tile(injection_center, (kernel_size, kernel_size, kernel_size, batch_size, 1))
+        print("Doing it in one line gets shape: {}".format(injection_center_tiled.shape))
+
+        
+        # For every injection center
+        for item in range(batch_size):
+
+            # Tile the injection
+            injection_center_tiled = np.tile(injection_center[item, :], (kernel_size, kernel_size, kernel_size, 1))
+            injection_center_tiled = torch.from_numpy(injection_center_tiled).float()
+            injection_center_tiled = torch.permute(injection_center_tiled, (3, 0, 1, 2))
+            
+            # Append it to the tiles array
+            injections_tiles[item, :, :, :, :] = injection_center_tiled
+
+        print("New shape of injections_tiles is: {}".format(injections_tiles.shape))
         
         # Create a tensor of the same shape as the residual hemisphere
-        predictions_array = np.zeros_like(residual_hemisphere.numpy().squeeze(0).squeeze(0))
-        # print("predictions_array shape: {}".format(predictions_array.shape))
+        predictions_array = np.zeros_like(residual_hemisphere.numpy())
             
         # Get the start and end indices, as well as skipping step size
         overlapping = False
@@ -108,9 +140,11 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
                 for z in z_centers:
                                 
                     # Get the x, y, z coordinate into a torch tensor
-                    image_coordinates = np.tile(np.array([x, y, z]), (kernel_size, kernel_size, kernel_size, 1))
+                    image_coordinates = np.tile(np.array([x, y, z]), (kernel_size, kernel_size, kernel_size, 1, batch_size))
+                    print("Image coordinates shape is: {}".format(image_coordinates.shape))
                     image_coordinates = torch.from_numpy(image_coordinates).unsqueeze(0).float()
                     image_coordinates = torch.permute(image_coordinates, (0, 4, 1, 2, 3))
+                    print("Image coordinates shape after permuting is: {}".format(image_coordinates.shape))
                     
                     # Get the cube in the residual that corresponds to this coordinate
                     residual_cube = grab_cube_around_voxel(image=residual_hemisphere, voxel_coordinates=[x, y, z], kernel_size=int(kernel_size / 2))
@@ -119,11 +153,11 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
                     b0_cube = grab_cube_around_voxel(image=b0_hemisphere, voxel_coordinates=[x, y, z], kernel_size=kernel_size)
                     
                     # Turn the cubes into tensors
-                    residual_cube = torch.from_numpy(residual_cube).unsqueeze(0).unsqueeze(0).float()
-                    b0_cube = torch.from_numpy(b0_cube).unsqueeze(0).unsqueeze(0).float()
-                    
+                    residual_cube = torch.from_numpy(residual_cube).float()
+                    b0_cube = torch.from_numpy(b0_cube).float()
+                                        
                     # Get the model output
-                    (predicted_residual, loss, batch_size)  = batch_loss(model, b0_cube, injection_center, image_coordinates, 
+                    (predicted_residual, loss, batch_size)  = batch_loss(model, b0_cube, injections_tiles, image_coordinates, 
                                                                          residual_cube, criterion,
                                                                          n_gpus=n_gpus, use_amp=use_amp)
                     if loss > 1e+10:
@@ -133,8 +167,8 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
                         print("Batch size is: {}".format(batch_size))
                     
                     # Get the residual as a numpy array
-                    predicted_residual = predicted_residual.cpu().detach().numpy().squeeze(0).squeeze(0)
-                    # print("shape of predicted residuals: {}".format(predicted_residual.shape))
+                    predicted_residual = predicted_residual.cpu().detach().numpy()
+                    print("shape of predicted residuals: {}".format(predicted_residual.shape))
                     
                     # Get the start of indexing for this new array
                     (start_idx_x, start_idx_y, start_idx_z,
@@ -146,9 +180,9 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
                     # print("shape of this subsection: {}".format(predictions_array[start_idx_x : end_idx_x,
                     #                                                               start_idx_y : end_idx_y,
                     #                                                               start_idx_z : end_idx_z].shape))
-                    predictions_array[start_idx_x : end_idx_x,
-                                      start_idx_y : end_idx_y,
-                                      start_idx_z : end_idx_z] = predicted_residual
+                    predictions_array[:, :, start_idx_x : end_idx_x,
+                                            start_idx_y : end_idx_y,
+                                            start_idx_z : end_idx_z] = predicted_residual
                     
                     # print("predicted residual is: {}".format(predicted_residual))
                     # print("predictions_array is: {}".format(predictions_array[start_idx_x : end_idx_x,
@@ -201,7 +235,7 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
             
         # Dump the predicted residuals array
         print("Saving...")
-        predictions_folder = os.path.join(residual_arrays_path, "epoch_{}".format(epoch))
+        predictions_folder = os.path.join(residual_arrays_path, "train", "epoch_{}".format(epoch))
         if not os.path.exists(predictions_folder):
             os.makedirs(predictions_folder)
         prediction_filename = os.path.join(predictions_folder, "image_{}.npy".format(i))
@@ -255,8 +289,8 @@ def _batch_loss(model, b0_cube, injection_center, image_coordinates, residual_cu
     return predicted_residual, loss, batch_size
 
 # Define the epoch validation
-def epoch_validation(val_loader, model, criterion, n_gpus, print_freq=1, regularized=False, vae=False,
-                     use_amp=False):
+def epoch_validation(val_loader, model, criterion, n_gpus, epoch, residual_arrays_path, print_freq=1, regularized=False, 
+                     vae=False, use_amp=False):
 
     # Define the meters
     batch_time = AverageMeter("Time", ":6.3f")
@@ -270,6 +304,13 @@ def epoch_validation(val_loader, model, criterion, n_gpus, print_freq=1, regular
     # Switch to evaluate mode
     model.eval()
 
+    # Define indices for the coordinates
+    x_coord = 2
+    y_coord = 3
+    z_coord = 4
+    coordinates = [x_coord, y_coord, z_coord]
+
+
     # No gradients
     with torch.no_grad():
 
@@ -277,26 +318,135 @@ def epoch_validation(val_loader, model, criterion, n_gpus, print_freq=1, regular
         end = time.time()
 
         # For each batch
-        for i, (images, target) in enumerate(val_loader):
+        for i, (b0, (residual, is_flipped), injection_center) in enumerate(val_loader):
+                
+            
+            # Get the midpoint of the x dimension
+            x_midpoint = int(residual.shape[x_coord] / 2)
 
-            # Get the loss and batch size
-            loss, batch_size = batch_loss(model, images, target, criterion, n_gpus=n_gpus, regularized=regularized,
-                                          vae=vae, use_amp=use_amp)
+            # Get the left or right hemisphere, depending on whether it's flipped or not
+            if is_flipped: # Flipped means we go from 256 -> 128 because it's on the left (can check mrtrix to verify this)
+                b0_hemisphere = b0[:, :, x_midpoint:, :, :]
+                residual_hemisphere = residual[:, :, x_midpoint:, :, :]
+            else: # Not flipped means we go from 0 -> 128 because it's on the right (can check mrtrix to verify this)
+                b0_hemisphere = b0[:, :, :x_midpoint, :, :]
+                residual_hemisphere = residual[:, :, :x_midpoint, :, :]
 
-            # Update the loss
-            losses.update(loss.item(), batch_size)
+            # Define the kernel size (cube will be 2 * kernel_size) - HYPERPARAMETER
+            kernel_size = 8
+            half_kernel = kernel_size // 2
+            
+            # Pad the b0 and residuals to be of a shape that is a multiple of the kernel_size
+            b0_hemisphere = pad_to_shape(b0_hemisphere, kernel_size)
+            residual_hemisphere = pad_to_shape(residual_hemisphere, kernel_size)
+            # print("padded b0 shape: {}".format(b0_hemisphere.shape))
+            # print("padded residual shape: {}".format(residual_hemisphere.shape))
+            
+            # Create a new tensor of size kernel_size x kernel_size x 3, that has the injection center
+            injection_center = np.tile(injection_center, (kernel_size, kernel_size, kernel_size, 1))
+                    
+            # Turn the data into a torch tensor
+            injection_center = torch.from_numpy(injection_center).unsqueeze(0).float()
+            injection_center = torch.permute(injection_center, (0, 4, 1, 2, 3))
+            
+            # Create a tensor of the same shape as the residual hemisphere
+            predictions_array = np.zeros_like(residual_hemisphere.numpy().squeeze(0).squeeze(0))
+            # print("predictions_array shape: {}".format(predictions_array.shape))
+                
+            # Get the start and end indices, as well as skipping step size
+            overlapping = False
+            x_centers, y_centers, z_centers = get_centers(residual_hemisphere, kernel_size, overlapping)
+            
+            print("Number of x_centers: {}, {}".format(x_centers.shape, x_centers))
+            print("Number of y_centers: {}, {}".format(y_centers.shape, y_centers))
+            print("Number of z_centers: {}, {}".format(z_centers.shape, z_centers))
+            
+            # print("Residual hemisphere shape: {}".format(residual_hemisphere.shape))
+            
+            # For every x_center
+            for x in x_centers:
 
-            # Measure the elapsed time
-            batch_time.update(time.time() - end)
-            end = time.time()
+                # For every y_center
+                for y in y_centers:
+                        
+                    # For every z_center
+                    for z in z_centers:
+                                    
+                        # Get the x, y, z coordinate into a torch tensor
+                        image_coordinates = np.tile(np.array([x, y, z]), (kernel_size, kernel_size, kernel_size, 1))
+                        image_coordinates = torch.from_numpy(image_coordinates).unsqueeze(0).float()
+                        image_coordinates = torch.permute(image_coordinates, (0, 4, 1, 2, 3))
+                        
+                        # Get the cube in the residual that corresponds to this coordinate
+                        residual_cube = grab_cube_around_voxel(image=residual_hemisphere, voxel_coordinates=[x, y, z], kernel_size=int(kernel_size / 2))
+                        
+                        # Get the cube in the DWI that corresponds to this coordinate
+                        b0_cube = grab_cube_around_voxel(image=b0_hemisphere, voxel_coordinates=[x, y, z], kernel_size=kernel_size)
+                        
+                        # Turn the cubes into tensors
+                        residual_cube = torch.from_numpy(residual_cube).unsqueeze(0).unsqueeze(0).float()
+                        b0_cube = torch.from_numpy(b0_cube).unsqueeze(0).unsqueeze(0).float()
+                        
+                        # Get the model output
+                        (predicted_residual, loss, batch_size)  = batch_loss(model, b0_cube, injection_center, image_coordinates, 
+                                                                            residual_cube, criterion,
+                                                                            n_gpus=n_gpus, use_amp=use_amp)
+                        if loss > 1e+10:
+                            print("x is: {}".format(x))
+                            print("z is: {}".format(z))
+                            print("Loss is: {}".format(loss))
+                            print("Batch size is: {}".format(batch_size))
+                        
+                        # Get the residual as a numpy array
+                        predicted_residual = predicted_residual.cpu().detach().numpy().squeeze(0).squeeze(0)
+                        # print("shape of predicted residuals: {}".format(predicted_residual.shape))
+                        
+                        # Get the start of indexing for this new array
+                        (start_idx_x, start_idx_y, start_idx_z,
+                        end_idx_x, end_idx_y, end_idx_z) = get_predictions_indexing(x, y, z, half_kernel, predictions_array)
+                        # Add this to the predicted tensor at the correct spot - note that if the cubes overlap then the areas
+                        # of overlap are rewritten each time
+                        # print("Indexing starts: ", start_idx_x, start_idx_y, start_idx_x)
+                        # print("Indexing ends: ", end_idx_x, end_idx_y, end_idx_z)
+                        # print("shape of this subsection: {}".format(predictions_array[start_idx_x : end_idx_x,
+                        #                                                               start_idx_y : end_idx_y,
+                        #                                                               start_idx_z : end_idx_z].shape))
+                        predictions_array[start_idx_x : end_idx_x,
+                                        start_idx_y : end_idx_y,
+                                        start_idx_z : end_idx_z] = predicted_residual
+                        
+                        # print("predicted residual is: {}".format(predicted_residual))
+                        # print("predictions_array is: {}".format(predictions_array[start_idx_x : end_idx_x,
+                        #                                                           start_idx_y : end_idx_y,
+                        #                                                           start_idx_z : end_idx_z]))
+                        # print("shape of predictions_array is: {}".format(predictions_array.shape))
+                        
+                        
+                        # Change this to actually add to the predictions tensor if you want
+                        del predicted_residual
+                        
+                        # Empty cache
+                        if n_gpus:
+                            torch.cuda.empty_cache()
 
-            # If print frequency
-            if i % print_freq == 0:
+                        # Update the loss
+                        losses.update(loss.item(), batch_size)                
+
+                # Measure the elapsed time for every x value
+                batch_time.update(time.time() - end)
+                end = time.time()
+
+                # Print out the progress after every x coordinate is done
                 progress.display(i)
 
-            # Empty cache
-            if n_gpus:
-                torch.cuda.empty_cache()
+                
+            # Dump the predicted residuals array
+            print("Saving...")
+            predictions_folder = os.path.join(residual_arrays_path, "val", "epoch_{}".format(epoch))
+            if not os.path.exists(predictions_folder):
+                os.makedirs(predictions_folder)
+            prediction_filename = os.path.join(predictions_folder, "image_{}.npy".format(i))
+            np.save(prediction_filename, predictions_array)
 
     # Return the losses
     return losses.avg

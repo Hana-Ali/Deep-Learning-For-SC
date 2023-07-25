@@ -139,7 +139,8 @@ def grab_cube_around_voxel(image, voxel_coordinates, kernel_size):
 
     # Create the cube
     cube_size = kernel_size * 2
-    cube = np.zeros((cube_size, cube_size, cube_size))
+    cube = np.zeros((image.shape[0], image.shape[1], cube_size, cube_size, cube_size))
+    print("Cube size is: {}".format(cube.shape))
 
     # For every dimension
     for x in range(cube_size):
@@ -157,11 +158,11 @@ def grab_cube_around_voxel(image, voxel_coordinates, kernel_size):
                 z_coord = set_value_if_out_of_bounds(z_coord, image.shape[4])
 
                 # Get the value at the coordinate
-                value = image[0, 0, x_coord, y_coord, z_coord]
+                value = image[:, :, x_coord, y_coord, z_coord]
 
                 # Set the value in the cube
-                cube[x, y, z] = value.item()
-        
+                cube[:, :, x, y, z] = value
+                        
     # Return the cube
     return cube
 
@@ -191,7 +192,7 @@ def pad_to_shape(input_array, kernel_size):
     for i in range(input_array.ndim - 2):
         new_shape.append(input_array.shape[i + 2] + padding_needed[i])
     
-    # Reshape the array with the padding
+    # Reshape the array
     reshaped_array = to_shape(input_array, new_shape)
 
     # Return the new array
@@ -203,26 +204,26 @@ def to_shape(input_array, shape):
     # Get the needed shape
     y_, x_, z_ = shape
     
-    # Since it's a tensor, we need to first squeeze it
-    input_array = input_array.numpy().squeeze(0).squeeze(0)
+    # Since it's a tensor, we need to first convert to numpy
+    input_array = input_array.numpy()
     
     # Get the actual shape
-    y, x, z = input_array.shape
-    
+    _, _, y, x, z = input_array.shape
+        
     # Get the amount of padding needed for each dimension
     y_pad = (y_-y)
     x_pad = (x_-x)
     z_pad = (z_-z)
         
     # Pad the array
-    padded_array = np.pad(input_array,((y_pad//2, y_pad//2 + y_pad%2 + 1), 
+    padded_array = np.pad(input_array,((0, 0), (0, 0),
+                                       (y_pad//2, y_pad//2 + y_pad%2 + 1), 
                                        (x_pad//2, x_pad//2 + x_pad%2 + 1),
                                        (z_pad//2, z_pad//2 + z_pad%2 + 1)),
                                         mode = 'constant')
-        
-    # Now we need to turn it into a tensor again and unsqueeze
-    padded_array = torch.from_numpy(padded_array).unsqueeze(0).unsqueeze(0)
-    
+            
+    # Now we need to turn it into a tensor again
+    padded_array = torch.from_numpy(padded_array)
     
     # Return the padded array
     return padded_array
@@ -266,7 +267,7 @@ def get_centers(residual_hemisphere, kernel_size, overlapping):
 def get_predictions_indexing(x, y, z, half_kernel, predictions_array):
     
     # Get the shape of the predictions_array
-    shape_x, shape_y, shape_z = predictions_array.shape
+    _, _, shape_x, shape_y, shape_z = predictions_array.shape
     
     # Define the start indices
     start_idx_x = set_value_if_out_of_bounds(x - (half_kernel - 1), shape_x)

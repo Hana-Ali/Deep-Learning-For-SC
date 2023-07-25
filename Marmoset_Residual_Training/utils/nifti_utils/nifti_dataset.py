@@ -77,6 +77,9 @@ class NiftiDataset(torch.utils.data.Dataset):
         self.b0_size = len(self.b0_images)
         self.residuals_size = len(self.residuals)
         self.injection_centers_size = len(self.injection_centers)
+        
+        # Assert that we have the same number of b0 as residuals
+        assert self.b0_size == self.residuals_size, "B0 and residuals list are not the same length!"
 
         # Define the transforms
         self.transforms = transforms
@@ -155,7 +158,7 @@ class NiftiDataset(torch.utils.data.Dataset):
         return sample["b0"], sample["residual"], sample["injection_center"]
     
     def __len__(self):
-        return len(self.b0_images)
+        return self.b0_size
 
 
 # Function to glob files
