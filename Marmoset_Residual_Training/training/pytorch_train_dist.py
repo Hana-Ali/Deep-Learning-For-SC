@@ -43,8 +43,11 @@ def dist_train(encoder, optimizer, criterion, n_epochs, training_loader, validat
         tb_logger.log_graph(model)
 
         # Define the trainer, default_root_dir is the directory where checkpoints are saved
+        # 32 GOUs, 8 devices, 4 nodes
         trainer = pl.Trainer(default_root_dir=training_log_folder, callbacks=[early_stop_callback],
-                             logger=tb_logger, precision='16-mixed')
+                             logger=tb_logger, precision='16-mixed',
+                             accumulate_grad_batches=3, gradient_clip_val=0.5,
+                             accelerator="auto", devices="auto", strategy="auto")
 
         # Checkrun_pytorch_training if there is a checkpoint in the training log folder
         if os.path.exists(training_log_folder):
