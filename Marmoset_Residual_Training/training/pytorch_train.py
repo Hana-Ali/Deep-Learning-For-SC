@@ -1,19 +1,11 @@
-from utils import *
-import time
-import shutil
-
 import os
 import pandas as pd
-
 import warnings
-
 import numpy as np
 
+from utils import *
 from models import *
-
 from utils.training_utils import loss_funcs
-
-import nibabel as nib
 
 # Main train function
 def train(model, optimizer, criterion, n_epochs, training_loader, validation_loader, test_loader, training_log_filename,
@@ -63,6 +55,8 @@ def train(model, optimizer, criterion, n_epochs, training_loader, validation_loa
         scaler = torch.cuda.amp.GradScaler()
     else:
         scaler = None
+
+    print("Scaler is: {}".format(scaler))
 
     # For each epoch
     for epoch in range(start_epoch, n_epochs):

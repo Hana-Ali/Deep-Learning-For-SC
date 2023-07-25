@@ -7,7 +7,8 @@ import time
 
 # Define the epoch training
 def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_arrays_path, separate_hemisphere, 
-                   n_gpus=None, print_frequency=1, regularized=False, print_gpu_memory=False, vae=False, scaler=None):
+                   n_gpus=None, print_frequency=1, distributed=False, regularized=False, print_gpu_memory=False, 
+                   vae=False, scaler=None):
     
     # Define the meters
     batch_time = AverageMeter("Time", ":6.3f")
@@ -144,7 +145,7 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
                                         
                     # Get the model output
                     (predicted_residual, loss, batch_size)  = batch_loss(model, b0_cube, injection_center_tiled, image_coordinates, 
-                                                                         residual_cube, criterion,
+                                                                         residual_cube, criterion, distributed=distributed,
                                                                          n_gpus=n_gpus, use_amp=use_amp)
                     if loss > 1e+10:
                         print("x is: {}".format(x))
@@ -154,34 +155,22 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
                     
                     # Get the residual as a numpy array
                     predicted_residual = predicted_residual.cpu().detach().numpy()
-                    # print("shape of predicted residuals: {}".format(predicted_residual.shape))
                     
                     # Get the start of indexing for this new array
                     (start_idx_x, start_idx_y, start_idx_z,
                      end_idx_x, end_idx_y, end_idx_z) = get_predictions_indexing(x, y, z, half_kernel, predictions_array)
+
                     # Add this to the predicted tensor at the correct spot - note that if the cubes overlap then the areas
-                    # of overlap are rewritten each time
-                    # print("Indexing starts: ", start_idx_x, start_idx_y, start_idx_x)
-                    # print("Indexing ends: ", end_idx_x, end_idx_y, end_idx_z)
-                    # print("shape of this subsection: {}".format(predictions_array[start_idx_x : end_idx_x,
-                    #                                                               start_idx_y : end_idx_y,
-                    #                                                               start_idx_z : end_idx_z].shape))
                     predictions_array[:, :, start_idx_x : end_idx_x,
                                             start_idx_y : end_idx_y,
                                             start_idx_z : end_idx_z] = predicted_residual
-                    
-                    # print("predicted residual is: {}".format(predicted_residual))
-                    # print("predictions_array is: {}".format(predictions_array[start_idx_x : end_idx_x,
-                    #                                                           start_idx_y : end_idx_y,
-                    #                                                           start_idx_z : end_idx_z]))
-                    # print("shape of predictions_array is: {}".format(predictions_array.shape))
-                    
+                                        
                     
                     # Change this to actually add to the predictions tensor if you want
                     del predicted_residual
                     
                     # Empty cache
-                    if n_gpus:
+                    if n_gpus and not distributed:
                         torch.cuda.empty_cache()
 
                     # Update the loss
@@ -231,25 +220,29 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
     return losses.avg
 
 # Define the function to get model output
-def batch_loss(model, b0_cube, injection_center, image_coordinates, residual_cube, criterion, n_gpus=None, use_amp=False):
+def batch_loss(model, b0_cube, injection_center, image_coordinates, residual_cube, criterion, 
+               distributed=False, n_gpus=None, use_amp=False):
     
     # If number of GPUs
     if n_gpus:
         
-        # Empty cache
-        torch.cuda.empty_cache()
-
         # Cast all the data to float
         b0_cube = b0_cube.float()
         residual_cube = residual_cube.float()
         injection_center = injection_center.float()
         image_coordinates = image_coordinates.float()
 
-        # Get all the data on the GPU
-        b0_cube = b0_cube.cuda()
-        residual_cube = residual_cube.cuda()
-        injection_center = injection_center.cuda()
-        image_coordinates = image_coordinates.cuda()
+        # If not running serially, put the data on the GPU
+        if not distributed:
+
+            # Empty cache
+            torch.cuda.empty_cache()
+
+            # Get all the data on the GPU
+            b0_cube = b0_cube.cuda()
+            residual_cube = residual_cube.cuda()
+            injection_center = injection_center.cuda()
+            image_coordinates = image_coordinates.cuda()
     
     # Compute the output
     if use_amp:

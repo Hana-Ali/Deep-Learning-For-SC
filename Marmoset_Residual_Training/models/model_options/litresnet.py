@@ -23,6 +23,7 @@ class LitResNet(LightningModule):
         self.residual_arrays_path = residual_arrays_path
         self.losses_path = losses_path
         self.separate_hemisphere = separate_hemisphere
+        self.distributed = True
         self.n_gpus = n_gpus
         self.use_amp = use_amp
         
@@ -139,7 +140,7 @@ class LitResNet(LightningModule):
                                         
                     # Get the model output
                     (predicted_residual, loss, batch_size)  = batch_loss(self.model, b0_cube, injection_center_tiled, image_coordinates, 
-                                                                         residual_cube, self.criterion,
+                                                                         residual_cube, self.criterion, self.distributed,
                                                                          n_gpus=self.n_gpus, use_amp=self.use_amp)
                     
                     # Get the residual as a numpy array
@@ -177,7 +178,7 @@ class LitResNet(LightningModule):
                     del loss
                     
                     # Dictionary
-                    self.log_dict({"loss_curr": loss, "loss_avg": np.average(np.array(losses))}, prog_bar=True)
+                    self.log_dict({"train_loss_curr": loss, "train_loss_avg": np.average(np.array(losses))}, prog_bar=True)
                     
         # Dump the predicted residuals array
         print("Saving...")

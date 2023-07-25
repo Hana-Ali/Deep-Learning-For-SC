@@ -14,7 +14,7 @@ from lightning.pytorch.loggers import TensorBoardLogger
 # Main train function
 def dist_train(encoder, optimizer, criterion, n_epochs, training_loader, validation_loader, test_loader, training_log_folder,
                model_filename, residual_arrays_path, losses_path, tensorboard_path, separate_hemisphere=True, 
-               metric_to_monitor="val_loss", early_stopping_patience=None, learning_rate_decay_patience=None, save_best=False, 
+               metric_to_monitor="val_loss_avg", early_stopping_patience=None, learning_rate_decay_patience=None, save_best=False, 
                n_gpus=1, verbose=True, regularized=False, vae=False, decay_factor=0.1, min_lr=0., learning_rate_decay_step_size=None, 
                save_every_n_epochs=None, save_last_n_models=None, amp=False):
 
@@ -46,7 +46,7 @@ def dist_train(encoder, optimizer, criterion, n_epochs, training_loader, validat
         trainer = pl.Trainer(default_root_dir=training_log_folder, callbacks=[early_stop_callback],
                              logger=tb_logger, precision='16-mixed')
 
-        # Check if there is a checkpoint in the training log folder
+        # Checkrun_pytorch_training if there is a checkpoint in the training log folder
         if os.path.exists(training_log_folder):
 
             # Get the newest checkpoint
@@ -92,10 +92,10 @@ def dist_train(encoder, optimizer, criterion, n_epochs, training_loader, validat
 
 
 # Define the trainer wrapping function
-def dist_pytorch_training(config, model_filename, training_log_folder, residual_arrays_path, tensorboard_path,
-                          verbose=1, use_multiprocessing=False,
-                          n_workers=1, model_name='resnet', n_gpus=1, regularized=False,
-                          test_input=1, metric_to_monitor="loss", model_metrics=(), 
+def dist_pytorch_training(config, model_filename, training_log_folder, residual_arrays_path, 
+                          tensorboard_path, verbose=1, use_multiprocessing=False,
+                          n_workers=5, model_name='resnet', n_gpus=1, regularized=False,
+                          test_input=1, metric_to_monitor="train_loss_avg", model_metrics=(), 
                           bias=None, pin_memory=False, amp=False,
                           prefetch_factor=1, **unused_args):
     """
@@ -216,10 +216,7 @@ def dist_pytorch_training(config, model_filename, training_log_folder, residual_
                                                 collate_fn=collate_fn,
                                                 pin_memory=pin_memory,
                                                 prefetch_factor=prefetch_factor)
-    
-    # Define the metric to monitor
-    metric_to_monitor = "train_loss"
-        
+            
     # Train the model
     dist_train(model=model, optimizer=optimizer, criterion=criterion, n_epochs=config["n_epochs"], verbose=bool(verbose),
                 training_loader=train_loader, validation_loader=val_loader, test_loader=test_loader, model_filename=model_filename,
