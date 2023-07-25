@@ -3,6 +3,9 @@ import pandas as pd
 import warnings
 import numpy as np
 
+import sys
+sys.path.append("..")
+
 from utils import *
 from models import *
 from utils.training_utils import loss_funcs
@@ -56,8 +59,6 @@ def train(model, optimizer, criterion, n_epochs, training_loader, validation_loa
     else:
         scaler = None
 
-    print("Scaler is: {}".format(scaler))
-
     # For each epoch
     for epoch in range(start_epoch, n_epochs):
 
@@ -87,8 +88,11 @@ def train(model, optimizer, criterion, n_epochs, training_loader, validation_loa
 
         # Predict validation set
         if validation_loader:
-            val_loss = epoch_validation(validation_loader, model, criterion, n_gpus=n_gpus, regularized=regularized,
-                                          vae=vae, use_amp=scaler is not None)
+            val_loss = epoch_validation(validation_loader, model, criterion, epoch=epoch, 
+                                        residual_arrays_path=residual_arrays_path, 
+                                        separate_hemisphere=separate_hemisphere,
+                                        n_gpus=n_gpus, regularized=regularized,
+                                        vae=vae, use_amp=scaler is not None)
         else:
             val_loss = None
         
@@ -114,6 +118,12 @@ def train(model, optimizer, criterion, n_epochs, training_loader, validation_loa
                 scheduler.step()
 
         # Save the model
+        print("Saving model...")
+        print("Saving in path: ", model_filename)
+        if os.path.exists(model_filename):
+            print("Exists")
+        else:
+            print("Doesn't exist")
         torch.save(model.state_dict(), model_filename)
 
         # If save best
@@ -277,4 +287,4 @@ def run_pytorch_training(config, model_filename, training_log_filename, residual
         learning_rate_decay_step_size=in_config("decay_step_size", config),
         save_every_n_epochs=in_config("save_every_n_epochs", config),
         save_last_n_models=in_config("save_last_n_models", config),
-        amp=amp)
+        amp=False)

@@ -29,6 +29,7 @@ def dist_train(encoder, optimizer, criterion, n_epochs, training_loader, validat
     for epoch in range(0, n_epochs):
 
         # Build the LitResNet
+        print("Making model")
         model = LitResNet(encoder=encoder, criterion=criterion, epoch=epoch, losses_path=losses_path,
                           residual_arrays_path=residual_arrays_path, separate_hemisphere=separate_hemisphere, 
                           n_gpus=n_gpus, use_amp=scaler is not None)
@@ -43,7 +44,8 @@ def dist_train(encoder, optimizer, criterion, n_epochs, training_loader, validat
         tb_logger.log_graph(model)
 
         # Define the trainer, default_root_dir is the directory where checkpoints are saved
-        # 32 GOUs, 8 devices, 4 nodes
+        # 32 GOUs, 8 devices, 4 nodes - device=4, num_nodes=1, strategy=ddp
+        print("Making trainer")
         trainer = pl.Trainer(default_root_dir=training_log_folder, callbacks=[early_stop_callback],
                              logger=tb_logger, precision='16-mixed',
                              accumulate_grad_batches=3, gradient_clip_val=0.5,
@@ -64,6 +66,7 @@ def dist_train(encoder, optimizer, criterion, n_epochs, training_loader, validat
                 
         # If there is no checkpoint
         else:
+            print("Fitting")
             # Fit the model
             trainer.fit(model=model, train_dataloaders=training_loader, val_dataloaders=validation_loader)
             

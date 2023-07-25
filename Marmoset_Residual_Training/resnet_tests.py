@@ -16,12 +16,12 @@ elif paperspace:
     main_data_path = "/notebooks/model_data_w_resize"
     main_logs_path = "/notebooks/tract_residuals"
 else:
-    main_data_path = "D:\\Brain-MINDS\\model_data_w_resize"
+    main_data_path = "D:\\Brain-MINDS\\model_data"
     main_logs_path = "D:\\Brain-MINDS\\tract_residuals"
 
 residual_arrays_path = os.path.join(main_logs_path, "predicted_residuals")
 training_log_path = os.path.join(main_logs_path, "training_logs", "resnet_log.csv")
-model_filename = os.path.join(main_logs_path, "models", "resnet_model.pt")
+model_filename = os.path.join(main_logs_path, "models", "resnet_model.h5")
 
 # Create the configs dictionary
 configs = {
@@ -37,7 +37,7 @@ configs = {
     "padding_type" : "reflect", # Padding type
     
     ####### Training #######
-    "n_epochs" : 100, # Number of epochs
+    "n_epochs" : 10, # Number of epochs
     "loss" : "mse_loss", # Loss function
     "optimizer" : "Adam", # Optimizer
     "evaluation_metric" : "MSE_loss", # Evaluation metric
@@ -79,9 +79,9 @@ configs = load_json(config_path)
 
 # Define the metric to monitor based on whether we're skipping val or not
 if configs["skip_val"]:
-    metric_to_monitor = "train_loss_avg"
+    metric_to_monitor = "train_loss"
 else:
-    metric_to_monitor = "val_loss_avg"
+    metric_to_monitor = "val_loss"
 
 # Define the groups
 if configs["skip_val"]:
@@ -91,7 +91,7 @@ else:
 
 model_metrics = (configs["evaluation_metric"],)
 
-dist_pytorch_training(configs, configs["model_filename"], configs["training_log_path"],
-                      configs["residual_arrays_path"], configs["tensorboard_path"],
-                      metric_to_monitor=metric_to_monitor,
-                      bias=None)
+run_pytorch_training(configs, configs["model_filename"], configs["training_log_path"],
+                     configs["residual_arrays_path"],
+                     metric_to_monitor=metric_to_monitor,
+                     bias=None)
