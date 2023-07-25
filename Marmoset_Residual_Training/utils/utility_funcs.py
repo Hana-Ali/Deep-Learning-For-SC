@@ -97,3 +97,15 @@ def load_json(file_name):
 def dump_json(dictionary, filename):
     with open(filename, 'w') as f:
         json.dump(dictionary, f, indent=4, sort_keys=True)
+
+# Function to get the newest checkpoint
+def get_newest_checkpoint(checkpoint_dir):
+
+    # List all the files in the checkpoint directory
+    files = os.listdir(checkpoint_dir)
+
+    # Get the paths to the files
+    paths = [os.path.join(checkpoint_dir, basename) for basename in files]
+
+    # Return the newest checkpoint
+    return max(paths, key=os.path.getctime)
