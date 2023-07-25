@@ -239,7 +239,6 @@ class ResnetEncoder(nn.Module):
         # Do all the convolutions on the cube first
         for layer in self.img_model:
             input_x = layer(input_x)
-            print("shape of input_x convolution: {}".format(input_x.shape))
             
         # Do the convolutional layers for the injection center
         injection_center = self.non_img_model(injection_center)

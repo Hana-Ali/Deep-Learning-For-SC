@@ -96,26 +96,11 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
         # Get the batch size
         batch_size = b0_hemisphere.shape[0]
                 
-        # Create a new tensor of size batch_size x 3 x kernel_size x kernel_size x kernel_size, that has the injection center
-        tiles_shape = [batch_size, injection_center.shape[1], kernel_size, kernel_size, kernel_size]
-        injections_tiles = torch.empty(tiles_shape)
-        
-        injection_center_tiled = np.tile(injection_center, (kernel_size, kernel_size, kernel_size, batch_size, 1))
+        # Create a new tensor of size batch_size x 3 x kernel_size x kernel_size x kernel_size, that has the injection centers tiled
+        injection_center_tiled = np.tile(injection_center, (kernel_size, kernel_size, kernel_size, 1, 1))
+        injection_center_tiled = torch.from_numpy(injection_center_tiled).float()
+        injection_center_tiled = torch.permute(injection_center_tiled, (3, 4, 0, 1, 2))
         print("Doing it in one line gets shape: {}".format(injection_center_tiled.shape))
-
-        
-        # For every injection center
-        for item in range(batch_size):
-
-            # Tile the injection
-            injection_center_tiled = np.tile(injection_center[item, :], (kernel_size, kernel_size, kernel_size, 1))
-            injection_center_tiled = torch.from_numpy(injection_center_tiled).float()
-            injection_center_tiled = torch.permute(injection_center_tiled, (3, 0, 1, 2))
-            
-            # Append it to the tiles array
-            injections_tiles[item, :, :, :, :] = injection_center_tiled
-
-        print("New shape of injections_tiles is: {}".format(injections_tiles.shape))
         
         # Create a tensor of the same shape as the residual hemisphere
         predictions_array = np.zeros_like(residual_hemisphere.numpy())
@@ -139,12 +124,13 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
                 # For every z_center
                 for z in z_centers:
                                 
-                    # Get the x, y, z coordinate into a torch tensor
-                    image_coordinates = np.tile(np.array([x, y, z]), (kernel_size, kernel_size, kernel_size, 1, batch_size))
-                    print("Image coordinates shape is: {}".format(image_coordinates.shape))
-                    image_coordinates = torch.from_numpy(image_coordinates).unsqueeze(0).float()
-                    image_coordinates = torch.permute(image_coordinates, (0, 4, 1, 2, 3))
-                    print("Image coordinates shape after permuting is: {}".format(image_coordinates.shape))
+                    # Get the x, y, z coordinate into a list
+                    curr_coord = [x, y, z]
+                    
+                    # Tile the coordinates into the appropriate shape
+                    image_coordinates = np.tile(np.array(curr_coord), (kernel_size, kernel_size, kernel_size, batch_size, 1))
+                    image_coordinates = torch.from_numpy(image_coordinates).float()
+                    image_coordinates = torch.permute(image_coordinates, (3, 4, 0, 1, 2))
                     
                     # Get the cube in the residual that corresponds to this coordinate
                     residual_cube = grab_cube_around_voxel(image=residual_hemisphere, voxel_coordinates=[x, y, z], kernel_size=int(kernel_size / 2))
@@ -157,7 +143,7 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
                     b0_cube = torch.from_numpy(b0_cube).float()
                                         
                     # Get the model output
-                    (predicted_residual, loss, batch_size)  = batch_loss(model, b0_cube, injections_tiles, image_coordinates, 
+                    (predicted_residual, loss, batch_size)  = batch_loss(model, b0_cube, injection_center_tiled, image_coordinates, 
                                                                          residual_cube, criterion,
                                                                          n_gpus=n_gpus, use_amp=use_amp)
                     if loss > 1e+10:
@@ -168,7 +154,7 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
                     
                     # Get the residual as a numpy array
                     predicted_residual = predicted_residual.cpu().detach().numpy()
-                    print("shape of predicted residuals: {}".format(predicted_residual.shape))
+                    # print("shape of predicted residuals: {}".format(predicted_residual.shape))
                     
                     # Get the start of indexing for this new array
                     (start_idx_x, start_idx_y, start_idx_z,
