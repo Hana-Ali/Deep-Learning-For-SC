@@ -198,6 +198,8 @@ def run_pytorch_training(config, model_filename, training_log_filename, residual
 
     # Set the model to train mode
     model.train()
+    
+    print("Built model")
 
     # Get the criterion
     criterion = load_criterion(config['loss'], n_gpus=n_gpus)

@@ -74,6 +74,7 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
         
         # Create a tensor of the same shape as the residual hemisphere
         predictions_array = np.zeros_like(residual_hemisphere.numpy())
+        groundtruth_array = np.zeros_like(residual_hemisphere.numpy())
             
         # Get the start and end indices, based on voxel_wise or not
         overlapping = False
@@ -124,6 +125,9 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
                     predictions_array[:, :, start_idx_x : end_idx_x,
                                             start_idx_y : end_idx_y,
                                             start_idx_z : end_idx_z] = predicted_residual
+                    groundtruth_array[:, :, start_idx_x : end_idx_x,
+                                            start_idx_y : end_idx_y,
+                                            start_idx_z : end_idx_z] = current_residual.numpy()
                                         
                     
                     # Change this to actually add to the predictions tensor if you want
@@ -175,6 +179,8 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
             os.makedirs(predictions_folder)
         prediction_filename = os.path.join(predictions_folder, "image_{}.npy".format(i))
         np.save(prediction_filename, predictions_array)
+        groundtruth_filename = os.path.join(predictions_folder, "ground_truth.npy".format(i))
+        np.save(groundtruth_filename, groundtruth_array)
                                 
     # Return the losses
     return losses.avg
