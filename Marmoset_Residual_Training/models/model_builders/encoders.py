@@ -91,9 +91,10 @@ import torch.nn as nn
 ####################### ResNet Encoder #######################
 ##############################################################
 class ResnetEncoder(nn.Module):
-
+    
     # Constructor 
-    def __init__(self, input_nc, output_nc=1, ngf=64, n_blocks=6, norm_layer=nn.BatchNorm3d, use_dropout=False, padding_type='reflect'):
+    def __init__(self, input_nc, output_nc=1, ngf=64, n_blocks=6, norm_layer=nn.BatchNorm3d, use_dropout=False, 
+                 padding_type='reflect', voxel_wise=False):
         """
         Parameters:
             input_nc (int) -- the number of channels in input images
@@ -116,6 +117,7 @@ class ResnetEncoder(nn.Module):
         self.norm_layer = self.get_norm_layer(norm_layer)
         self.use_dropout = use_dropout
         self.padding_type = padding_type
+        self.voxel_wise = voxel_wise
 
         # Whatever this is
         if type(norm_layer) == partial:
@@ -137,6 +139,12 @@ class ResnetEncoder(nn.Module):
         # Initialize the model and padding size
         model = []
         padding_size = 3
+        
+        # Define the stride, based on voxel_wise
+        if self.voxel_wise:
+            stride = 2
+        else:
+            stride = 1
 
         # Define the padding layer
         if self.padding_type == 'reflect':
@@ -168,20 +176,26 @@ class ResnetEncoder(nn.Module):
                                   use_bias=self.use_bias)]
             
         # 4. Add more downsampling blocks
+        # Cube output: stride 1 | Voxel output: stride 2
         for i in range(number_downsampling):
             mult = 2**(number_downsampling - i)
             model += [nn.Conv3d(self.ngf * mult, int(self.ngf * mult / 2), 
-                                kernel_size=3, stride=1, padding=1, bias=self.use_bias), 
+                                kernel_size=3, stride=stride, padding=1, bias=self.use_bias), 
                           self.norm_layer(int(self.ngf * mult / 2)), 
                           nn.ReLU(True)]
             
         # 5. Add another convolutional block for vibes
+        # Cube output: stride 1 | Voxel output: stride 2
         model += [nn.Conv3d(int(self.ngf * mult / 2), int(self.ngf * mult / 4),
-                            kernel_size=3, stride=1, padding=1, bias=self.use_bias),
+                            kernel_size=3, stride=stride, padding=1, bias=self.use_bias),
                              self.norm_layer(int(self.ngf * mult / 4)), nn.ReLU(True)]
             
         # 4. Add the last block to make the number of channels as the output_nc and reduce spatial space
         model += [nn.Conv3d(int(self.ngf * mult / 4), self.output_nc, kernel_size=3, stride=2, padding=1, bias=self.use_bias)]
+        
+        # Cube output: No Adaptive layer | Voxel output: Adaptive layer
+        if self.voxel_wise:
+            model += [nn.AdaptiveAvgPool3d((1, 1, 1))]
         
         # Return the model
         return nn.Sequential(*model)
@@ -207,14 +221,27 @@ class ResnetEncoder(nn.Module):
         # Stores the model
         model = []
         
-        # Add final convolutions for image and non-image data - expected to have self.output_nc * 3 channels
+        # Define the factor we multiply by, based on voxel_wise
+        if self.voxel_wise:
+            factor = 1
+        else:
+            factor = 3
+        
+        # Add final convolutions for image and non-image data
+        # Cube output: self.output_nc * 3 channels | Voxel output: self.output_nc channels
         for i in range(self.number_downsampling):
-            model += [nn.Conv3d(self.output_nc * 3, self.output_nc * 3, kernel_size=3, stride=1, padding=1, bias=self.use_bias),
-                      self.norm_layer(self.output_nc * 3), 
+            model += [nn.Conv3d(self.output_nc * factor, self.output_nc * factor, kernel_size=3, stride=1, padding=1, 
+                                bias=self.use_bias),
+                      self.norm_layer(self.output_nc * factor), 
                           nn.ReLU(True)]
             
         # Final convolution to make the number of channels 1
-        model += [nn.Conv3d(self.output_nc * 3, int(self.output_nc / self.output_nc), kernel_size=3, stride=1, padding=1, bias=self.use_bias)]
+        # Cube output: self.output_nc * 3 channels | Voxel output: self.output_nc channels
+        model += [nn.Conv3d(self.output_nc * factor, 1, kernel_size=3, stride=1, padding=1, bias=self.use_bias)]
+        
+        # Cube output: No Adaptive layer | Voxel output: Adaptive layer
+        if self.voxel_wise:
+            model += [nn.AdaptiveAvgPool3d((1, 1, 1))]
             
         # Return the model
         return nn.Sequential(*model)
@@ -235,6 +262,12 @@ class ResnetEncoder(nn.Module):
         """
         Forward pass
         """
+        
+        # Define the dimension we concatenate along, depending on voxel wise
+        if self.voxel_wise:
+            dim = 4
+        else:
+            dim = 1
 
         # Do all the convolutions on the cube first
         for layer in self.img_model:
@@ -247,8 +280,9 @@ class ResnetEncoder(nn.Module):
         image_coordinates = self.non_img_model(image_coordinates)
         
         # Concatenate the data along the number of channels
-        input_x = torch.cat((input_x, injection_center), dim=1)
-        input_x = torch.cat((input_x, image_coordinates), dim=1)
+        # Cube output: Dimension 1 | Voxel output: Dimension 4
+        input_x = torch.cat((input_x, injection_center), dim=dim)
+        input_x = torch.cat((input_x, image_coordinates), dim=dim)
         
         # Do the joint processing
         joint_data = self.joint_model(input_x)

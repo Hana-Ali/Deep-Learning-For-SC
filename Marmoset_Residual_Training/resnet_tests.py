@@ -42,7 +42,8 @@ configs = {
     "optimizer" : "Adam", # Optimizer
     "evaluation_metric" : "MSE_loss", # Evaluation metric
     "shuffle_dataset" : True,
-    "separate_hemisphere" : True,
+    "separate_hemisphere" : False,
+    "voxel_wise" : False,
     "save_best" : True, # Save best model
     "regularized" : False, # Regularization
     "vae" : False, # Variational autoencoder
@@ -64,7 +65,7 @@ configs = {
     "save_last_n_models": 10, # Save last n models
 
     ####### Misc #######
-    "skip_val" : False, # Skip validation
+    "skip_val" : True, # Skip validation
 
 }
 

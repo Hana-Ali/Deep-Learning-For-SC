@@ -12,9 +12,9 @@ from utils.training_utils import loss_funcs
 
 # Main train function
 def train(model, optimizer, criterion, n_epochs, training_loader, validation_loader, test_loader, training_log_filename,
-          model_filename, residual_arrays_path, separate_hemisphere=True, metric_to_monitor="val_loss", early_stopping_patience=None,
-          learning_rate_decay_patience=None, save_best=False, n_gpus=1, verbose=True, regularized=False,
-          vae=False, decay_factor=0.1, min_lr=0., learning_rate_decay_step_size=None, save_every_n_epochs=None,
+          model_filename, residual_arrays_path, separate_hemisphere=True, voxel_wise=False, metric_to_monitor="val_loss", 
+          early_stopping_patience=None, learning_rate_decay_patience=None, save_best=False, n_gpus=1, verbose=True, 
+          regularized=False, vae=False, decay_factor=0.1, min_lr=0., learning_rate_decay_step_size=None, save_every_n_epochs=None,
           save_last_n_models=None, amp=False):
 
     # Make a list of the training log
@@ -72,7 +72,7 @@ def train(model, optimizer, criterion, n_epochs, training_loader, validation_loa
             break
 
         # Train the model
-        loss = epoch_training(training_loader, model, criterion, optimizer=optimizer, epoch=epoch, 
+        loss = epoch_training(training_loader, model, criterion, optimizer=optimizer, epoch=epoch, voxel_wise=voxel_wise,
                               residual_arrays_path=residual_arrays_path, separate_hemisphere=separate_hemisphere,
                               n_gpus=n_gpus, regularized=regularized, vae=vae, scaler=scaler)
 
@@ -118,13 +118,7 @@ def train(model, optimizer, criterion, n_epochs, training_loader, validation_loa
                 scheduler.step()
 
         # Save the model
-        print("Saving model...")
-        print("Saving in path: ", model_filename)
-        if os.path.exists(model_filename):
-            print("Exists")
-        else:
-            print("Doesn't exist")
-        torch.save(model.state_dict(), model_filename)
+        torch.save(model.state_dict(), model_filename + "both_hemi")
 
         # If save best
         if save_best and min_epoch == len(training_log) - 1:
@@ -197,7 +191,7 @@ def run_pytorch_training(config, model_filename, training_log_filename, residual
                                 num_blocks=config["num_blocks"], norm_layer=config["norm_layer"],
                                 use_dropout=config["use_dropout"], padding_type=config["padding_type"],
                                 n_gpus=n_gpus, bias=bias, freeze_bias=in_config("freeze_bias", config, False),
-                                strict=False)
+                                strict=False, voxel_wise=config["voxel_wise"])
     
     print("Model is: {}".format(model.__class__.__name__))
     print("Metric to monitor is: {}".format(metric_to_monitor))
@@ -280,7 +274,7 @@ def run_pytorch_training(config, model_filename, training_log_filename, residual
         save_best=in_config("save_best", config, False),
         learning_rate_decay_patience=in_config("decay_patience", config),
         regularized=in_config("regularized", config, regularized),
-        n_gpus=n_gpus,
+        n_gpus=n_gpus, voxel_wise=config["voxel_wise"],
         vae=in_config("vae", config, False),
         decay_factor=in_config("decay_factor", config),
         min_lr=in_config("min_learning_rate", config),

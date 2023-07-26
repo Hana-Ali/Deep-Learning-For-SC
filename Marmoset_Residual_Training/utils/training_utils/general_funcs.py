@@ -227,6 +227,29 @@ def to_shape(input_array, shape):
     # Return the padded array
     return padded_array
 
+# Function to get the indices to start and end at, based on voxel_wise
+def get_indices_list(residual_hemisphere, kernel_size, overlapping, voxel_wise):
+    
+    # Define the shape coordinates
+    x_coord = 2
+    y_coord = 3
+    z_coord = 4
+    
+    # Get the shape of the x, y and z dimensions in the hemisphere
+    x_shape = residual_hemisphere.shape[x_coord]
+    y_shape = residual_hemisphere.shape[y_coord]
+    z_shape = residual_hemisphere.shape[z_coord]
+    
+    # If it's voxel wise, then we need a list that starts from 0 and goes up to shape
+    if voxel_wise:
+        x_list, y_list, z_list = list(range(0, x_shape)), list(range(0, y_shape)), list(range(0, z_shape))
+    # If it's not, we instead need to get the centers
+    else:
+        x_list, y_list, z_list = get_centers(residual_hemisphere, kernel_size, overlapping)
+        
+    # Return the lists
+    return x_list, y_list, z_list
+
 # Function to get the indices to start and end at for creating the centers array
 def get_centers(residual_hemisphere, kernel_size, overlapping):
     
@@ -280,3 +303,73 @@ def get_predictions_indexing(x, y, z, half_kernel, predictions_array):
     
     # Return the indices
     return (start_idx_x, start_idx_y, start_idx_z, end_idx_x, end_idx_y, end_idx_z)
+
+# Function to get the b0 and residual hemispheres
+def get_b0_residual_hemispheres(coordinates, separate_hemisphere, residual, b0, is_flipped, kernel_size):
+    
+    # Get the coordinates
+    x_coord, y_coord, z_coord = coordinates
+    
+    # Get the midpoint of the x dimension
+    x_midpoint = int(residual.shape[x_coord] / 2)
+
+    # If we want to separate by hemisphere
+    if separate_hemisphere:
+
+        # Define the half shape
+        half_shape = (b0.shape[0], b0.shape[1], x_midpoint, b0.shape[3], b0.shape[4])
+
+        # Define the hemisphere tensors with the correct shape
+        b0_hemisphere = torch.empty(half_shape)
+        residual_hemisphere = torch.empty(half_shape)
+
+        # Get the left or right hemisphere, depending on whether it's flipped or not
+        for item in range(b0.shape[0]):
+            if is_flipped[item]: # Flipped means we go from 256 -> 128 because it's on the left (can check mrtrix to verify this)
+                b0_hemisphere[item, :, :, :, :] = b0[item, :, x_midpoint:, :, :]
+                residual_hemisphere[item, :, :, :, :] = residual[item, :, x_midpoint:, :, :]
+            else: # Not flipped means we go from 0 -> 128 because it's on the right (can check mrtrix to verify this)
+                b0_hemisphere[item, :, :, :, :] = b0[item, :, :x_midpoint, :, :]
+                residual_hemisphere[item, :, :, :, :] = residual[item, :, :x_midpoint, :, :]
+
+    # If we don't want to separate by hemisphere, we instead just use the things as they are
+    else:
+
+        # Define the hemispheres as the inputs themselves
+        b0_hemisphere, residual_hemisphere = b0, residual
+
+
+    # Pad the b0 and residuals to be of a shape that is a multiple of the kernel_size
+    b0_hemisphere = pad_to_shape(b0_hemisphere, kernel_size)
+    residual_hemisphere = pad_to_shape(residual_hemisphere, kernel_size)
+    
+    # Return the b0 and residual hemispheres
+    return b0_hemisphere, residual_hemisphere
+
+# Function to unpack the injection centers and image coordinates into the right shape
+def unpack_injection_and_coordinates_to_tensor(input_data, kernel_size, batch_size):
+    
+    # Tile the data
+    tiled_version = np.tile(input_data, (kernel_size, kernel_size, kernel_size, batch_size, 1))
+    tiled_version = torch.from_numpy(tiled_version).float()
+    tiled_version = torch.permute(tiled_version, (3, 4, 0, 1, 2))
+    
+    # Return the tiled data
+    return tiled_version
+
+# Function to get the current residual, based on voxel_wise or not
+def get_current_residual(residual_hemisphere, voxel_coordinates, kernel_size, voxel_wise):
+    
+    # Get the x, y and z coordinates
+    x, y, z = voxel_coordinates
+    
+    # If it's voxel wise, then we need to get the value at the coordinate
+    if voxel_wise:
+        current_residual = residual_hemisphere[:, :, x, y, z]
+    # If it's not, then we need to grab the cube around the current coordinate
+    else:
+        current_residual = grab_cube_around_voxel(image=residual_hemisphere, voxel_coordinates=voxel_coordinates, 
+                                                  kernel_size=kernel_size)
+    
+    # Return the current residual
+    return current_residual

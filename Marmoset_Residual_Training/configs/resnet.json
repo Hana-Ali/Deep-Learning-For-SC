@@ -22,11 +22,12 @@
     "residual_arrays_path": "/notebooks/tract_residuals/predicted_residuals",
     "save_best": true,
     "save_last_n_models": 10,
-    "separate_hemisphere": true,
+    "separate_hemisphere": false,
     "shuffle_dataset": true,
-    "skip_val": false,
+    "skip_val": true,
     "training_log_path": "/notebooks/tract_residuals/training_logs/resnet_log.csv",
     "use_dropout": false,
     "vae": false,
-    "validation_batch_size": 1
+    "validation_batch_size": 1,
+    "voxel_wise": false
 }
