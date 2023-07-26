@@ -175,26 +175,26 @@ class MyronenkoDecoder(nn.Module):
 class MirroredDecoder(nn.Module):
 
     # Constructor
-    def __init__(self, base_width=32, layer_blocks=None, layer=MyronenkoLayer, block=MyronenkoResidualBlock,
+    def __init__(self, ngf=32, block_layers=None, layer=MyronenkoLayer, block=MyronenkoResidualBlock,
                 upsampling_scale=2, feature_reduction_scale=2, upsampling_mode="trilinear", align_corners=False,
                 layer_widths=None, use_transposed_convolutions=False, kernel_size=3):
         super(MirroredDecoder, self).__init__()
-        self.mirrored_decoder = self.build_mirrored_decoder(base_width, layer_blocks, layer, block, upsampling_scale,
+        self.mirrored_decoder = self.build_mirrored_decoder(ngf, block_layers, layer, block, upsampling_scale,
                                                             feature_reduction_scale, upsampling_mode, align_corners,
                                                             layer_widths, use_transposed_convolutions, kernel_size)
         
     # Build the decoder
-    def build_mirrored_decoder(self, base_width, layer_blocks, layer, block, upsampling_scale, feature_reduction_scale,
+    def build_mirrored_decoder(self, ngf, block_layers, layer, block, upsampling_scale, feature_reduction_scale,
                                upsampling_mode, align_corners, layer_widths, use_transposed_convolutions, kernel_size):
         
         # If the layer blocks are not specified, we use the default ones
-        if layer_blocks is None:
-            self.layer_blocks = [1, 1, 1, 1]
+        if block_layers is None:
+            self.block_layers = [1, 1, 1, 1]
         else:
-            self.layer_blocks = layer_blocks
+            self.block_layers = block_layers
 
         # Define the widths and feature scales
-        self.base_width = base_width
+        self.ngf = ngf
         self.feature_reduction_scale = feature_reduction_scale
         self.layer_widths = layer_widths
 
@@ -212,19 +212,19 @@ class MirroredDecoder(nn.Module):
             self.upsampling_convolutions = []
 
         # For every block
-        for index, num_blocks in enumerate(self.layer_blocks):
+        for index, num_blocks in enumerate(self.block_layers):
 
             # Get the depth of the layer
-            depth = len(self.layer_blocks) - index - 1
+            depth = len(self.block_layers) - index - 1
 
             # Calculate the in and out width
-            in_width, out_width = self.calculate_layer_widths(depth)
+            in_channels, out_channels = self.calculate_layer_widths(depth)
 
             # If the depth isnt 0
             if depth != 0:
 
                 # Append the layer to layers
-                self.layers.append(layer(num_blocks=num_blocks, block=block, in_channels=in_width, out_channels=in_width, kernel_size=kernel_size))
+                self.layers.append(layer(num_blocks=num_blocks, block=block, in_channels=in_channels, out_channels=in_channels, kernel_size=kernel_size))
 
                 # If we use transposed convolutions
                 if self.use_transposed_convolutions:
@@ -233,11 +233,11 @@ class MirroredDecoder(nn.Module):
                     self.pre_upsampling_convolutions.append(nn.Sequential())
 
                     # Append the upsampling convolution
-                    self.upsampling_convolutions.append(nn.ConvTranspose3d(in_width, out_width, kernel_size=kernel_size,
+                    self.upsampling_convolutions.append(nn.ConvTranspose3d(in_channels, out_channels, kernel_size=kernel_size,
                                                                      stride=upsampling_scale, padding=1))
                 else:
                     # Append conv1x1x1 to pre upsampling blocks
-                    self.pre_upsampling_convolutions.append(conv1x1x1(in_channels=in_width, out_channels=out_width, stride=1))
+                    self.pre_upsampling_convolutions.append(conv1x1x1(in_channels=in_channels, out_channels=out_channels, stride=1))
 
                     # Append the upsampling convolution
                     self.upsampling_convolutions.append(partial(nn.functional.interpolate, scale_factor=upsampling_scale,
@@ -245,10 +245,10 @@ class MirroredDecoder(nn.Module):
             # If the depth is 0
             else:
                 # Add layer
-                self.layers.append(layer(num_blocks=num_blocks, block=block, in_channels=in_width, out_channels=out_width, kernel_size=kernel_size))
+                self.layers.append(layer(num_blocks=num_blocks, block=block, in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size))
 
                 # Print out the layer
-                print("Decoder Layer {}:".format(index), in_width, out_width)
+                print("Decoder Layer {}:".format(index), in_channels, out_channels)
 
         # Zip the layers and upsampling convolutions together
         decoder = zip(self.pre_upsampling_convolutions, self.upsampling_convolutions, self.layers[:-1])
@@ -263,20 +263,20 @@ class MirroredDecoder(nn.Module):
         if self.layer_widths is not None:
 
             # Get the in and out width
-            in_width = self.layer_widths[depth + 1]
-            out_width = self.layer_widths[depth]
+            in_channels = self.layer_widths[depth + 1]
+            out_channels = self.layer_widths[depth]
 
         # If the layer widths are not specified, we use the default ones
         else:
             if depth > 0:
-                out_width = int(self.base_width * (self.feature_reduction_scale ** (depth - 1)))
-                in_width = out_width * self.feature_reduction_scale
+                out_channels = int(self.ngf * (self.feature_reduction_scale ** (depth - 1)))
+                in_channels = out_channels * self.feature_reduction_scale
             else:
-                out_width = self.base_width
-                in_width = self.base_width
+                out_channels = self.ngf
+                in_channels = self.ngf
 
         # Return the in and out width
-        return in_width, out_width
+        return in_channels, out_channels
     
     # Forward pass
     def forward(self, x_input):
@@ -286,14 +286,18 @@ class MirroredDecoder(nn.Module):
 
             # Pass the input through the layer
             x_input = layer(x_input)
+            print("Shape of input in MirroredDecoder: ", x_input.shape)
 
             # Pass the input through the pre upsampling convolution
             x_input = pre_upsampling_convolution(x_input)
+            print("Shape of preupsampling in MirroredDecoder: ", x_input.shape)
 
             # Pass the input through the upsampling convolution
             x_input = upsampling_convolution(x_input)
+            print("Shape of upsampling in MirroredDecoder: ", x_input.shape)
 
         x_input = self.layers[-1](x_input)
+        print("Shape of concatenated in MirroredDecoder: ", x_input.shape)
 
         # Return the output
         return x_input

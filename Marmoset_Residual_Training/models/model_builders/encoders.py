@@ -11,35 +11,33 @@ import torch
 class MyronenkoEncoder(nn.Module):
 
     # Constructor
-    def __init__(self, num_features, base_width=32, layer_blocks=None, layer=MyronenkoLayer,
+    def __init__(self, in_channels, ngf=32, block_layers=None, layer=MyronenkoLayer,
                  block=MyronenkoResidualBlock, feature_dilation=2, downsampling_stride=2, dropout=0.2, 
                  layer_widths=None, kernel_size=3):
         super(MyronenkoEncoder, self).__init__()
-        self.myronenko_encoder = self.build_myronenko_encoder(num_features, base_width, layer_blocks, layer, block, feature_dilation,
+        self.myronenko_encoder = self.build_myronenko_encoder(in_channels, ngf, block_layers, layer, block, feature_dilation,
                                                                 downsampling_stride, dropout, layer_widths, kernel_size)
         
     # Build the encoder
-    def build_myronenko_encoder(self, num_features, base_width, layer_blocks, layer, block, feature_dilation, downsampling_stride, dropout, layer_widths, kernel_size):
+    def build_myronenko_encoder(self, in_channels, ngf, block_layers, layer, block, feature_dilation, downsampling_stride, 
+                                dropout, layer_widths, kernel_size):
         
         # If the layer blocks are not specified, we use the default ones
-        if layer_blocks is None:
-            layer_blocks = [1, 2, 2, 4]
+        if block_layers is None:
+            block_layers = [1, 2, 2, 4]
 
         # Define layers and downsamples as ModuleLists
         self.layers = nn.ModuleList()
         self.downsampling_convolutions = nn.ModuleList()
 
-        # Define the in width as the number of features
-        in_width = num_features
-
         # For every block
-        for index, num_blocks in enumerate(layer_blocks):
+        for index, num_blocks in enumerate(block_layers):
 
             # If the layer widths are not specified, we use the default ones
             if layer_widths is None:
-                out_width = base_width * (feature_dilation ** index)
+                out_channels = ngf * (feature_dilation ** index)
             else:
-                out_width = layer_widths[index]
+                out_channels = layer_widths[index]
 
             # If dropout is not None, we use it
             if index == 0 and dropout is not None:
@@ -48,17 +46,19 @@ class MyronenkoEncoder(nn.Module):
                 dropout_layer = None
 
             # Add the layer to layers
-            self.layers.append(layer(num_blocks=num_blocks, block=block, in_channels=in_width, out_channels=out_width, dropout=dropout_layer, kernel_size=kernel_size))
+            self.layers.append(layer(num_blocks=num_blocks, block=block, in_channels=in_channels, out_channels=out_channels, 
+                                     dropout=dropout_layer, kernel_size=kernel_size))
 
             # If we're not at the last layer, we add a downsampling convolution
-            if index != len(layer_blocks) - 1:
-                self.downsampling_convolutions.append(conv3x3x3(in_channels=out_width, out_channels=out_width, stride=downsampling_stride, kernel_size=kernel_size))
+            if index != len(block_layers) - 1:
+                self.downsampling_convolutions.append(conv3x3x3(in_channels=out_channels, out_channels=out_channels, 
+                                                                stride=downsampling_stride, kernel_size=kernel_size))
 
             # Print out the layer
-            print("Encoder Layer {}:".format(index), in_width, out_width)
+            print("Encoder Layer {}:".format(index), in_channels, out_channels)
 
             # Set the in width to the out width
-            in_width = out_width
+            in_channels = out_channels
 
 
         # Zip the layers and downsampling convolutions together
@@ -79,14 +79,14 @@ class MyronenkoEncoder(nn.Module):
             # If the downsampling convolution is not None, then we do 1x1x1 convolution
             if downsampling_convolution is not None:
                 x_input = downsampling_convolution(x_input)
+                print("Shape of input in MyronenkoEncoder conv: ", x_input.shape)
         
         x_input = self.layers[-1](x_input)
+        print("Shape of input in MyronenkoEncoder: ", x_input.shape)
 
         # Return the output
         return x_input
     
-import torch.nn as nn
-
 ##############################################################
 ####################### ResNet Encoder #######################
 ##############################################################

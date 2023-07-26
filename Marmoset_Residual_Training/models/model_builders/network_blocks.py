@@ -16,6 +16,9 @@ class MyronenkoConvolutionBlock(nn.Module):
 
     # Build the Myronenko block
     def build_myronenko(self, in_channels, out_channels, kernel_size, stride, padding, norm_layer, norm_groups):
+        
+        print("Norm group is: ", norm_groups)
+        print("In channel is: ", in_channels)
 
         # If norm layer is not specified, then we use Group norm
         if norm_layer is None:
@@ -56,7 +59,11 @@ class MyronenkoConvolutionBlock(nn.Module):
         
     # Forward pass
     def forward(self, x_input):
-        return self.myronenko_block(x_input)
+        for layer in self.myronenko_block:
+            x_input = layer(x_input)
+            print("Shape of input in MyronenkoConvBlock: ", x_input.shape)
+
+        return x_input
     
 ###############################################################
 ####################### Myronenko Block #######################
@@ -64,7 +71,7 @@ class MyronenkoConvolutionBlock(nn.Module):
 class MyronenkoResidualBlock(nn.Module):
 
     # Constructor
-    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=0, norm_layer=None, norm_groups=8):
+    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1, norm_layer=None, norm_groups=8):
         super(MyronenkoResidualBlock, self).__init__()
         self.myronenko_block = self.build_myronenko_block(in_channels, out_channels, kernel_size, stride, padding, norm_layer, norm_groups)
 
@@ -94,17 +101,20 @@ class MyronenkoResidualBlock(nn.Module):
         identity = x_input
 
         # Pass the input through the network
-        x = self.myronenko_block(x_input)
+        for layer in self.myronenko_block:
+            x_input = layer(x_input)
+            print("Shape of input in MyronenkoResBlock: ", x_input.shape)
 
         # If the sample is not None, then we do 1x1x1 convolution
         if self.sample is not None:
             identity = self.sample(identity)
+            print("Identity in res block shape: ", identity.shape)
 
         # Add the identity to the output
-        x += identity
+        x_input += identity
 
         # Return the output
-        return x
+        return x_input
 
 ###############################################################
 ####################### Myronenko Layer #######################
@@ -134,6 +144,8 @@ class MyronenkoLayer(nn.Module):
         # If dropout is not None, then we add dropout
         if dropout is not None:
             self.dropout = nn.Dropout3d(dropout, inplace=True)
+        else:
+            self.dropout = None
 
         return layer
     
@@ -141,10 +153,11 @@ class MyronenkoLayer(nn.Module):
     def forward(self, x_input):
             
         # For each block in the layer
-        for index, block in self.myronenko_layer:
+        for index, block in enumerate(self.myronenko_layer):
 
             # Pass the input through the block
             x_input = block(x_input)
+            print("Shape of input in MyronenkoLayer: ", x_input.shape)
 
             # If dropout is not None, then we add dropout
             if index == 0 and self.dropout is not None:

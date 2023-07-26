@@ -17,6 +17,7 @@ class UNetEncoder(MyronenkoEncoder):
             
             # Pass the input through the layer
             x_input = layer(x_input)
+            print("Shape of input in UNetEncoder: ", x_input.shape)
 
             # Insert the output into the outputs
             outputs.insert(0, x_input)
@@ -24,6 +25,7 @@ class UNetEncoder(MyronenkoEncoder):
             # If the downsampling convolution is not None, then we do 1x1x1 convolution
             if downsampling_convolution is not None:
                 x_input = downsampling_convolution(x_input)
+                print("Shape of input in downsampling UNetEncoder: ", x_input.shape)
 
         # Add the last layer to the outputs
         x_input = self.layers[-1](x_input)
@@ -42,19 +44,19 @@ class UNetDecoder(MirroredDecoder):
     def calculate_layer_widths(self, depth):
 
         # Get them from MirroredDecoder
-        in_width, out_width = super().calculate_layer_widths(depth=depth)
+        in_channels, out_channels = super().calculate_layer_widths(depth=depth)
 
         # Id the deoth is not at the last block
-        if depth != len(self.layer_blocks) - 1:
+        if depth != len(self.block_layers) - 1:
 
             # Double the in width
-            in_width *= 2
+            in_channels *= 2
 
         # Print out the layer
-        print("Decoder Layer {}:".format(depth), in_width, out_width)
+        print("Decoder Layer {}:".format(depth), in_channels, out_channels)
 
         # Return the in and out width
-        return in_width, out_width
+        return in_channels, out_channels
     
     # Define the forward pass
     def forward(self, x_input):
@@ -67,15 +69,19 @@ class UNetDecoder(MirroredDecoder):
 
             # Pass the input through the layer
             x = layer(x)
+            print("Decoder input shape at idx {} is: {}".format(index, x.shape))
 
             # Pass the input through the pre upsampling convolution
             x = pre_upsampling_convolution(x)
+            print("Shape of preupsampling in UnetDecoder: ", x.shape)
 
             # Pass the input through the upsampling convolution
             x = upsampling_convolution(x)
+            print("Shape of upsampling in UnetDecoder: ", x.shape)
 
             # Concatenate
             x = torch.cat((x, x_input[index + 1]), dim=1)
+            print("Shape of concatenate in UnetDecoder: ", x.shape)
 
         # Pass the input through the last layer
         x = self.layers[-1](x)
@@ -89,6 +95,7 @@ class UNetDecoder(MirroredDecoder):
 class UNet(ConvolutionalAutoEncoder):
 
     # Constructor
-    def __init__(self, *args, encoder_class=UNetEncoder, decoder_class=UNetDecoder, n_outputs=1, **kwargs):
-        super().__init__(*args, encoder_class=encoder_class, decoder_class=decoder_class, n_outputs=n_outputs, **kwargs)
-        self.set_final_convolution(n_outputs=n_outputs)
+    def __init__(self, *args, encoder_class=UNetEncoder, decoder_class=UNetDecoder, in_channels=1, out_channels=1,
+                 voxel_wise=False, **kwargs):
+        super().__init__(*args, encoder_class=encoder_class, decoder_class=decoder_class, in_channels=in_channels,
+                         output_channels=out_channels, voxel_wise=voxel_wise, **kwargs)

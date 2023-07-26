@@ -20,11 +20,16 @@ def get_model(model_name, input_nc, output_nc, ngf, num_blocks, norm_layer,
                                  padding_type=padding_type,
                                  voxel_wise=voxel_wise)
         
-        elif "upanet" in model_name.lower():
-            return UPANets(input_nc=input_nc,
-                           output_nc=output_nc,
-                           num_blocks=num_blocks,
-                           img_size=32)
+        elif "unet" in model_name.lower():
+            return UNet(in_channels=input_nc,
+                        out_channels=output_nc,
+                        voxel_wise=voxel_wise)
+        
+        # elif "upanet" in model_name.lower():
+        #     return UPANets(input_nc=input_nc,
+        #                    output_nc=output_nc,
+        #                    num_blocks=num_blocks,
+        #                    img_size=32)
 
     except AttributeError:
         raise ValueError("Model {} not found".format(model_name))

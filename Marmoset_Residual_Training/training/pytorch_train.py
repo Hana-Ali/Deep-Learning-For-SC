@@ -182,13 +182,13 @@ def run_pytorch_training(config, model_filename, training_log_filename, residual
     model_metrics : tuple
         Model metrics.
     """
-
+    print("model name is: ", model_name)
     # Get whether we're doing fod or dwi, to know number of channels
     if config["wmfod_dwi"] == "dwi":
         input_nc = 1
     elif config["wmfod_dwi"] == "wmfod":
         input_nc = 45
-
+        
     # Build or load the model
     model = build_or_load_model(model_name, model_filename, input_nc=input_nc, 
                                 output_nc=config["output_nc"], ngf=config["ngf"], 
