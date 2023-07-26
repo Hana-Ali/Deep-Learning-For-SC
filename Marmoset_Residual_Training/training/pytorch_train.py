@@ -183,10 +183,14 @@ def run_pytorch_training(config, model_filename, training_log_filename, residual
         Model metrics.
     """
 
-    # print(torch.summary)
+    # Get whether we're doing fod or dwi, to know number of channels
+    if config["wmfod_dwi"] == "dwi":
+        input_nc = 1
+    elif config["wmfod_dwi"] == "wmfod":
+        input_nc = 45
 
     # Build or load the model
-    model = build_or_load_model(model_name, model_filename, input_nc=config["input_nc"], 
+    model = build_or_load_model(model_name, model_filename, input_nc=input_nc, 
                                 output_nc=config["output_nc"], ngf=config["ngf"], 
                                 num_blocks=config["num_blocks"], norm_layer=config["norm_layer"],
                                 use_dropout=config["use_dropout"], padding_type=config["padding_type"],
@@ -199,8 +203,6 @@ def run_pytorch_training(config, model_filename, training_log_filename, residual
     # Set the model to train mode
     model.train()
     
-    print("Built model")
-
     # Get the criterion
     criterion = load_criterion(config['loss'], n_gpus=n_gpus)
 

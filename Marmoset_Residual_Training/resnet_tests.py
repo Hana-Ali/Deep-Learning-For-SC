@@ -42,8 +42,9 @@ configs = {
     "optimizer" : "Adam", # Optimizer
     "evaluation_metric" : "MSE_loss", # Evaluation metric
     "shuffle_dataset" : True,
-    "separate_hemisphere" : False,
+    "separate_hemisphere" : True,
     "voxel_wise" : False,
+    "wmfod_dwi" : "wmfod",
     "save_best" : True, # Save best model
     "regularized" : False, # Regularization
     "vae" : False, # Variational autoencoder
