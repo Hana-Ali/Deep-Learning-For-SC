@@ -10,6 +10,6 @@ def conv3x3x3(in_channels, out_channels, stride=1, groups=1, padding=None, dilat
 
 
 # Define 1x1x1 convolution
-def conv1x1x1(in_planes, out_planes, stride=1):
+def conv1x1x1(in_channels, out_channels, stride=1):
     """1x1x1 convolution"""
-    return nn.Conv3d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
+    return nn.Conv3d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False)
