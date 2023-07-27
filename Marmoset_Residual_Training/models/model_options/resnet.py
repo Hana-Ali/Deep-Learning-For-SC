@@ -1,268 +1,294 @@
 import torch
-from models.model_builders import *
+import torch.nn as nn
+
+from functools import partial
 
 ##############################################################
-########################### ResNet ###########################
+######################## ResNet Block ########################
 ##############################################################
-class ResNet(nn.Module):
+class ResnetBlock(nn.Module):
 
     # Constructor
-    def __init__(self, block, layers, num_classes=1000, zero_init_residual=False, groups=1, width_per_group=64, 
-                 replace_stride_with_dilation=None, norm_layer=None, n_features=3):
-        super(ResNet, self).__init__()
+    def __init__(self, dim, padding_type, norm_layer, use_bias, use_dropout):
+        super(ResnetBlock, self).__init__()
+        self.res_block = self.build_resnet(dim, padding_type, norm_layer, use_bias, use_dropout)
 
-        # Set norm layer
-        if norm_layer is None:
-            norm_layer = nn.BatchNorm3d
-        self._norm_layer = norm_layer
+    # Build the convolutional block
+    def build_resnet(self, dim, padding_type, norm_layer, use_bias, use_dropout):
+        # This will hold the convolutional blocks
+        resnet_block = []
+        # This will hold the padding
+        padding = 0
 
-        # Set the number of input features
-        self.in_planes = 64
+        # 1. Add padding
+        resnet_block += [self.get_resnet_padding(padding_type)]
 
-        # Set the dilation
-        self.dilation = 1
+        # 2. Add the first convolutional block
+        resnet_block += self.get_resnet_conv(dim, dim, kernel_size=3, padding=padding, 
+                                        norm_layer=norm_layer, use_activation=True, 
+                                        use_bias=use_bias, use_dropout=use_dropout)
 
-        # If the stride is replaced with dilation, set the dilation
-        if replace_stride_with_dilation is None:
-            # each element in the tuple indicates if we should replace
-            # the 2x2x2 stride with a dilated convolution instead
-            replace_stride_with_dilation = [False, False, False]
+        # 3. Add padding
+        resnet_block += [self.get_resnet_padding(padding_type)]
 
-        # If the length of the replace_stride_with_dilation is not equal to 3, raise an error
-        if len(replace_stride_with_dilation) != 3:
-            raise ValueError("replace_stride_with_dilation should be None or a 3-element tuple, got {}".format(replace_stride_with_dilation))
+        # 4. Add the second convolutional block
+        resnet_block += self.get_resnet_conv(dim, dim, kernel_size=3, padding=padding,
+                                        norm_layer=norm_layer, use_activation=False,
+                                        use_bias=use_bias, use_dropout=use_dropout)
         
-        # Set the number of groups
-        self.groups = groups
-
-        # Set the width per group
-        self.base_width = width_per_group
-
-        # Set the conv1
-        self.conv1 = nn.Conv3d(n_features, self.in_planes, kernel_size=7, stride=2, padding=3, bias=False)
-
-        # Set the norm1
-        self.bn1 = norm_layer(self.in_planes)
-
-        # Set the relu
-        self.relu = nn.ReLU(inplace=True)
-
-        # Set the maxpool
-        self.maxpool = nn.MaxPool3d(kernel_size=3, stride=2, padding=1)
-
-        # Set the layer1
-        self.layer1 = self._make_layer(block, 64, layers[0])
-
-        # Set the layer2
-        self.layer2 = self._make_layer(block, 128, layers[1], stride=2, dilate=replace_stride_with_dilation[0])
-
-        # Set the layer3
-        self.layer3 = self._make_layer(block, 256, layers[2], stride=2, dilate=replace_stride_with_dilation[1])
-
-        # Set the layer4
-        self.layer4 = self._make_layer(block, 512, layers[3], stride=2, dilate=replace_stride_with_dilation[2])
-
-        # Set the avgpool
-        self.avgpool = nn.AdaptiveAvgPool3d(1)
-
-        # Set the fc
-        self.fc = nn.Linear(512 * block.expansion, num_classes)
-
-        # Initialize the weights
-        for m in self.modules():
-
-            # If the module is conv, initialize the weights
-            if isinstance(m, nn.Conv3d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-
-            # If the module is batch norm, initialize the weights
-            elif isinstance(m, (nn.BatchNorm3d, nn.GroupNorm)):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
-
-        # Zero-initialize the last BN in each residual branch,
-        # so that the residual branch starts with zeros, and each residual block behaves like an identity.
-        # This improves the model by 0.2~0.3% according to https://arxiv.org/abs/1706.02677
-        if zero_init_residual:
-
-            # For each module
-            for m in self.modules():
-
-                # If the module is basic block
-                if isinstance(m, BasicResidualBlock):
-                        
-                        # Initialize the weight
-                        nn.init.constant_(m.bn2.weight, 0)
-                
-                # If the module is bottleneck block
-                elif isinstance(m, Bottleneck):
-
-                        # Initialize the weight
-                        nn.init.constant_(m.bn3.weight, 0)
-
-    # Make layer
-    def _make_layer(self, block, planes, blocks, stride=1, dilate=False):
-         
-        # Set the norm layer
-        norm_layer = self._norm_layer
-
-        # Set the downsample
-        downsample = None
-
-        # Set the previous dilation
-        previous_dilation = self.dilation
-
-        # If the dilate is true
-        if dilate:
-                 
-                # Set the dilation
-                self.dilation *= stride
+        return nn.Sequential(*resnet_block)
     
-                # Set the stride
-                stride = 1
+    # Forward pass
+    def forward(self, x_input):
+        # A forward pass in ResNet is both the input and the input passed in the resnet block
+        return x_input + self.res_block(x_input)
+        
+    # Function to return padding type
+    def get_resnet_padding(self, padding_type):
+        # This holds the allowed padding types
+        allowed_padding = ['reflect', 'replicate', 'zero']
+
+        # Define the padding size
+        padding_size = 1
+
+        # If the padding type is reflect, then we add reflection padding
+        if padding_type == 'reflect':
+            return nn.ReflectionPad3d(padding_size)
+        # If the padding type is replicate, then we add replication padding
+        elif padding_type == 'replicate':
+            return nn.ReplicationPad3d(padding_size)
+        # If the padding type is zero, then we add zero padding
+        elif padding_type == 'zero':
+            return padding_size
+        else:
+            raise NotImplementedError("Padding [{type}] is not implemented. Options are {}".format(
+                                                        type=padding_type, options=(", ").join(allowed_padding)))
+
+    # Function to define convolutional block
+    def get_resnet_conv(self, in_dim, out_dim, kernel_size, padding, norm_layer, use_activation, use_bias=True, use_dropout=False):
+        # This will hold the convolutional block
+        res_block = []
+
+        # 1. Add convolutional layer
+        res_block += [nn.Conv3d(in_dim, out_dim, kernel_size=kernel_size, padding=padding, 
+                                bias=use_bias)]
+
+        # 2. Add normalization layer
+        if norm_layer is not None:
+            res_block += [norm_layer(out_dim)]
+
+        # 3. Add ReLU activation
+        if use_activation:
+            res_block += [nn.ReLU(True)]
+
+        # 4. Add dropout layer
+        if use_dropout:
+            res_block += [nn.Dropout(0.5)]
+
+        return res_block
+    
+#############################################################
+####################### ResNet Encoder #######################
+##############################################################
+class ResnetEncoder(nn.Module):
+    
+    # Constructor 
+    def __init__(self, input_nc, output_nc=1, ngf=64, n_blocks=6, norm_layer=nn.BatchNorm3d, use_dropout=False, 
+                 padding_type='reflect', voxel_wise=False):
+        """
+        Parameters:
+            input_nc (int) -- the number of channels in input images
+            output_nc (int) -- the number of channels in output images
+            ngf (int) -- the number of filters in the last conv layer
+            n_blocks (int) -- the number of residual blocks
+            norm_layer -- normalization layer
+            use_dropout (bool) -- if use dropout layers
+            padding_type (str) -- the name of padding layer in conv layers: reflect | replicate | zero
+        """
+
+        # Initialize parent class
+        super(ResnetEncoder, self).__init__()
+
+        # Initialize the self attributes
+        self.input_nc = input_nc
+        self.output_nc = output_nc
+        self.ngf = ngf
+        self.n_blocks = n_blocks
+        self.norm_layer = self.get_norm_layer(norm_layer)
+        self.use_dropout = use_dropout
+        self.padding_type = padding_type
+        self.voxel_wise = voxel_wise
+
+        # Whatever this is
+        if type(norm_layer) == partial:
+            self.use_bias = norm_layer.func == nn.InstanceNorm3d
+        else:
+            self.use_bias = norm_layer == nn.InstanceNorm3d
+
+        # Define the models
+        self.img_model = self.define_img_model()
+        self.non_img_model = self.define_non_img_model()
+        self.joint_model = self.define_joint_model()
+
+    # Define the model
+    def define_img_model(self):
+        """
+        Define the model architecture
+        """
+
+        # Initialize the model and padding size
+        model = []
+        padding_size = 3
+        
+        # Define the stride, based on voxel_wise
+        if self.voxel_wise:
+            stride = 2
+        else:
+            stride = 1
+
+        # Define the padding layer
+        if self.padding_type == 'reflect':
+            padding_layer = nn.ReflectionPad3d(padding_size)
+        elif self.padding_type == 'replicate':
+            padding_layer = nn.ReplicationPad3d(padding_size)
+        elif self.padding_type == 'zero':
+            padding_layer = nn.ZeroPad3d(padding_size)
+        else:
+            raise NotImplementedError('padding [%s] is not implemented' % self.padding_type)
+        
+        # 1. Add the first block
+        model.extend([padding_layer, 
+                      nn.Conv3d(self.input_nc, self.ngf, kernel_size=7, padding=0, bias=self.use_bias), 
+                      self.norm_layer(self.ngf), nn.ReLU(True)])
+        
+        # 2. Add one convolution
+        number_downsampling = 2
+        self.number_downsampling = number_downsampling
+        mult = 2**number_downsampling
+        model += [nn.Conv3d(self.ngf, self.ngf * mult, kernel_size=3,
+                    stride=1, padding=1, bias=False),
+                        self.norm_layer(self.ngf * mult), nn.ReLU(True)]
+
+        # 3. Add the residual blocks
+        for i in range(self.n_blocks):
+            model += [ResnetBlock(self.ngf * mult, padding_type=self.padding_type, 
+                                  norm_layer=self.norm_layer, use_dropout=self.use_dropout, 
+                                  use_bias=self.use_bias)]
             
-        # If the stride is not equal to 1 or the number of input planes is not equal to the number of output planes
-        if stride != 1 or self.in_planes != planes * block.expansion:
-                 
-                # Set the downsample
-                downsample = nn.Sequential(
-                    conv1x1x1(self.in_planes, planes * block.expansion, stride),
-                    norm_layer(planes * block.expansion),
-                )
-
-        # Set the layers
-        layers = []
-
-        # Append the block
-        layers.append(block(self.in_planes, planes, stride, downsample, self.groups, self.base_width, previous_dilation, norm_layer))
-
-        # Set the number of input planes
-        self.in_planes = planes * block.expansion
-
-        # For each block
-        for _ in range(1, blocks):
-                 
-                # Append the block
-                layers.append(block(self.in_planes, planes, groups=self.groups, base_width=self.base_width, dilation=self.dilation, norm_layer=norm_layer))
-
-        # Return the layers
-        return nn.Sequential(*layers)
+        # 4. Add more downsampling blocks
+        # Cube output: stride 1 | Voxel output: stride 2
+        for i in range(number_downsampling):
+            mult = 2**(number_downsampling - i)
+            model += [nn.Conv3d(self.ngf * mult, int(self.ngf * mult / 2), 
+                                kernel_size=3, stride=stride, padding=1, bias=self.use_bias), 
+                          self.norm_layer(int(self.ngf * mult / 2)), 
+                          nn.ReLU(True)]
+            
+        # 5. Add another convolutional block for vibes
+        # Cube output: stride 1 | Voxel output: stride 2
+        model += [nn.Conv3d(int(self.ngf * mult / 2), int(self.ngf * mult / 4),
+                            kernel_size=3, stride=stride, padding=1, bias=self.use_bias),
+                             self.norm_layer(int(self.ngf * mult / 4)), nn.ReLU(True)]
+            
+        # 4. Add the last block to make the number of channels as the output_nc and reduce spatial space
+        model += [nn.Conv3d(int(self.ngf * mult / 4), self.output_nc, kernel_size=3, stride=2, padding=1, bias=self.use_bias)]
+        
+        # Cube output: No Adaptive layer | Voxel output: Adaptive layer
+        if self.voxel_wise:
+            model += [nn.AdaptiveAvgPool3d((1, 1, 1))]
+        
+        # Return the model
+        return nn.Sequential(*model)
     
-    # Forward
-    def forward(self, x):
-         
-        # Set the x
-        x = self.conv1(x)
-        x = self.bn1(x)
-        x = self.relu(x)
-        x = self.maxpool(x)
+    # Define the processing for the non-image inputs
+    def define_non_img_model(self):
+        
+        # Stores the model
+        model = []
+        
+        # Add convolutions for the injection centers and image coordinates - expected to have self.output_nc channels
+        for i in range(self.number_downsampling):
+            model += [nn.Conv3d(self.output_nc, self.output_nc, kernel_size=3, stride=1, padding=1, bias=self.use_bias),
+                      self.norm_layer(self.output_nc), 
+                          nn.ReLU(True)]
+            
+        # Return the model
+        return nn.Sequential(*model)
+            
+    # Define joint processing for everything
+    def define_joint_model(self):
+        
+        # Stores the model
+        model = []
+        
+        # Define the factor we multiply by, based on voxel_wise
+        if self.voxel_wise:
+            factor = 1
+        else:
+            factor = 3
+        
+        # Add final convolutions for image and non-image data
+        # Cube output: self.output_nc * 3 channels | Voxel output: self.output_nc channels
+        for i in range(self.number_downsampling):
+            model += [nn.Conv3d(self.output_nc * factor, self.output_nc * factor, kernel_size=3, stride=1, padding=1, 
+                                bias=self.use_bias),
+                      self.norm_layer(self.output_nc * factor), 
+                          nn.ReLU(True)]
+            
+        # Final convolution to make the number of channels 1
+        # Cube output: self.output_nc * 3 channels | Voxel output: self.output_nc channels
+        model += [nn.Conv3d(self.output_nc * factor, 1, kernel_size=3, stride=1, padding=1, bias=self.use_bias)]
+        
+        # Cube output: No Adaptive layer | Voxel output: Adaptive layer
+        if self.voxel_wise:
+            model += [nn.AdaptiveAvgPool3d((1, 1, 1))]
+            
+        # Return the model
+        return nn.Sequential(*model)
+    
+    # Get the normalization layer
+    def get_norm_layer(self, norm_layer):
 
-        # Set the x
-        x = self.layer1(x)
+        # If the norm layer is batch norm, we return it
+        if "batch" in norm_layer.lower():
+            return nn.BatchNorm3d
+        elif "instance" in norm_layer.lower():
+            return nn.InstanceNorm3d
+        else:
+            raise NotImplementedError('normalization layer [%s] is not found' % norm_layer)
+    
+    # Forward pass
+    def forward(self, input_x, injection_center, image_coordinates):
+        """
+        Forward pass
+        """
+        
+        # Define the dimension we concatenate along, depending on voxel wise
+        if self.voxel_wise:
+            dim = 4
+        else:
+            dim = 1
 
-        # Set the x
-        x = self.layer2(x)
-
-        # Set the x
-        x = self.layer3(x)
-
-        # Set the x
-        x = self.layer4(x)
-
-        # Set the x
-        x = self.avgpool(x)
-
-        # Set the x
-        x = torch.flatten(x, 1)
-
-        # Set the x
-        x = self.fc(x)
-
-        # Return the x
-        return x
-
-# Define all the resnet variants
-def _resnet(arch, block, layers, pretrained, progress, **kwargs):
-    model = ResNet(block, layers, **kwargs)
-    return model
-
-
-def resnet_18(pretrained=False, progress=True, **kwargs):
-    """Constructs a ResNet-18 model.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-        progress (bool): If True, displays a progress bar of the download to stderr
-    """
-    return _resnet('resnet_18', BasicResidualBlock, [2, 2, 2, 2], pretrained, progress,
-                   **kwargs)
-
-
-def resnet_34(pretrained=False, progress=True, **kwargs):
-    """Constructs a ResNet-34 model.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-        progress (bool): If True, displays a progress bar of the download to stderr
-    """
-    return _resnet('resnet_34', BasicResidualBlock, [3, 4, 6, 3], pretrained, progress,
-                   **kwargs)
-
-
-def resnet_50(pretrained=False, progress=True, **kwargs):
-    """Constructs a ResNet-50 model.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-        progress (bool): If True, displays a progress bar of the download to stderr
-    """
-    return _resnet('resnet_50', Bottleneck, [3, 4, 6, 3], pretrained, progress,
-                   **kwargs)
-
-
-def resnet_101(pretrained=False, progress=True, **kwargs):
-    """Constructs a ResNet-101 model.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-        progress (bool): If True, displays a progress bar of the download to stderr
-    """
-    return _resnet('resnet_101', Bottleneck, [3, 4, 23, 3], pretrained, progress,
-                   **kwargs)
-
-
-def resnet_152(pretrained=False, progress=True, **kwargs):
-    """Constructs a ResNet-152 model.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-        progress (bool): If True, displays a progress bar of the download to stderr
-    """
-    return _resnet('resnet_152', Bottleneck, [3, 8, 36, 3], pretrained, progress,
-                   **kwargs)
-
-
-def resnext_50_32x4d(pretrained=False, progress=True, **kwargs):
-    """Constructs a ResNeXt-50 32x4d model.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-        progress (bool): If True, displays a progress bar of the download to stderr
-    """
-    kwargs['groups'] = 32
-    kwargs['width_per_group'] = 4
-    return _resnet('resnext_50_32x4d', Bottleneck, [3, 4, 6, 3],
-                   pretrained, progress, **kwargs)
-
-
-def resnext_101_32x8d(pretrained=False, progress=True, **kwargs):
-    """Constructs a ResNeXt-101 32x8d model.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-        progress (bool): If True, displays a progress bar of the download to stderr
-    """
-    kwargs['groups'] = 32
-    kwargs['width_per_group'] = 8
-    return _resnet('resnext_101_32x8d', Bottleneck, [3, 4, 23, 3],
-                   pretrained, progress, **kwargs)
+        # Do all the convolutions on the cube first
+        for layer in self.img_model:
+            input_x = layer(input_x)
+            print(input_x.shape)
+            
+        # Do the convolutional layers for the injection center
+        injection_center = self.non_img_model(injection_center)
+        print("injection", injection_center.shape)
+        
+        # Do the convolutional layers for the image coordinates
+        image_coordinates = self.non_img_model(image_coordinates)
+        print("image", image_coordinates.shape)
+        
+        # Concatenate the data along the number of channels
+        # Cube output: Dimension 1 | Voxel output: Dimension 4
+        input_x = torch.cat((input_x, injection_center), dim=dim)
+        input_x = torch.cat((input_x, image_coordinates), dim=dim)
+        
+        # Do the joint processing
+        joint_data = self.joint_model(input_x)
+                        
+        # Return the model
+        return joint_data

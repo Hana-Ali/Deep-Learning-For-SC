@@ -71,6 +71,7 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
                 
         # Create a new tensor of size batch_size x 3 x kernel_size x kernel_size x kernel_size, that has the injection centers tiled
         injection_center_tiled = unpack_injection_and_coordinates_to_tensor(injection_center, kernel_size, 1)
+        print("injection_center_tiled shape is", injection_center_tiled.shape)
         
         # Create a tensor of the same shape as the residual hemisphere
         predictions_array = np.zeros_like(residual_hemisphere.numpy())
