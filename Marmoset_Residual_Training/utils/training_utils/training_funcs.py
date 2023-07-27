@@ -7,7 +7,7 @@ import time
 
 # Define the epoch training
 def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_arrays_path, separate_hemisphere, 
-                   n_gpus=None, print_frequency=1, voxel_wise=False, distributed=False, regularized=False, 
+                   cube_size=16, n_gpus=None, print_frequency=1, voxel_wise=False, distributed=False, regularized=False, 
                    print_gpu_memory=False, vae=False, scaler=None):
     
     # Define the meters
@@ -34,6 +34,10 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
     y_coord = 3
     z_coord = 4
     coordinates = [x_coord, y_coord, z_coord]
+    
+    # Define the kernel size (cube will be 2 * kernel_size) - HYPERPARAMETER
+    kernel_size = cube_size
+    half_kernel = kernel_size // 2
 
     # For each batch
     for i, (b0, (residual, is_flipped), injection_center) in enumerate(train_loader):
@@ -58,10 +62,6 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
         # Zero the parameter gradients
         optimizer.zero_grad()
         
-        # Define the kernel size (cube will be 2 * kernel_size) - HYPERPARAMETER
-        kernel_size = 8
-        half_kernel = kernel_size // 2
-        
         # Get the b0 and residual hemispheres
         b0_hemisphere, residual_hemisphere = get_b0_residual_hemispheres(coordinates, separate_hemisphere, residual, b0, is_flipped,
                                                                          kernel_size)
@@ -71,7 +71,6 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
                 
         # Create a new tensor of size batch_size x 3 x kernel_size x kernel_size x kernel_size, that has the injection centers tiled
         injection_center_tiled = unpack_injection_and_coordinates_to_tensor(injection_center, kernel_size, 1)
-        print("injection_center_tiled shape is", injection_center_tiled.shape)
         
         # Create a tensor of the same shape as the residual hemisphere
         predictions_array = np.zeros_like(residual_hemisphere.numpy())
@@ -110,9 +109,6 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
                     current_residual = torch.from_numpy(current_residual).float()
                     b0_cube = torch.from_numpy(b0_cube).float()
                     
-                    print("z is", z)
-                    print("b0_cube shape is", b0_cube.shape)
-                                        
                     # Get the model output
                     (predicted_residual, loss, batch_size)  = batch_loss(model, b0_cube, injection_center_tiled, image_coordinates, 
                                                                          current_residual, criterion, distributed=distributed,

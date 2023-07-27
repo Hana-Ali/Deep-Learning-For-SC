@@ -97,7 +97,7 @@ class _GridAttentionBlockND(nn.Module):
         f = F.relu(theta_x + phi_g, inplace=True)
 
         #  psi^T * f -> (b, psi_i_c, t/s1, h/s2, w/s3)
-        sigm_psi_f = F.sigmoid(self.psi(f))
+        sigm_psi_f = torch.sigmoid(self.psi(f))
 
         # upsample the attentions and multiply
         sigm_psi_f = F.interpolate(sigm_psi_f, size=input_size[2:], mode=self.upsample_mode)
@@ -122,7 +122,7 @@ class _GridAttentionBlockND(nn.Module):
         f = F.softplus(theta_x + phi_g)
 
         #  psi^T * f -> (b, psi_i_c, t/s1, h/s2, w/s3)
-        sigm_psi_f = F.sigmoid(self.psi(f))
+        sigm_psi_f = torch.sigmoid(self.psi(f))
 
         # upsample the attentions and multiply
         sigm_psi_f = F.interpolate(sigm_psi_f, size=input_size[2:], mode=self.upsample_mode)
@@ -344,7 +344,7 @@ class _GridAttentionBlockND_TORR(nn.Module):
             sigm_psi_f = sigm_psi_f.view(batch_size, 1, *theta_x_size[2:])
 
         elif self.mode == 'concatenation_sigmoid':
-            sigm_psi_f = F.sigmoid(psi_f)
+            sigm_psi_f = torch.sigmoid(psi_f)
         else:
             raise NotImplementedError
 
