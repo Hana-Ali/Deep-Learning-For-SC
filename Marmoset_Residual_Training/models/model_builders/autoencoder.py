@@ -30,7 +30,6 @@ class ConvolutionalAutoEncoder(nn.Module):
             encoder_blocks = [1, 2, 2, 4]
 
         # Define the attributes of the model
-        self.in_channels = in_channels
         self.ngf = ngf
         self.out_channels = output_channels
         self.number_downsampling = 2
@@ -188,15 +187,12 @@ class ConvolutionalAutoEncoder(nn.Module):
 
         # Do all the convolutions for the b0 first
         input_x = self.convolutional_autoencoder(input_x)
-        print("Shape of x after CAE: ", input_x.shape)
 
         # Do the convolutional layers for the injection center
         injection_center = self.non_img_model(injection_center)
-        print("Shape of injection center after non-img model: ", injection_center.shape)
         
         # Do the convolutional layers for the image coordinates
         image_coordinates = self.non_img_model(image_coordinates)
-        print("Shape of image coordinates after non-img model: ", image_coordinates.shape)
         
         # Concatenate the data along the number of channels
         # Cube output: Dimension 1 | Voxel output: Dimension 4
@@ -205,7 +201,6 @@ class ConvolutionalAutoEncoder(nn.Module):
         
         # Do the joint processing
         joint_data = self.joint_model(input_x)
-        print("Shape of joint_data is: ", joint_data.shape)
 
         # Return the model
         return joint_data

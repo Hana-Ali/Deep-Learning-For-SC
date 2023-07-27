@@ -16,10 +16,7 @@ class MyronenkoConvolutionBlock(nn.Module):
 
     # Build the Myronenko block
     def build_myronenko(self, in_channels, out_channels, kernel_size, stride, padding, norm_layer, norm_groups):
-        
-        print("Norm group is: ", norm_groups)
-        print("In channel is: ", in_channels)
-
+                
         # If norm layer is not specified, then we use Group norm
         if norm_layer is None:
             self.norm_layer = nn.GroupNorm
@@ -28,6 +25,9 @@ class MyronenkoConvolutionBlock(nn.Module):
 
         # Set the number of norm groups
         self.norm_groups = norm_groups
+        
+        self.in_channels = in_channels
+        print("in_channels", in_channels)
         
         # This will hold the Myronenko block
         myronenko_block = []
@@ -48,6 +48,7 @@ class MyronenkoConvolutionBlock(nn.Module):
 
         # If the number of in channels is less than the number of norm groups, then we use instance norm
         if in_channels < self.norm_groups:
+            print("instance")
             return self.norm_layer(in_channels, in_channels)
         # If the number of in channels is divisible by the number of norm groups, then we use group norm
         elif not error_on_non_divisible_norm_groups and (in_channels % self.norm_groups) > 0:
@@ -60,8 +61,11 @@ class MyronenkoConvolutionBlock(nn.Module):
     # Forward pass
     def forward(self, x_input):
         for layer in self.myronenko_block:
+            print("x_input shape", x_input.shape)
+            print("norm_groups", self.norm_groups)
+            print("self.norm_layer", self.norm_layer.__class__.__name__)
+            print("in_channels is", self.in_channels)
             x_input = layer(x_input)
-            print("Shape of input in MyronenkoConvBlock: ", x_input.shape)
 
         return x_input
     
@@ -103,12 +107,10 @@ class MyronenkoResidualBlock(nn.Module):
         # Pass the input through the network
         for layer in self.myronenko_block:
             x_input = layer(x_input)
-            print("Shape of input in MyronenkoResBlock: ", x_input.shape)
 
         # If the sample is not None, then we do 1x1x1 convolution
         if self.sample is not None:
             identity = self.sample(identity)
-            print("Identity in res block shape: ", identity.shape)
 
         # Add the identity to the output
         x_input += identity
@@ -157,7 +159,6 @@ class MyronenkoLayer(nn.Module):
 
             # Pass the input through the block
             x_input = block(x_input)
-            print("Shape of input in MyronenkoLayer: ", x_input.shape)
 
             # If dropout is not None, then we add dropout
             if index == 0 and self.dropout is not None:

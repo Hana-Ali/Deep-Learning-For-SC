@@ -92,9 +92,7 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
                        
                 # For every z coordinate
                 for z in z_list:
-                    
-                    print("z is: ", z)
-                                
+                                                    
                     # Get the x, y, z coordinate into a list
                     curr_coord = [x, y, z]
                     
@@ -110,6 +108,9 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
                     # Turn the cubes into tensors
                     current_residual = torch.from_numpy(current_residual).float()
                     b0_cube = torch.from_numpy(b0_cube).float()
+                    
+                    print("z is", z)
+                    print("b0_cube shape is", b0_cube.shape)
                                         
                     # Get the model output
                     (predicted_residual, loss, batch_size)  = batch_loss(model, b0_cube, injection_center_tiled, image_coordinates, 
@@ -165,9 +166,7 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
 
                     # Delete the loss
                     del loss
-                    
-                    print("Done z")
-            
+                                
 
             # Measure the elapsed time for every x value
             batch_time.update(time.time() - end)
@@ -179,7 +178,7 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
         # Dump the predicted residuals array
         print("Saving...")
         predictions_folder = os.path.join(residual_arrays_path, str(model.__class__.__name__), 
-                                          "train_nosep", "epoch_{}".format(epoch))
+                                          "train_sep", "epoch_{}".format(epoch))
         if not os.path.exists(predictions_folder):
             os.makedirs(predictions_folder)
         prediction_filename = os.path.join(predictions_folder, "image_{}.npy".format(i))
@@ -228,9 +227,7 @@ def _batch_loss(model, b0_cube, injection_center, image_coordinates, residual_cu
 
     # Compute the output
     predicted_residual = model(b0_cube, injection_center, image_coordinates)
-    
-    print("Shape of predicted residual is: ", predicted_residual.shape)
-    
+        
     # Find the loss between the output and the voxel value
     loss = criterion(predicted_residual, residual_cube)
         

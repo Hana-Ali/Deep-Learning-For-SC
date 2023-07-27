@@ -17,7 +17,6 @@ class UNetEncoder(MyronenkoEncoder):
             
             # Pass the input through the layer
             x_input = layer(x_input)
-            print("Shape of input in UNetEncoder: ", x_input.shape)
 
             # Insert the output into the outputs
             outputs.insert(0, x_input)
@@ -25,7 +24,6 @@ class UNetEncoder(MyronenkoEncoder):
             # If the downsampling convolution is not None, then we do 1x1x1 convolution
             if downsampling_convolution is not None:
                 x_input = downsampling_convolution(x_input)
-                print("Shape of input in downsampling UNetEncoder: ", x_input.shape)
 
         # Add the last layer to the outputs
         x_input = self.layers[-1](x_input)
@@ -52,9 +50,6 @@ class UNetDecoder(MirroredDecoder):
             # Double the in width
             in_channels *= 2
 
-        # Print out the layer
-        print("Decoder Layer {}:".format(depth), in_channels, out_channels)
-
         # Return the in and out width
         return in_channels, out_channels
     
@@ -69,19 +64,15 @@ class UNetDecoder(MirroredDecoder):
 
             # Pass the input through the layer
             x = layer(x)
-            print("Decoder input shape at idx {} is: {}".format(index, x.shape))
 
             # Pass the input through the pre upsampling convolution
             x = pre_upsampling_convolution(x)
-            print("Shape of preupsampling in UnetDecoder: ", x.shape)
 
             # Pass the input through the upsampling convolution
             x = upsampling_convolution(x)
-            print("Shape of upsampling in UnetDecoder: ", x.shape)
 
             # Concatenate
             x = torch.cat((x, x_input[index + 1]), dim=1)
-            print("Shape of concatenate in UnetDecoder: ", x.shape)
 
         # Pass the input through the last layer
         x = self.layers[-1](x)
@@ -99,3 +90,4 @@ class UNet(ConvolutionalAutoEncoder):
                  voxel_wise=False, **kwargs):
         super().__init__(*args, encoder_class=encoder_class, decoder_class=decoder_class, in_channels=in_channels,
                          output_channels=out_channels, voxel_wise=voxel_wise, **kwargs)
+        self.set_final_convolution(output_channels=out_channels)

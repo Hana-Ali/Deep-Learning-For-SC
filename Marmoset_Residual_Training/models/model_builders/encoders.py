@@ -54,9 +54,6 @@ class MyronenkoEncoder(nn.Module):
                 self.downsampling_convolutions.append(conv3x3x3(in_channels=out_channels, out_channels=out_channels, 
                                                                 stride=downsampling_stride, kernel_size=kernel_size))
 
-            # Print out the layer
-            print("Encoder Layer {}:".format(index), in_channels, out_channels)
-
             # Set the in width to the out width
             in_channels = out_channels
 
@@ -79,10 +76,8 @@ class MyronenkoEncoder(nn.Module):
             # If the downsampling convolution is not None, then we do 1x1x1 convolution
             if downsampling_convolution is not None:
                 x_input = downsampling_convolution(x_input)
-                print("Shape of input in MyronenkoEncoder conv: ", x_input.shape)
         
         x_input = self.layers[-1](x_input)
-        print("Shape of input in MyronenkoEncoder: ", x_input.shape)
 
         # Return the output
         return x_input

@@ -142,9 +142,6 @@ class MyronenkoDecoder(nn.Module):
             # Add the layer to layers
             self.layers.append(layer(num_blocks=num_blocks, block=block, in_channels=out_width, out_channels=out_width, kernel_size=kernal_size))
 
-            # Print out the layer
-            print("Decoder Layer {}:".format(index), in_width, out_width)
-
         # Zip the layers and upsampling convolutions together
         decoder = zip(self.pre_upsampling_convolutions, self.upsampling_convolutions, self.layers)
 
@@ -247,9 +244,6 @@ class MirroredDecoder(nn.Module):
                 # Add layer
                 self.layers.append(layer(num_blocks=num_blocks, block=block, in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size))
 
-                # Print out the layer
-                print("Decoder Layer {}:".format(index), in_channels, out_channels)
-
         # Zip the layers and upsampling convolutions together
         decoder = zip(self.pre_upsampling_convolutions, self.upsampling_convolutions, self.layers[:-1])
 
@@ -286,18 +280,14 @@ class MirroredDecoder(nn.Module):
 
             # Pass the input through the layer
             x_input = layer(x_input)
-            print("Shape of input in MirroredDecoder: ", x_input.shape)
 
             # Pass the input through the pre upsampling convolution
             x_input = pre_upsampling_convolution(x_input)
-            print("Shape of preupsampling in MirroredDecoder: ", x_input.shape)
 
             # Pass the input through the upsampling convolution
             x_input = upsampling_convolution(x_input)
-            print("Shape of upsampling in MirroredDecoder: ", x_input.shape)
 
         x_input = self.layers[-1](x_input)
-        print("Shape of concatenated in MirroredDecoder: ", x_input.shape)
 
         # Return the output
         return x_input
