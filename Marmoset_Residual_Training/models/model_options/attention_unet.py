@@ -126,11 +126,7 @@ class Attention_UNet(nn.Module):
             dim = 4
         else:
             dim = 1
-<<<<<<< HEAD
-        
-=======
 
->>>>>>> 40139264b714eadb45897482c168cdae36a19a05
         # Feature Extraction
         conv1 = self.conv1(inputs)
         maxpool1 = self.maxpool1(conv1)
@@ -144,7 +140,6 @@ class Attention_UNet(nn.Module):
         conv4 = self.conv4(maxpool3)
         maxpool4 = self.maxpool4(conv4)
 
-<<<<<<< HEAD
         # Gating Signal Generation
         center = self.center(maxpool4)
         gating = self.gating(center)
@@ -176,42 +171,6 @@ class Attention_UNet(nn.Module):
         
         # Do the joint processing
         final = self.joint_model(final)
-=======
-        try:
-            # Gating Signal Generation
-            center = self.center(maxpool4)
-            gating = self.gating(center)
-
-            # Attention Mechanism
-            # Upscaling Part (Decoder)
-            g_conv4, att4 = self.attentionblock4(conv4, gating)
-            up4 = self.up_concat4(g_conv4, center)
-            g_conv3, att3 = self.attentionblock3(conv3, up4)
-            up3 = self.up_concat3(g_conv3, up4)
-            g_conv2, att2 = self.attentionblock2(conv2, up3)
-            up2 = self.up_concat2(g_conv2, up3)
-            up1 = self.up_concat1(conv1, up2)
-
-            # Deep Supervision
-            dsv4 = self.dsv4(up4)
-            dsv3 = self.dsv3(up3)
-            dsv2 = self.dsv2(up2)
-            dsv1 = self.dsv1(up1)
-            final = self.final(torch.cat([dsv1,dsv2,dsv3,dsv4], dim=1))
-
-            # Apply convolutions to injection centers and image coordinates
-            injection_centers = self.non_img_model(injection_centers)
-            image_coordinates = self.non_img_model(image_coordinates)
-
-            # Concatenate the final output with the injection centers and image coordinates
-            final = torch.cat((final, injection_centers), dim=dim)
-            final = torch.cat((final, image_coordinates), dim=dim)
-            
-            # Do the joint processing
-            final = self.joint_model(final)
-        except:
-            print("Error in attention unet forward pass")
->>>>>>> 40139264b714eadb45897482c168cdae36a19a05
 
         return final
     

@@ -37,11 +37,7 @@ configs = {
     "padding_type" : "reflect", # Padding type
     
     ####### Training #######
-<<<<<<< HEAD
     "n_epochs" : 50, # Number of epochs
-=======
-    "n_epochs" : 10, # Number of epochs
->>>>>>> 40139264b714eadb45897482c168cdae36a19a05
     "loss" : "mse_loss", # Loss function
     "optimizer" : "Adam", # Optimizer
     "evaluation_metric" : "MSE_loss", # Evaluation metric
@@ -86,15 +82,9 @@ configs = load_json(config_path)
 
 # Define the metric to monitor based on whether we're skipping val or not
 if configs["skip_val"]:
-<<<<<<< HEAD
     metric_to_monitor = "val_loss"
 else:
     metric_to_monitor = "train_loss"
-=======
-    metric_to_monitor = "train_loss"
-else:
-    metric_to_monitor = "val_loss"
->>>>>>> 40139264b714eadb45897482c168cdae36a19a05
 
 # Define the groups
 if configs["skip_val"]:
