@@ -12,7 +12,7 @@ from utils.training_utils import loss_funcs
 
 # Main train function
 def train(model, optimizer, criterion, n_epochs, training_loader, validation_loader, test_loader, training_log_filename,
-          model_filename, residual_arrays_path, separate_hemisphere=True, voxel_wise=False, metric_to_monitor="val_loss", 
+          model_filename, residual_arrays_path, separate_hemisphere=True, voxel_wise=False, cube_size=16, metric_to_monitor="val_loss", 
           early_stopping_patience=None, learning_rate_decay_patience=None, save_best=False, n_gpus=1, verbose=True, 
           regularized=False, vae=False, decay_factor=0.1, min_lr=0., learning_rate_decay_step_size=None, save_every_n_epochs=None,
           save_last_n_models=None, amp=False):
@@ -74,7 +74,7 @@ def train(model, optimizer, criterion, n_epochs, training_loader, validation_loa
         # Train the model
         loss = epoch_training(training_loader, model, criterion, optimizer=optimizer, epoch=epoch, voxel_wise=voxel_wise,
                               residual_arrays_path=residual_arrays_path, separate_hemisphere=separate_hemisphere,
-                              n_gpus=n_gpus, regularized=regularized, vae=vae, scaler=scaler)
+                              cube_size=cube_size, n_gpus=n_gpus, regularized=regularized, vae=vae, scaler=scaler)
 
         try:
             training_loader.dataset.on_epoch_end()
@@ -88,11 +88,9 @@ def train(model, optimizer, criterion, n_epochs, training_loader, validation_loa
 
         # Predict validation set
         if validation_loader:
-            val_loss = epoch_validation(validation_loader, model, criterion, epoch=epoch, 
-                                        residual_arrays_path=residual_arrays_path, 
-                                        separate_hemisphere=separate_hemisphere,
-                                        n_gpus=n_gpus, regularized=regularized,
-                                        vae=vae, use_amp=scaler is not None)
+            val_loss = epoch_validation(validation_loader, model, criterion, epoch=epoch, residual_arrays_path=residual_arrays_path, 
+                                        separate_hemisphere=separate_hemisphere, cube_size=cube_size, voxel_wise=voxel_wise,
+                                        n_gpus=n_gpus, regularized=regularized, vae=vae, use_amp=scaler is not None)
         else:
             val_loss = None
         
@@ -118,7 +116,7 @@ def train(model, optimizer, criterion, n_epochs, training_loader, validation_loa
                 scheduler.step()
 
         # Save the model
-        torch.save(model.state_dict(), model_filename + "both_hemi")
+        torch.save(model.state_dict(), model_filename)
 
         # If save best
         if save_best and min_epoch == len(training_log) - 1:
@@ -140,8 +138,8 @@ def train(model, optimizer, criterion, n_epochs, training_loader, validation_loa
 
 
 # Define the trainer wrapping function
-def run_pytorch_training(config, model_filename, training_log_filename, residual_arrays_path, verbose=1, 
-                         use_multiprocessing=False,
+def run_pytorch_training(config, model_filename, training_log_filename, residual_arrays_path, cube_size,
+                         verbose=1, use_multiprocessing=False,
                          n_workers=1, model_name='resnet', n_gpus=1, regularized=False,
                          test_input=1, metric_to_monitor="loss", model_metrics=(), 
                          bias=None, pin_memory=False, amp=False,
@@ -264,13 +262,9 @@ def run_pytorch_training(config, model_filename, training_log_filename, residual
                                                 collate_fn=collate_fn,
                                                 pin_memory=pin_memory,
                                                 prefetch_factor=prefetch_factor)
-    
-    # Define the metric to monitor
-    metric_to_monitor = "train_loss"
-
         
     # Train the model
-    train(model=model, optimizer=optimizer, criterion=criterion, n_epochs=config["n_epochs"], verbose=bool(verbose),
+    train(model=model, optimizer=optimizer, criterion=criterion, n_epochs=config["n_epochs"], cube_size=cube_size, verbose=bool(verbose),
         training_loader=train_loader, validation_loader=val_loader, test_loader=test_loader, model_filename=model_filename,
         training_log_filename=training_log_filename, residual_arrays_path=residual_arrays_path, 
         separate_hemisphere=config["separate_hemisphere"], metric_to_monitor=metric_to_monitor,

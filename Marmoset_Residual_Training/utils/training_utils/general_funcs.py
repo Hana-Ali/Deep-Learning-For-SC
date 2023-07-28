@@ -140,7 +140,7 @@ def grab_cube_around_voxel(image, voxel_coordinates, kernel_size):
     # Create the cube
     cube_size = kernel_size * 2
     cube = np.zeros((image.shape[0], image.shape[1], cube_size, cube_size, cube_size))
-
+    
     # For every dimension
     for x in range(cube_size):
         for y in range(cube_size):

@@ -27,7 +27,7 @@ model_filename = os.path.join(main_logs_path, "models", "unet_model.h5")
 configs = {
 
     ####### Model #######
-    "model_name" : "unet", # Model name
+    "model_name" : "attention_unet", # Model name
     "input_nc" : 1, # Number of input channels
     "output_nc" : 3, # Number of output channels
     "ngf" : 64, # Number of filters in first conv layer
@@ -37,7 +37,7 @@ configs = {
     "padding_type" : "reflect", # Padding type
     
     ####### Training #######
-    "n_epochs" : 10, # Number of epochs
+    "n_epochs" : 50, # Number of epochs
     "loss" : "mse_loss", # Loss function
     "optimizer" : "Adam", # Optimizer
     "evaluation_metric" : "MSE_loss", # Evaluation metric
@@ -45,6 +45,7 @@ configs = {
     "separate_hemisphere" : True,
     "voxel_wise" : False,
     "wmfod_dwi" : "dwi",
+    "cube_size" : 16,
     "save_best" : True, # Save best model
     "regularized" : False, # Regularization
     "vae" : False, # Variational autoencoder
@@ -81,9 +82,9 @@ configs = load_json(config_path)
 
 # Define the metric to monitor based on whether we're skipping val or not
 if configs["skip_val"]:
-    metric_to_monitor = "train_loss"
-else:
     metric_to_monitor = "val_loss"
+else:
+    metric_to_monitor = "train_loss"
 
 # Define the groups
 if configs["skip_val"]:
@@ -95,5 +96,5 @@ model_metrics = (configs["evaluation_metric"],)
 
 run_pytorch_training(configs, configs["model_filename"], configs["training_log_path"],
                      configs["residual_arrays_path"], model_name=configs["model_name"],
-                     metric_to_monitor=metric_to_monitor,
+                     cube_size=configs["cube_size"], metric_to_monitor=metric_to_monitor,
                      bias=None)

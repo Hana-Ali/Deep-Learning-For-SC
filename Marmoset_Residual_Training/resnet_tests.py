@@ -44,7 +44,8 @@ configs = {
     "shuffle_dataset" : True,
     "separate_hemisphere" : True,
     "voxel_wise" : False,
-    "wmfod_dwi" : "wmfod",
+    "wmfod_dwi" : "dwi",
+    "cube_size" : 16,
     "save_best" : True, # Save best model
     "regularized" : False, # Regularization
     "vae" : False, # Variational autoencoder
@@ -94,6 +95,7 @@ else:
 model_metrics = (configs["evaluation_metric"],)
 
 run_pytorch_training(configs, configs["model_filename"], configs["training_log_path"],
-                     configs["residual_arrays_path"],
+                     configs["residual_arrays_path"], model_name=configs["model_name"],
+                     cube_size=configs["cube_size"],
                      metric_to_monitor=metric_to_monitor,
                      bias=None)
