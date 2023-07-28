@@ -286,11 +286,17 @@ class ResnetEncoder(nn.Module):
         # Cube output: Dimension 1 | Voxel output: Dimension 4
         input_x = torch.cat((input_x, injection_center), dim=dim)
         input_x = torch.cat((input_x, image_coordinates), dim=dim)
+<<<<<<< HEAD
         print("concat", input_x.shape)
         
         # Do the joint processing
         joint_data = self.joint_model(input_x)
         print("joint shape", joint_data.shape)
+=======
+        
+        # Do the joint processing
+        joint_data = self.joint_model(input_x)
+>>>>>>> 40139264b714eadb45897482c168cdae36a19a05
                         
         # Return the model
         return joint_data

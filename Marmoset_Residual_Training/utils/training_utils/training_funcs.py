@@ -34,6 +34,10 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
     y_coord = 3
     z_coord = 4
     coordinates = [x_coord, y_coord, z_coord]
+    
+    # Define the kernel size (cube will be 2 * kernel_size) - HYPERPARAMETER
+    kernel_size = cube_size
+    half_kernel = kernel_size // 2
 
     # For each batch
     for i, (b0, (residual, is_flipped), injection_center) in enumerate(train_loader):
@@ -54,11 +58,15 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
                           human_readable_size(torch.cuda.memory_cached(i_gpu)))
                     print("Max memory cached (device {}):".format(i_gpu),
                           human_readable_size(torch.cuda.max_memory_cached(i_gpu)))
+<<<<<<< HEAD
                 
         # Define the kernel size (cube will be 2 * kernel_size) - HYPERPARAMETER
         kernel_size = cube_size
         half_kernel = kernel_size // 2
         
+=======
+
+>>>>>>> 40139264b714eadb45897482c168cdae36a19a05
         # Zero the parameter gradients
         optimizer.zero_grad()
         
