@@ -352,10 +352,11 @@ def epoch_validation(val_loader, model, criterion, epoch, residual_arrays_path, 
 
             # Dump the predicted residuals array
             print("Saving...")
-            predictions_folder = os.path.join(residual_arrays_path, "val_nosep", "epoch_{}".format(epoch))
+            predictions_folder = os.path.join(residual_arrays_path, str(model.__class__.__name__), 
+                                          "val_sep", "epoch_{}".format(epoch))
             if not os.path.exists(predictions_folder):
                 os.makedirs(predictions_folder)
-            prediction_filename = os.path.join(predictions_folder, "batch_{}.npy".format(i))
+            prediction_filename = os.path.join(predictions_folder, "image_{}.npy".format(i))
             np.save(prediction_filename, predictions_array)
             groundtruth_filename = os.path.join(predictions_folder, "ground_truth.npy".format(i))
             np.save(groundtruth_filename, groundtruth_array)

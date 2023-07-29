@@ -45,7 +45,7 @@ configs = {
     "separate_hemisphere" : True,
     "voxel_wise" : False,
     "wmfod_dwi" : "dwi",
-    "cube_size" : 16,
+    "cube_size" : 8,
     "save_best" : True, # Save best model
     "regularized" : False, # Regularization
     "vae" : False, # Variational autoencoder
@@ -67,7 +67,7 @@ configs = {
     "save_last_n_models": 10, # Save last n models
 
     ####### Misc #######
-    "skip_val" : True, # Skip validation
+    "skip_val" : False, # Skip validation
 
 }
 

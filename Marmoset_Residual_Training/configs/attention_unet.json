@@ -1,6 +1,6 @@
 {
     "batch_size": 16,
-    "cube_size": 16,
+    "cube_size": 8,
     "decay_factor": 0.5,
     "decay_patience": 20,
     "early_stopping_patience": 50,
@@ -25,7 +25,7 @@
     "save_last_n_models": 10,
     "separate_hemisphere": true,
     "shuffle_dataset": true,
-    "skip_val": true,
+    "skip_val": false,
     "training_log_path": "/notebooks/tract_residuals/training_logs/unet_log.csv",
     "use_dropout": false,
     "vae": false,

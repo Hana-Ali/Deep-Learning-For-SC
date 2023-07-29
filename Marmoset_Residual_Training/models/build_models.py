@@ -7,7 +7,7 @@ from models.model_options import *
 
 # Function to get the model
 def get_model(model_name, input_nc, output_nc, ngf, num_blocks, norm_layer,
-              use_dropout, padding_type, voxel_wise):
+              use_dropout, padding_type, voxel_wise, cube_size):
     
     try:
         if "resnet" in model_name.lower():
@@ -23,7 +23,8 @@ def get_model(model_name, input_nc, output_nc, ngf, num_blocks, norm_layer,
         elif "attention_unet" in model_name.lower():
             return Attention_UNet(in_channels=input_nc, 
                                   n_classes=output_nc,
-                                  voxel_wise=voxel_wise)
+                                  voxel_wise=voxel_wise,
+                                  cube_size=cube_size)
         
         # elif "upanet" in model_name.lower():
         #     return UPANets(input_nc=input_nc,
@@ -37,7 +38,7 @@ def get_model(model_name, input_nc, output_nc, ngf, num_blocks, norm_layer,
 # Function to build or load the model
 def build_or_load_model(model_name, model_filename, input_nc, output_nc, ngf, 
                         num_blocks, norm_layer=nn.BatchNorm3d, use_dropout=False, 
-                        padding_type="reflect", voxel_wise=False,
+                        padding_type="reflect", cube_size=16, voxel_wise=False,
                         n_gpus=0, bias=None, freeze_bias=False,
                         strict=False):
 
@@ -45,7 +46,7 @@ def build_or_load_model(model_name, model_filename, input_nc, output_nc, ngf,
     model = get_model(model_name=model_name, input_nc=input_nc, output_nc=output_nc,
                       ngf=ngf, num_blocks=num_blocks, norm_layer=norm_layer,
                       use_dropout=use_dropout, padding_type=padding_type,
-                      voxel_wise=voxel_wise)
+                      voxel_wise=voxel_wise, cube_size=cube_size)
 
     # If there's bias
     if bias is not None:

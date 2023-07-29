@@ -192,6 +192,7 @@ def run_pytorch_training(config, model_filename, training_log_filename, residual
                                 output_nc=config["output_nc"], ngf=config["ngf"], 
                                 num_blocks=config["num_blocks"], norm_layer=config["norm_layer"],
                                 use_dropout=config["use_dropout"], padding_type=config["padding_type"],
+                                cube_size=config["cube_size"],
                                 n_gpus=n_gpus, bias=bias, freeze_bias=in_config("freeze_bias", config, False),
                                 strict=False, voxel_wise=config["voxel_wise"])
     

@@ -9,7 +9,7 @@ class Attention_UNet(nn.Module):
 
     def __init__(self, feature_scale=4, in_channels=1, n_classes=3, is_deconv=True,
                  nonlocal_mode='concatenation', attention_dsample=(2,2,2), is_batchnorm=True,
-                 voxel_wise=False):
+                 voxel_wise=False, cube_size=16):
         super(Attention_UNet, self).__init__()
         self.is_deconv = is_deconv
         self.in_channels = in_channels
@@ -17,6 +17,7 @@ class Attention_UNet(nn.Module):
         self.feature_scale = feature_scale
         self.n_classes = n_classes
         self.voxel_wise = voxel_wise
+        self.cube_size = cube_size
 
         # Define the normalization layer
         if self.is_batchnorm:
@@ -67,7 +68,10 @@ class Attention_UNet(nn.Module):
         self.dsv1 = nn.Conv3d(in_channels=filters[0], out_channels=n_classes, kernel_size=1)
 
         # final conv (without any concat)
-        self.final = nn.Conv3d(n_classes*4, n_classes, 1, stride=2)
+        if self.cube_size * 2 < 32:
+            self.final = nn.Conv3d(n_classes*4, n_classes, 1, stride=4)
+        else:
+            self.final = nn.Conv3d(n_classes*4, n_classes, 1, stride=2)
 
         # Define the image and non-image models
         self.non_img_model = self.define_non_img_model()
@@ -91,6 +95,11 @@ class Attention_UNet(nn.Module):
             model += [nn.Conv3d(self.n_classes, self.n_classes, kernel_size=3, stride=1, padding=1, bias=False),
                       self.norm_layer(self.n_classes), 
                           nn.ReLU(True)]
+        
+         # final conv (without any concat)
+        if self.cube_size * 2 < 32:
+            model += [nn.Conv3d(self.n_classes, self.n_classes, kernel_size=3, stride=2,
+                               padding=1)]
             
         # Return the model
         return nn.Sequential(*model)
@@ -126,7 +135,13 @@ class Attention_UNet(nn.Module):
             dim = 4
         else:
             dim = 1
-
+            
+        # Check if the input is too small
+        if inputs.shape[2] < 32:
+            inputs = nn.Upsample(scale_factor=2, mode='nearest')(inputs)
+            injection_centers = nn.Upsample(scale_factor=2, mode='nearest')(injection_centers)
+            image_coordinates = nn.Upsample(scale_factor=2, mode='nearest')(image_coordinates)
+            
         # Feature Extraction
         conv1 = self.conv1(inputs)
         maxpool1 = self.maxpool1(conv1)
