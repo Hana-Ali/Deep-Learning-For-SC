@@ -31,5 +31,5 @@
     "vae": false,
     "validation_batch_size": 1,
     "voxel_wise": false,
-    "wmfod_dwi": "dwi"
+    "wmfod_dwi": "wmfod"
 }

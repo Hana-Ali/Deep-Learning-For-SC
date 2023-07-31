@@ -144,30 +144,44 @@ class Attention_UNet(nn.Module):
             
         # Feature Extraction
         conv1 = self.conv1(inputs)
+        # print("conv1 shape", conv1.shape)
         maxpool1 = self.maxpool1(conv1)
+        # print("maxpool1 shape", maxpool1.shape)
 
         conv2 = self.conv2(maxpool1)
+        # print("conv2 shape", conv2.shape)
         maxpool2 = self.maxpool2(conv2)
+        # print("maxpool2 shape", maxpool2.shape)
 
         conv3 = self.conv3(maxpool2)
+        # print("conv3 shape", conv3.shape)
         maxpool3 = self.maxpool3(conv3)
+        # print("maxpool3 shape", maxpool3.shape)
 
         conv4 = self.conv4(maxpool3)
+        # print("conv4 shape", conv4.shape)
         maxpool4 = self.maxpool4(conv4)
+        # print("maxpool4 shape", maxpool4.shape)
 
         # Gating Signal Generation
         center = self.center(maxpool4)
+        # print("maxpool4 shape", maxpool4.shape)
         gating = self.gating(center)
+        # print("maxpool4 shape", maxpool4.shape)
 
         # Attention Mechanism
         # Upscaling Part (Decoder)
         g_conv4, att4 = self.attentionblock4(conv4, gating)
         up4 = self.up_concat4(g_conv4, center)
+        # print("up4 shape", up4.shape)
         g_conv3, att3 = self.attentionblock3(conv3, up4)
         up3 = self.up_concat3(g_conv3, up4)
+        # print("up3 shape", up3.shape)
         g_conv2, att2 = self.attentionblock2(conv2, up3)
         up2 = self.up_concat2(g_conv2, up3)
+        # print("up2 shape", up2.shape)
         up1 = self.up_concat1(conv1, up2)
+        # print("up1 shape", up1.shape)
 
         # Deep Supervision
         dsv4 = self.dsv4(up4)
@@ -175,17 +189,23 @@ class Attention_UNet(nn.Module):
         dsv2 = self.dsv2(up2)
         dsv1 = self.dsv1(up1)
         final = self.final(torch.cat([dsv1,dsv2,dsv3,dsv4], dim=1))
+        # print("final shape", final.shape)
 
         # Apply convolutions to injection centers and image coordinates
         injection_centers = self.non_img_model(injection_centers)
+        # print("injection_centers shape", injection_centers.shape)
         image_coordinates = self.non_img_model(image_coordinates)
+        # print("image_coordinates shape", image_coordinates.shape)
 
         # Concatenate the final output with the injection centers and image coordinates
         final = torch.cat((final, injection_centers), dim=dim)
+        # print("final shape", final.shape)
         final = torch.cat((final, image_coordinates), dim=dim)
+        # print("final shape", final.shape)
         
         # Do the joint processing
         final = self.joint_model(final)
+        # print("final shape", final.shape)
 
         return final
     

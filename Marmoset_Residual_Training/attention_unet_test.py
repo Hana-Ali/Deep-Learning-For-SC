@@ -44,7 +44,7 @@ configs = {
     "shuffle_dataset" : True,
     "separate_hemisphere" : True,
     "voxel_wise" : False,
-    "wmfod_dwi" : "dwi",
+    "wmfod_dwi" : "wmfod",
     "cube_size" : 8,
     "save_best" : True, # Save best model
     "regularized" : False, # Regularization

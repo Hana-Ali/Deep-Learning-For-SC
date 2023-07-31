@@ -40,8 +40,11 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
     half_kernel = kernel_size // 2
 
     # For each batch
-    for i, (b0, (residual, is_flipped), injection_center) in enumerate(train_loader):
-                
+    for i, (b0, wmfod, (residual, is_flipped), injection_center) in enumerate(train_loader):
+        
+        # Define whether we do b0 or wmfod
+        curr_input = wmfod
+                        
         # Measure the data loading time
         data_time.update(time.time() - end)
 
@@ -63,8 +66,8 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
         optimizer.zero_grad()
         
         # Get the b0 and residual hemispheres
-        b0_hemisphere, residual_hemisphere = get_b0_residual_hemispheres(coordinates, separate_hemisphere, residual, b0, is_flipped,
-                                                                         kernel_size)
+        b0_hemisphere, residual_hemisphere = get_b0_residual_hemispheres(coordinates, separate_hemisphere, residual, curr_input, 
+                                                                         is_flipped, kernel_size)
         
         # Get the batch size
         batch_size = b0_hemisphere.shape[0]
@@ -261,15 +264,18 @@ def epoch_validation(val_loader, model, criterion, epoch, residual_arrays_path, 
         end = time.time()
 
         # For each batch
-        for i, (b0, (residual, is_flipped), injection_center) in enumerate(val_loader):
+        for i, (b0, wmfod, (residual, is_flipped), injection_center) in enumerate(val_loader):
+
+            # Define whether we do b0 or wmfod
+            curr_input = wmfod
                 
             # Define the kernel size (cube will be 2 * kernel_size) - HYPERPARAMETER
             kernel_size = cube_size
             half_kernel = kernel_size // 2
 
             # Get the b0 and residual hemispheres
-            b0_hemisphere, residual_hemisphere = get_b0_residual_hemispheres(coordinates, separate_hemisphere, residual, b0, is_flipped,
-                                                                             kernel_size)
+            b0_hemisphere, residual_hemisphere = get_b0_residual_hemispheres(coordinates, separate_hemisphere, residual, curr_input, 
+                                                                             is_flipped, kernel_size)
 
             # Get the batch size
             batch_size = b0_hemisphere.shape[0]

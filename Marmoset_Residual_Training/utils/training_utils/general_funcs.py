@@ -317,11 +317,13 @@ def get_b0_residual_hemispheres(coordinates, separate_hemisphere, residual, b0, 
     if separate_hemisphere:
 
         # Define the half shape
-        half_shape = (b0.shape[0], b0.shape[1], x_midpoint, b0.shape[3], b0.shape[4])
+        half_shape_b0 = (b0.shape[0], b0.shape[1], x_midpoint, b0.shape[3], b0.shape[4])
+        half_shape_res = (residual.shape[0], residual.shape[1], x_midpoint, 
+                          residual.shape[3], residual.shape[4])
 
         # Define the hemisphere tensors with the correct shape
-        b0_hemisphere = torch.empty(half_shape)
-        residual_hemisphere = torch.empty(half_shape)
+        b0_hemisphere = torch.empty(half_shape_b0)
+        residual_hemisphere = torch.empty(half_shape_res)
 
         # Get the left or right hemisphere, depending on whether it's flipped or not
         for item in range(b0.shape[0]):
