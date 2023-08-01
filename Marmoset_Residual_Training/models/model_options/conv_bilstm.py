@@ -27,7 +27,7 @@ class CNN_BiLSTM(nn.Module):
         self.num_rnn_hidden_neurons = num_rnn_hidden_neurons
 
         # Define CNN part
-        self.cnn = self.build_convolutional_layers()
+        self.cnn = self.build_convolutional_layers(in_channels)
 
         # Define Attention part
         self.attention = self.build_attention_layers()
@@ -36,7 +36,7 @@ class CNN_BiLSTM(nn.Module):
         self.bilstm = self.build_bilstm_layers(num_rnn_layers, num_rnn_hidden_neurons)
 
     # Build convolutional layers
-    def build_convolutional_layers(self):
+    def build_convolutional_layers(self, in_channels):
 
         # Since we want to do the convolution on every channel separately, we need to
         # reshape the input, so the channels are stacked in the batch dimension
@@ -47,7 +47,7 @@ class CNN_BiLSTM(nn.Module):
 
         # Define the first convolution block
         self.conv_block_1 = nn.Sequential(
-            nn.Conv3d(in_channels=1, out_channels=filters[0], kernel_size=3, stride=1, padding=1),
+            nn.Conv3d(in_channels=in_channels, out_channels=filters[0], kernel_size=3, stride=1, padding=1),
             nn.BatchNorm3d(filters[0]),
             nn.ReLU()
         )

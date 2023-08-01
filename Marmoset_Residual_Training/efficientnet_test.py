@@ -11,7 +11,7 @@ model = EfficientNet3D.from_name("efficientnet-b0", override_params={'num_classe
 # summary(model, input_size=(1, 224, 224, 224))
 
 model = model.to(device)
-inputs = torch.randn((1, 1, 224, 224, 224)).to(device)
+inputs = torch.randn((1, 1, 15, 15, 15)).to(device)
 labels = torch.tensor([0]).to(device)
 # test forward
 num_classes = 2
