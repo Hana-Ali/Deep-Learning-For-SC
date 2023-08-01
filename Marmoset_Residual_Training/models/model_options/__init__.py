@@ -2,3 +2,4 @@
 from .resnet import *
 from .attention_unet import *
 from .efficientnet import *
+from .conv_bilstm import *
