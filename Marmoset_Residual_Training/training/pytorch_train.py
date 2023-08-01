@@ -10,131 +10,15 @@ from utils import *
 from models import *
 from utils.training_utils import loss_funcs
 
-# Main train function
-def train(model, optimizer, criterion, n_epochs, training_loader, validation_loader, test_loader, training_log_filename,
-          model_filename, residual_arrays_path, separate_hemisphere=True, voxel_wise=False, cube_size=16, metric_to_monitor="val_loss", 
-          early_stopping_patience=None, learning_rate_decay_patience=None, save_best=False, n_gpus=1, verbose=True, 
-          regularized=False, vae=False, decay_factor=0.1, min_lr=0., learning_rate_decay_step_size=None, save_every_n_epochs=None,
-          save_last_n_models=None, amp=False):
+# Function to do the training
+def run_training(config, metric_to_monitor="train_loss", bias=None):
+    """
+    Wrapper function for training a model. Has most of the extra fluff before training,
+    and starts the training
+    """
 
-    # Make a list of the training log
-    training_log = []
-    
-    # If the training log filename is not None
-    if os.path.exists(training_log_filename):
-        # Load the training log
-        training_log.extend(pd.read_csv(training_log_filename).values)
-        # Define the start epoch
-        start_epoch = int(training_log[-1][0]) + 1
-    # If the training log filename is None
-    else:  
-        # Define the start epoch
-        start_epoch = 0
+    # Get whether we're doing streamline or dwi training
 
-    # Define the training log columns
-    training_log_header = ["epoch", "train_loss", "lr", "val_loss"]
-
-    # If the learning rate decay patience is not None
-    if learning_rate_decay_patience:
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=learning_rate_decay_patience,
-                                                               verbose=verbose, factor=decay_factor, min_lr=min_lr)
-    # If the learning rate decay step size is not None
-    elif learning_rate_decay_step_size:
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer=optimizer, step_size=learning_rate_decay_step_size,
-                                                    gamma=decay_factor, last_epoch=-1)
-        # Setting the last epoch to anything other than -1 requires the optimizer that was previously used.
-        # Since I don't save the optimizer, I have to manually step the scheduler the number of epochs that have already
-        # been completed. Stepping the scheduler before the optimizer raises a warning, so I have added the below
-        # code to step the scheduler and catch the UserWarning that would normally be thrown.
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            for i in range(start_epoch):
-                scheduler.step()
-    else:
-        scheduler = None
-
-    # If amp
-    if amp:
-        scaler = torch.cuda.amp.GradScaler()
-    else:
-        scaler = None
-
-    # For each epoch
-    for epoch in range(start_epoch, n_epochs):
-
-        # Early stopping
-        if (training_log and early_stopping_patience
-            and np.asarray(training_log)[:, training_log_header.index(metric_to_monitor)].argmin()
-                <= len(training_log) - early_stopping_patience):
-
-            # Print the early stopping message
-            print("Early stopping patience {} has been reached.".format(early_stopping_patience))
-            break
-
-        # Train the model
-        loss = epoch_training(training_loader, model, criterion, optimizer=optimizer, epoch=epoch, voxel_wise=voxel_wise,
-                              residual_arrays_path=residual_arrays_path, separate_hemisphere=separate_hemisphere,
-                              cube_size=cube_size, n_gpus=n_gpus, regularized=regularized, vae=vae, scaler=scaler)
-
-        try:
-            training_loader.dataset.on_epoch_end()
-        except AttributeError:
-            warnings.warn("'on_epoch_end' method not implemented for the {} dataset.".format(
-                type(training_loader.dataset)))
-            
-        # Clear the cache
-        if n_gpus:
-            torch.cuda.empty_cache()
-
-        # Predict validation set
-        if validation_loader:
-            val_loss = epoch_validation(validation_loader, model, criterion, epoch=epoch, residual_arrays_path=residual_arrays_path, 
-                                        separate_hemisphere=separate_hemisphere, cube_size=cube_size, voxel_wise=voxel_wise,
-                                        n_gpus=n_gpus, regularized=regularized, vae=vae, use_amp=scaler is not None)
-        else:
-            val_loss = None
-        
-        # Update the training log
-        training_log.append([epoch, loss, get_learning_rate(optimizer), val_loss])
-
-        # Update the dataframe
-        pd.DataFrame(training_log, columns=training_log_header).set_index("epoch").to_csv(training_log_filename)
-
-        # Find the minimum epoch
-        min_epoch = np.asarray(training_log)[:, training_log_header.index(metric_to_monitor)].argmin()
-        
-
-        # Check the scheduler
-        if scheduler:
-            # If the scheduler is ReduceLROnPlateau
-            if validation_loader and isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
-                scheduler.step(val_loss)
-            # If the scheduler is training
-            elif isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
-                scheduler.step(loss)
-            else:
-                scheduler.step()
-
-        # Save the model
-        torch.save(model.state_dict(), model_filename)
-
-        # If save best
-        if save_best and min_epoch == len(training_log) - 1:
-            best_filename = model_filename.replace(".h5", "_best.h5")
-            forced_copy(model_filename, best_filename)
-
-        # If save every n epochs
-        if save_every_n_epochs and epoch % save_every_n_epochs == 0:
-            epoch_filename = model_filename.replace(".h5", "_{}.h5".format(epoch))
-            forced_copy(model_filename, epoch_filename)
-
-        # If save last n models
-        if save_last_n_models and save_last_n_models > 1:
-            if not save_every_n_epochs or not ((epoch - save_last_n_models) % save_every_n_epochs) == 0:
-                to_delete = model_filename.replace(".h5", "_{}.h5".format(epoch - save_last_n_models))
-                remove_file(to_delete)
-            epoch_filename = model_filename.replace(".h5", "_{}.h5".format(epoch))
-            forced_copy(model_filename, epoch_filename)
 
 
 # Define the trainer wrapping function
@@ -281,3 +165,129 @@ def run_pytorch_training(config, model_filename, training_log_filename, residual
         save_every_n_epochs=in_config("save_every_n_epochs", config),
         save_last_n_models=in_config("save_last_n_models", config),
         amp=False)
+
+# Main train function
+def train(model, optimizer, criterion, n_epochs, training_loader, validation_loader, test_loader, training_log_filename,
+          model_filename, residual_arrays_path, separate_hemisphere=True, voxel_wise=False, cube_size=16, metric_to_monitor="val_loss", 
+          early_stopping_patience=None, learning_rate_decay_patience=None, save_best=False, n_gpus=1, verbose=True, 
+          regularized=False, vae=False, decay_factor=0.1, min_lr=0., learning_rate_decay_step_size=None, save_every_n_epochs=None,
+          save_last_n_models=None, amp=False):
+
+    # Make a list of the training log
+    training_log = []
+    
+    # If the training log filename is not None
+    if os.path.exists(training_log_filename):
+        # Load the training log
+        training_log.extend(pd.read_csv(training_log_filename).values)
+        # Define the start epoch
+        start_epoch = int(training_log[-1][0]) + 1
+    # If the training log filename is None
+    else:  
+        # Define the start epoch
+        start_epoch = 0
+
+    # Define the training log columns
+    training_log_header = ["epoch", "train_loss", "lr", "val_loss"]
+
+    # If the learning rate decay patience is not None
+    if learning_rate_decay_patience:
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=learning_rate_decay_patience,
+                                                               verbose=verbose, factor=decay_factor, min_lr=min_lr)
+    # If the learning rate decay step size is not None
+    elif learning_rate_decay_step_size:
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer=optimizer, step_size=learning_rate_decay_step_size,
+                                                    gamma=decay_factor, last_epoch=-1)
+        # Setting the last epoch to anything other than -1 requires the optimizer that was previously used.
+        # Since I don't save the optimizer, I have to manually step the scheduler the number of epochs that have already
+        # been completed. Stepping the scheduler before the optimizer raises a warning, so I have added the below
+        # code to step the scheduler and catch the UserWarning that would normally be thrown.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            for i in range(start_epoch):
+                scheduler.step()
+    else:
+        scheduler = None
+
+    # If amp
+    if amp:
+        scaler = torch.cuda.amp.GradScaler()
+    else:
+        scaler = None
+
+    # For each epoch
+    for epoch in range(start_epoch, n_epochs):
+
+        # Early stopping
+        if (training_log and early_stopping_patience
+            and np.asarray(training_log)[:, training_log_header.index(metric_to_monitor)].argmin()
+                <= len(training_log) - early_stopping_patience):
+
+            # Print the early stopping message
+            print("Early stopping patience {} has been reached.".format(early_stopping_patience))
+            break
+
+        # Train the model
+        loss = epoch_training(training_loader, model, criterion, optimizer=optimizer, epoch=epoch, voxel_wise=voxel_wise,
+                              residual_arrays_path=residual_arrays_path, separate_hemisphere=separate_hemisphere,
+                              cube_size=cube_size, n_gpus=n_gpus, regularized=regularized, vae=vae, scaler=scaler)
+
+        try:
+            training_loader.dataset.on_epoch_end()
+        except AttributeError:
+            warnings.warn("'on_epoch_end' method not implemented for the {} dataset.".format(
+                type(training_loader.dataset)))
+            
+        # Clear the cache
+        if n_gpus:
+            torch.cuda.empty_cache()
+
+        # Predict validation set
+        if validation_loader:
+            val_loss = epoch_validation(validation_loader, model, criterion, epoch=epoch, residual_arrays_path=residual_arrays_path, 
+                                        separate_hemisphere=separate_hemisphere, cube_size=cube_size, voxel_wise=voxel_wise,
+                                        n_gpus=n_gpus, regularized=regularized, vae=vae, use_amp=scaler is not None)
+        else:
+            val_loss = None
+        
+        # Update the training log
+        training_log.append([epoch, loss, get_learning_rate(optimizer), val_loss])
+
+        # Update the dataframe
+        pd.DataFrame(training_log, columns=training_log_header).set_index("epoch").to_csv(training_log_filename)
+
+        # Find the minimum epoch
+        min_epoch = np.asarray(training_log)[:, training_log_header.index(metric_to_monitor)].argmin()
+        
+
+        # Check the scheduler
+        if scheduler:
+            # If the scheduler is ReduceLROnPlateau
+            if validation_loader and isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                scheduler.step(val_loss)
+            # If the scheduler is training
+            elif isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                scheduler.step(loss)
+            else:
+                scheduler.step()
+
+        # Save the model
+        torch.save(model.state_dict(), model_filename)
+
+        # If save best
+        if save_best and min_epoch == len(training_log) - 1:
+            best_filename = model_filename.replace(".h5", "_best.h5")
+            forced_copy(model_filename, best_filename)
+
+        # If save every n epochs
+        if save_every_n_epochs and epoch % save_every_n_epochs == 0:
+            epoch_filename = model_filename.replace(".h5", "_{}.h5".format(epoch))
+            forced_copy(model_filename, epoch_filename)
+
+        # If save last n models
+        if save_last_n_models and save_last_n_models > 1:
+            if not save_every_n_epochs or not ((epoch - save_last_n_models) % save_every_n_epochs) == 0:
+                to_delete = model_filename.replace(".h5", "_{}.h5".format(epoch - save_last_n_models))
+                remove_file(to_delete)
+            epoch_filename = model_filename.replace(".h5", "_{}.h5".format(epoch))
+            forced_copy(model_filename, epoch_filename)

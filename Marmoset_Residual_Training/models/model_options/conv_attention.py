@@ -49,28 +49,28 @@ class CNN_Attention(nn.Module):
         self.conv_block_1 = nn.Sequential(
             nn.Conv3d(in_channels=1, out_channels=filters[0], kernel_size=3, stride=1, padding=1),
             nn.BatchNorm3d(filters[0]),
-            nn.ReLU()
+            nn.ReLU(inplace=True)
         )
 
         # Define the second convolution block
         self.conv_block_2 = nn.Sequential(
             nn.Conv3d(in_channels=filters[0], out_channels=filters[1], kernel_size=3, stride=1, padding=1),
             nn.BatchNorm3d(filters[1]),
-            nn.ReLU()
+            nn.ReLU(inplace=True)
         )
 
         # Define the third convolution block
         self.conv_block_3 = nn.Sequential(
             nn.Conv3d(in_channels=filters[1], out_channels=filters[2], kernel_size=3, stride=1, padding=1),
             nn.BatchNorm3d(filters[2]),
-            nn.ReLU()
+            nn.ReLU(inplace=True)
         )
 
         # Define the 1x1x1 convolution block
         self.conv_block_4 = nn.Sequential(
             nn.Conv3d(in_channels=filters[2], out_channels=1, kernel_size=1, stride=1, padding=0),
             nn.BatchNorm3d(1),
-            nn.ReLU()
+            nn.ReLU(inplace=True)
         )
 
         # Return the convolutional layers
@@ -146,11 +146,11 @@ class CNN_Attention(nn.Module):
         # Define the MLP layers
         self.mlp = nn.Sequential(
             nn.Linear(flattened_input.shape[1], neurons[0]),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
             nn.Linear(neurons[0], neurons[1]),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
             nn.Linear(neurons[1], neurons[2]),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
             nn.Linear(neurons[2], neurons[3])
         )
 
