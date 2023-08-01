@@ -143,7 +143,9 @@ class Conv3dStaticSamePadding(nn.Conv3d):
 
     def forward(self, x):
         x = self.static_padding(x)
+        print("Shape of x in static padding", x.shape)
         x = F.conv3d(x, self.weight, self.bias, self.stride, self.padding, self.dilation, self.groups)
+        print("Conv3D in padding shape", x.shape)
         return x
 
 

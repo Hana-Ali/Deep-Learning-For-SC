@@ -8,7 +8,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from model_builders.efficientnet_utils import (
+from ..model_builders.efficientnet_utils import (
                                                 round_filters,
                                                 round_repeats,
                                                 drop_connect,
@@ -80,22 +80,30 @@ class MBConvBlock3D(nn.Module):
         x = inputs
         if self._block_args.expand_ratio != 1:
             x = self._swish(self._bn0(self._expand_conv(inputs)))
+            print("Swish after expand x shape", x.shape)
         x = self._swish(self._bn1(self._depthwise_conv(x)))
+        print("Swish after depthwise x shape", x.shape)
 
         # Squeeze and Excitation
         if self.has_se:
             x_squeezed = F.adaptive_avg_pool3d(x, 1)
+            print("Squeeze shape", x.shape)
             x_squeezed = self._se_expand(self._swish(self._se_reduce(x_squeezed)))
+            print("Excite shape", x.shape)
             x = torch.sigmoid(x_squeezed) * x
+            print("Sigmoid and x shape", x.shape)
 
         x = self._bn2(self._project_conv(x))
+        print("Project conv shape", x.shape)
 
         # Skip connection and drop connect
         input_filters, output_filters = self._block_args.input_filters, self._block_args.output_filters
         if self.id_skip and self._block_args.stride == 1 and input_filters == output_filters:
             if drop_connect_rate:
                 x = drop_connect(x, p=drop_connect_rate, training=self.training)
+                print("Drop connect shape", x.shape)
             x = x + inputs  # skip connection
+            print("Skip connect shape", x.shape)
         return x
 
     def set_swish(self, memory_efficient=True):
@@ -195,13 +203,18 @@ class EfficientNet3D(nn.Module):
         bs = inputs.size(0)
         # Convolution layers
         x = self.extract_features(inputs)
+        print("Extract features shape", x.shape)
 
         if self._global_params.include_top:
             # Pooling and final linear layer
             x = self._avg_pooling(x)
+            print("Avg pool shape", x.shape)
             x = x.view(bs, -1)
+            print("View shape", x.shape)
             x = self._dropout(x)
+            print("Dropout shape", x.shape)
             x = self._fc(x)
+            print("FC shape", x.shape)
         return x
 
     @classmethod
