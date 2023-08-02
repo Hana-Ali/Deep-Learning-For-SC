@@ -16,7 +16,7 @@ import torch.nn as nn
 class CNN_Attention(nn.Module):
 
     # Constructor
-    def __init__(self, in_channels, num_rnn_layers, num_rnn_hidden_neurons):
+    def __init__(self, in_channels, num_rnn_layers, num_rnn_hidden_neurons, cube_size=15, num_channels=45):
 
         # Call parent constructor
         super(CNN_Attention, self).__init__()
@@ -34,6 +34,10 @@ class CNN_Attention(nn.Module):
 
         # Define the adaptive average pool
         self.adaptive_average_pool = nn.AdaptiveAvgPool3d(1)
+
+        # Define the MLP part
+        self.flattened_input_size = cube_size * cube_size * cube_size * num_channels
+        self.mlp = self.build_mlp_layers()
 
         # Define the number of coordinates
         self.num_coordinates = 3
@@ -94,6 +98,26 @@ class CNN_Attention(nn.Module):
         # Return the attention layers
         return nn.Sequential(self.squeeze, self.excitation)
     
+    # Build the MLP layers
+    def build_mlp_layers(self):
+
+        # Define the filter sizes
+        neurons = [512, 256, 128, 3]
+
+        # Define the MLP layers
+        self.mlp = nn.Sequential(
+            nn.Linear(self.flattened_input_size, neurons[0]),
+            nn.ReLU(inplace=True),
+            nn.Linear(neurons[0], neurons[1]),
+            nn.ReLU(inplace=True),
+            nn.Linear(neurons[1], neurons[2]),
+            nn.ReLU(inplace=True),
+            nn.Linear(neurons[2], neurons[3])
+        )
+
+        # Return the MLP layers
+        return self.mlp
+    
     # Define the convolution and attention pass
     def convolution_attention_pass(self, input_x):
 
@@ -146,20 +170,6 @@ class CNN_Attention(nn.Module):
         # Flatten the input, preserving batch size
         flattened_input = input_x.view(-1, flattened_input_size)
 
-        # Define the filter sizes
-        neurons = [512, 256, 128, 3]
-
-        # Define the MLP layers
-        self.mlp = nn.Sequential(
-            nn.Linear(flattened_input.shape[1], neurons[0]),
-            nn.ReLU(inplace=True),
-            nn.Linear(neurons[0], neurons[1]),
-            nn.ReLU(inplace=True),
-            nn.Linear(neurons[1], neurons[2]),
-            nn.ReLU(inplace=True),
-            nn.Linear(neurons[2], neurons[3])
-        )
-
         # Pass the input through the MLP
         mlp_output = self.mlp(flattened_input)
 
@@ -204,8 +214,5 @@ class CNN_Attention(nn.Module):
         # Do the final MLP pass
         final_mlp = self.mlp_pass(sixth_block)
         print("Shape of final_mlp", final_mlp.shape)
-
-        # Print the final MLP shape
-        print(final_mlp.shape)
 
         return final_mlp
