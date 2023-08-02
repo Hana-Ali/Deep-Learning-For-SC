@@ -132,6 +132,9 @@ class StreamlineDataset(torch.utils.data.Dataset):
         # Round the streamline
         streamlines = np.round(streamlines).astype(int)
 
+        # Randomly sample 9000 streamlines
+        streamlines = np.random.choice(streamlines, size=9000, replace=False)
+
         # Return the streamline list of lists of coordinates
         return streamlines
     
@@ -146,8 +149,6 @@ class StreamlineDataset(torch.utils.data.Dataset):
 
         # Read the wmfod image
         wmfod_image_array = self.read_image(wmfod_image_path)
-
-        print("Read wmfod shape: {}".format(wmfod_image_array.shape))
 
         # Read the streamline
         streamline_list = self.read_streamline(streamline_path)
