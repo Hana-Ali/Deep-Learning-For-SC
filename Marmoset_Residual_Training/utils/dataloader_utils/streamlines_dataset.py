@@ -132,8 +132,14 @@ class StreamlineDataset(torch.utils.data.Dataset):
         # Round the streamline
         streamlines = np.round(streamlines).astype(int)
 
-        # Randomly sample 9000 streamlines
-        streamlines = np.random.choice(streamlines, size=9000, replace=False)
+        # Create range of length of streamlines
+        streamlines_range = np.arange(len(streamlines))
+
+        # Randomly sample 9000 indices from the range
+        streamlines_range = np.random.choice(streamlines_range, 9000)
+
+        # Get the streamlines
+        streamlines = streamlines[streamlines_range]
 
         # Return the streamline list of lists of coordinates
         return streamlines
