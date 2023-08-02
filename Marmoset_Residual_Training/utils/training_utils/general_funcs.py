@@ -354,6 +354,11 @@ def get_hemisphere(coordinates, separate_hemisphere, image, kernel_size, is_flip
     
     # Get the coordinates
     x_coord, y_coord, z_coord = coordinates
+
+    print("Coordinates are: {}".format(coordinates))
+    print("Separate hemisphere is: {}".format(separate_hemisphere))
+    print("Image shape is: {}".format(image.shape))
+    print("Kernel size is: {}".format(kernel_size))
     
     # Get the midpoint of the x dimension
     x_midpoint = int(image.shape[x_coord] / 2)
@@ -363,6 +368,8 @@ def get_hemisphere(coordinates, separate_hemisphere, image, kernel_size, is_flip
 
         # Define the half shape
         half_shape = (image.shape[0], image.shape[1], x_midpoint, image.shape[3], image.shape[4])
+
+        print("Half shape is: {}".format(half_shape))
 
         # Define the hemisphere tensors with the correct shape
         hemisphere = torch.empty(half_shape)
