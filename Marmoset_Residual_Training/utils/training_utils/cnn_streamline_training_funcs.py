@@ -15,6 +15,8 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
     
     # For each batch
     for i, (wmfod, streamlines) in enumerate(train_loader):
+
+        print("Batch {}".format(i))
                         
         # Measure the data loading time
         data_time.update(time.time() - end)
