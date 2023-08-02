@@ -179,31 +179,33 @@ class CNN_Attention(nn.Module):
         
         # Do the first block of convolution and attention
         first_block = self.pass_pass_pool_multiply(input_x)
+        print("Shape of first_block", first_block.shape)
 
         # Do the second block of convolution and attention
         second_block = self.pass_pass_pool_multiply(first_block)
+        print("Shape of second_block", second_block.shape)
 
         # Do the third block of convolution and attention
         third_block = self.pass_pass_pool_multiply(second_block)
+        print("Shape of third_block", third_block.shape)
 
         # Do the fourth block of convolution and attention
         fourth_block = self.pass_pass_pool_multiply(third_block)
+        print("Shape of fourth_block", fourth_block.shape)
 
         # Do the fifth block of convolution and attention
         fifth_block = self.pass_pass_pool_multiply(fourth_block)
+        print("Shape of fifth_block", fifth_block.shape)
 
         # Do the sixth block of convolution and attention
         sixth_block = self.pass_pass_pool_multiply(fifth_block)
+        print("Shape of sixth_block", sixth_block.shape)
 
         # Do the final MLP pass
         final_mlp = self.mlp_pass(sixth_block)
+        print("Shape of final_mlp", final_mlp.shape)
 
         # Print the final MLP shape
         print(final_mlp.shape)
 
         return final_mlp
-
-
-
-
-
