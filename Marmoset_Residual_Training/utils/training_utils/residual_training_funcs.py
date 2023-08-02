@@ -152,8 +152,8 @@ def training_loop_residual(train_loader, model, criterion, optimizer, epoch, res
         print("Saving...")
         predictions_folder = os.path.join(residual_arrays_path, str(model.__class__.__name__), 
                                           "train_sep", "epoch_{}".format(epoch))
-        if not os.path.exists(predictions_folder):
-            os.makedirs(predictions_folder)
+        check_output_folders(predictions_folder, "predictions folder", wipe=False)
+
         prediction_filename = os.path.join(predictions_folder, "image_{}.npy".format(i))
         np.save(prediction_filename, predictions_array)
         groundtruth_filename = os.path.join(predictions_folder, "ground_truth.npy".format(i))
@@ -266,8 +266,7 @@ def validation_loop_residual(val_loader, model, criterion, epoch, residual_array
             print("Saving...")
             predictions_folder = os.path.join(residual_arrays_path, str(model.__class__.__name__), 
                                           "val_sep", "epoch_{}".format(epoch))
-            if not os.path.exists(predictions_folder):
-                os.makedirs(predictions_folder)
+            check_output_folders(predictions_folder, "predictions folder", wipe=False)
             prediction_filename = os.path.join(predictions_folder, "image_{}.npy".format(i))
             np.save(prediction_filename, predictions_array)
             groundtruth_filename = os.path.join(predictions_folder, "ground_truth.npy".format(i))

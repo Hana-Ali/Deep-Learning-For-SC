@@ -6,6 +6,7 @@ import torch.utils.data.distributed
 import shutil
 from utils.training_utils import loss_funcs
 import numpy as np
+import os
 
 try:
     from torch.utils.data._utils.collate import default_collate
@@ -415,3 +416,32 @@ def get_current_residual(residual_hemisphere, voxel_coordinates, kernel_size, vo
     
     # Return the current residual
     return current_residual
+
+# Check that output folders are in suitable shape
+def check_output_folders(folder, name, wipe=False, verbose=False):
+    if not os.path.exists(folder):
+        if verbose:
+            print("--- {} folder not found. Created folder: {}".format(name, folder))
+        os.makedirs(folder)
+    # If it has no content, either continue or delete, depending on wipe
+    else:
+        # If it has content, delete it
+        if wipe:
+            if verbose:
+                print("--- {} folder found. Wiping...".format(name))
+            # If the folder has content, delete it
+            if len(os.listdir(folder)) != 0:
+                if verbose:
+                    print("{} folder has content. Deleting content...".format(name))
+                # Since this can have both folders and files, we need to check if it's a file or folder to remove
+                for filename in os.listdir(folder):
+                    file_path = os.path.join(folder, filename)
+                    if os.path.isfile(file_path) or os.path.islink(file_path):
+                        os.unlink(file_path)
+                    elif os.path.isdir(file_path):
+                        shutil.rmtree(file_path)
+                if verbose:
+                    print("Content deleted. Continuing...")
+        else:
+            if verbose:
+                print("--- {} folder found. Continuing without wipe...".format(name))

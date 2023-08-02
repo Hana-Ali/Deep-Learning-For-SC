@@ -50,6 +50,9 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
         previous_prediction_2 = torch.randn((batch_size, 1, 3))
         # Concatenate the previous predictions together along dimension 2
         previous_predictions = torch.cat((previous_prediction_1, previous_prediction_2), dim=2)
+
+        # Print the number of streamlines
+        print("Number of streamlines: {}".format(len(streamlines)))
                     
         # For every streamline
         for streamline in range(len(streamlines)):
@@ -133,8 +136,7 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
         folder_name = "train_sep" if separate_hemisphere else "train"
         predictions_folder = os.path.join(streamline_arrays_path, str(model.__class__.__name__), 
                                           folder_name, "epoch_{}".format(epoch))
-        if not os.path.exists(predictions_folder):
-            os.makedirs(predictions_folder)
+        check_output_folders(predictions_folder, "predictions folder", wipe=False)
 
         # Define the filenames
         prediction_filename = os.path.join(predictions_folder, "tracer_streamlines_predicted.{extension}".format(input_type))
@@ -239,8 +241,7 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
             folder_name = "val_sep" if separate_hemisphere else "val"
             predictions_folder = os.path.join(streamline_arrays_path, str(model.__class__.__name__), 
                                             folder_name, "epoch_{}".format(epoch))
-            if not os.path.exists(predictions_folder):
-                os.makedirs(predictions_folder)
+            check_output_folders(predictions_folder, "predictions folder", wipe=False)
 
             # Define the filenames
             prediction_filename = os.path.join(predictions_folder, "tracer_streamlines_predicted.{extension}".format(input_type))

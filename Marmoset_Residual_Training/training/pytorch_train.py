@@ -50,8 +50,6 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
     save_every_n_epochs = config["save_every_n_epochs"] if "save_every_n_epochs" in config else None
     save_last_n_models = config["save_last_n_models"] if "save_last_n_models" in config else None
     verbose = config["verbose"] if "verbose" in config else 1
-    regularized = config["regularized"] if "regularized" in config else False
-    vae = config["vae"] if "vae" in config else False
 
         
     # Build or load the model depending on streamline or dwi training, and build dataset differently
@@ -207,7 +205,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
                                     cube_size=cube_size, n_gpus=n_gpus, voxel_wise=voxel_wise, distributed=False,
                                     print_gpu_memory=False, scaler=scaler, train_or_val="train", training_type=config["training_type"],
                                     streamline_arrays_path=streamline_arrays_path, input_type=config["tck_type"])
-                               
+                                       
         try:
             train_loader.dataset.on_epoch_end()
         except AttributeError:
