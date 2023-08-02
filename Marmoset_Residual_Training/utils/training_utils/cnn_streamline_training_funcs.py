@@ -2,12 +2,13 @@ from .general_funcs import *
 import numpy as np
 import os
 import time
+import nibabel as nib
 
 # Define the inner loop for streamline training
 def training_loop_streamlines(train_loader, model, criterion, optimizer, epoch, streamline_arrays_path, separate_hemisphere,
-                                kernel_size=16, n_gpus=None, voxel_wise=False, distributed=False, print_gpu_memory=False,
-                                scaler=None, data_time=None, coordinates=None, use_amp=False, losses=None, batch_time=None,
-                                progress=None, input="trk"):
+                                kernel_size=16, n_gpus=None, distributed=False, print_gpu_memory=False, scaler=None, 
+                                data_time=None, coordinates=None, use_amp=False, losses=None, batch_time=None,
+                                progress=None, input_type="trk"):
     
     # Initialize the end time
     end = time.time()
@@ -123,17 +124,26 @@ def training_loop_streamlines(train_loader, model, criterion, optimizer, epoch, 
             # Print out the progress after every streamline is done
             progress.display(i)
             
-        # Dump the predicted streamlines array
         print("Saving...")
-        predictions_folder = os.path.join(residual_arrays_path, str(model.__class__.__name__), 
+
+        # Make folder for the predictions
+        predictions_folder = os.path.join(streamline_arrays_path, str(model.__class__.__name__), 
                                           "train_sep", "epoch_{}".format(epoch))
         if not os.path.exists(predictions_folder):
             os.makedirs(predictions_folder)
-        prediction_filename = os.path.join(predictions_folder, "image_{}.npy".format(i))
-        np.save(prediction_filename, predictions_array)
-        groundtruth_filename = os.path.join(predictions_folder, "ground_truth.npy".format(i))
-        np.save(groundtruth_filename, groundtruth_array)
 
+        # Define the filenames
+        prediction_filename = os.path.join(predictions_folder, "tracer_streamlines_predicted.{extension}".format(input_type))
+        groundtruth_filename = os.path.join(predictions_folder, "tracer_streamlines.{extension}".format(input_type))
+
+        # Turn the predicted streamlines array into a Tractogram with nibabel
+        predicted_streamlines_array = nib.streamlines.Tractogram(predicted_streamlines_array, affine_to_rasmm=np.eye(4))
+        true_streamlines_array = nib.streamlines.Tractogram(streamlines, affine_to_rasmm=np.eye(4))
+
+        # Save the predicted and ground truth streamlines
+        nib.streamlines.save(predicted_streamlines_array, prediction_filename)
+        nib.streamlines.save(true_streamlines_array, groundtruth_filename)
+        
 # Define the function to get model output
 def batch_loss(model, wmfod_cube, streamline_node, criterion, distributed=False, n_gpus=None, use_amp=False):
     
