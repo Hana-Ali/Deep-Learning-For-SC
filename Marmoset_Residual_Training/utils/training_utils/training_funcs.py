@@ -5,45 +5,23 @@ from utils.training_utils import loss_funcs
 import os
 import time
 
-# Define the epoch training
-def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_arrays_path, separate_hemisphere, 
-                   cube_size=16, n_gpus=None, print_frequency=1, voxel_wise=False, distributed=False, regularized=False, 
-                   print_gpu_memory=False, vae=False, scaler=None):
+# Define the inner loop training
+def training_loop_residual(train_loader, model, criterion, optimizer, epoch, residual_arrays_path, separate_hemisphere,
+                            kernel_size=16, n_gpus=None, voxel_wise=False, distributed=False, print_gpu_memory=False,
+                            scaler=None, data_time=None, coordinates=None, use_amp=False, losses=None, batch_time=None,
+                            progress=None, input="wmfod"):
     
-    # Define the meters
-    batch_time = AverageMeter("Time", ":6.3f")
-    data_time = AverageMeter("Data", ":6.3f")
-    losses = AverageMeter("Loss", ":.4e")
-    progress = ProgressMeter(
-        len(train_loader),
-        [batch_time, data_time, losses],
-        prefix='Epoch [{}]'.format(epoch)
-    )
-
-    # Define use_amp
-    use_amp = scaler is not None
-
-    # Switch to train mode
-    model.train()
-
     # Initialize the end time
     end = time.time()
-
-    # Define indices for the coordinates
-    x_coord = 2
-    y_coord = 3
-    z_coord = 4
-    coordinates = [x_coord, y_coord, z_coord]
     
-    # Define the kernel size (cube will be 2 * kernel_size) - HYPERPARAMETER
-    kernel_size = cube_size
-    half_kernel = kernel_size // 2
-
     # For each batch
     for i, (b0, wmfod, (residual, is_flipped), injection_center) in enumerate(train_loader):
         
         # Define whether we do b0 or wmfod
-        curr_input = wmfod
+        if input == "b0":
+            curr_input = b0
+        else:
+            curr_input = wmfod
                         
         # Measure the data loading time
         data_time.update(time.time() - end)
@@ -119,7 +97,7 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
                     
                     # Get the start of indexing for this new array
                     (start_idx_x, start_idx_y, start_idx_z,
-                     end_idx_x, end_idx_y, end_idx_z) = get_predictions_indexing(x, y, z, half_kernel, predictions_array)
+                     end_idx_x, end_idx_y, end_idx_z) = get_predictions_indexing(x, y, z, int(kernel_size / 2), predictions_array)
 
                     # Add this to the predicted tensor at the correct spot - note that if the cubes overlap then the areas
                     predictions_array[:, :, start_idx_x : end_idx_x,
@@ -182,81 +160,12 @@ def epoch_training(train_loader, model, criterion, optimizer, epoch, residual_ar
         np.save(prediction_filename, predictions_array)
         groundtruth_filename = os.path.join(predictions_folder, "ground_truth.npy".format(i))
         np.save(groundtruth_filename, groundtruth_array)
-                                
-    # Return the losses
-    return losses.avg
 
-# Define the function to get model output
-def batch_loss(model, b0_cube, injection_center, image_coordinates, residual_cube, criterion, 
-               distributed=False, n_gpus=None, use_amp=False):
+# Define the inner loop validation
+def validation_loop_residual(val_loader, model, criterion, epoch, residual_arrays_path, separate_hemisphere,
+                            kernel_size=16, n_gpus=None, voxel_wise=False, distributed=False, coordinates=None, 
+                            use_amp=False, losses=None, batch_time=None, progress=None, input="wmfod"):
     
-    # If number of GPUs
-    if n_gpus:
-        
-        # Cast all the data to float
-        b0_cube = b0_cube.float()
-        residual_cube = residual_cube.float()
-        injection_center = injection_center.float()
-        image_coordinates = image_coordinates.float()
-
-        # If not running serially, put the data on the GPU
-        if not distributed:
-
-            # Empty cache
-            torch.cuda.empty_cache()
-
-            # Get all the data on the GPU
-            b0_cube = b0_cube.cuda()
-            residual_cube = residual_cube.cuda()
-            injection_center = injection_center.cuda()
-            image_coordinates = image_coordinates.cuda()
-    
-    # Compute the output
-    if use_amp:
-        with torch.cuda.amp.autocast():
-            return _batch_loss(model, b0_cube, injection_center, image_coordinates, residual_cube, criterion)
-    else:
-        return _batch_loss(model, b0_cube, injection_center, image_coordinates, residual_cube, criterion)
-    
-# Define the batch loss
-def _batch_loss(model, b0_cube, injection_center, image_coordinates, residual_cube, criterion):
-    
-    # Compute the output
-    predicted_residual = model(b0_cube, injection_center, image_coordinates)
-            
-    # Find the loss between the output and the voxel value
-    loss = criterion(predicted_residual, residual_cube)
-        
-    # Get the batch size
-    batch_size = b0_cube.size(0)
-        
-    # Return the loss
-    return predicted_residual, loss, batch_size
-
-# Define the epoch validation
-def epoch_validation(val_loader, model, criterion, epoch, residual_arrays_path, separate_hemisphere, cube_size=16,  
-                     voxel_wise=False, n_gpus=None, print_freq=1, distributed=False, regularized=False, 
-                     vae=False, use_amp=False):
-
-    # Define the meters
-    batch_time = AverageMeter("Time", ":6.3f")
-    losses = AverageMeter("Loss", ":.4e")
-    progress = ProgressMeter(
-        len(val_loader),
-        [batch_time, losses],
-        prefix='Validation: '
-    )
-
-    # Switch to evaluate mode
-    model.eval()
-
-    # Define indices for the coordinates
-    x_coord = 2
-    y_coord = 3
-    z_coord = 4
-    coordinates = [x_coord, y_coord, z_coord]
-
-
     # No gradients
     with torch.no_grad():
 
@@ -267,11 +176,10 @@ def epoch_validation(val_loader, model, criterion, epoch, residual_arrays_path, 
         for i, (b0, wmfod, (residual, is_flipped), injection_center) in enumerate(val_loader):
 
             # Define whether we do b0 or wmfod
-            curr_input = wmfod
-                
-            # Define the kernel size (cube will be 2 * kernel_size) - HYPERPARAMETER
-            kernel_size = cube_size
-            half_kernel = kernel_size // 2
+            if input == "b0":
+                curr_input = b0
+            else:
+                curr_input = wmfod
 
             # Get the b0 and residual hemispheres
             b0_hemisphere, residual_hemisphere = get_b0_residual_hemispheres(coordinates, separate_hemisphere, residual, curr_input, 
@@ -327,7 +235,7 @@ def epoch_validation(val_loader, model, criterion, epoch, residual_arrays_path, 
 
                         # Get the start of indexing for this new array
                         (start_idx_x, start_idx_y, start_idx_z,
-                         end_idx_x, end_idx_y, end_idx_z) = get_predictions_indexing(x, y, z, half_kernel, predictions_array)
+                         end_idx_x, end_idx_y, end_idx_z) = get_predictions_indexing(x, y, z, int(kernel_size / 2), predictions_array)
 
                         # Add this to the predicted tensor at the correct spot - note that if the cubes overlap then the areas
                         predictions_array[:, :, start_idx_x : end_idx_x,
@@ -367,8 +275,53 @@ def epoch_validation(val_loader, model, criterion, epoch, residual_arrays_path, 
             groundtruth_filename = os.path.join(predictions_folder, "ground_truth.npy".format(i))
             np.save(groundtruth_filename, groundtruth_array)
 
-    # Return the losses
-    return losses.avg
+# Define the function to get model output
+def batch_loss(model, b0_cube, injection_center, image_coordinates, residual_cube, criterion, 
+               distributed=False, n_gpus=None, use_amp=False):
+    
+    # If number of GPUs
+    if n_gpus:
+        
+        # Cast all the data to float
+        b0_cube = b0_cube.float()
+        residual_cube = residual_cube.float()
+        injection_center = injection_center.float()
+        image_coordinates = image_coordinates.float()
+
+        # If not running serially, put the data on the GPU
+        if not distributed:
+
+            # Empty cache
+            torch.cuda.empty_cache()
+
+            # Get all the data on the GPU
+            b0_cube = b0_cube.cuda()
+            residual_cube = residual_cube.cuda()
+            injection_center = injection_center.cuda()
+            image_coordinates = image_coordinates.cuda()
+    
+    # Compute the output
+    if use_amp:
+        with torch.cuda.amp.autocast():
+            return _batch_loss(model, b0_cube, injection_center, image_coordinates, residual_cube, criterion)
+    else:
+        return _batch_loss(model, b0_cube, injection_center, image_coordinates, residual_cube, criterion)
+    
+# Define the batch loss
+def _batch_loss(model, b0_cube, injection_center, image_coordinates, residual_cube, criterion):
+    
+    # Compute the output
+    predicted_residual = model(b0_cube, injection_center, image_coordinates)
+            
+    # Find the loss between the output and the voxel value
+    loss = criterion(predicted_residual, residual_cube)
+        
+    # Get the batch size
+    batch_size = b0_cube.size(0)
+        
+    # Return the loss
+    return predicted_residual, loss, batch_size
+
 
 # Define the save checkpoint
 def save_checkpoint(state, is_best, filename='checkpoint.pth.tar', best_filename='model_best.pth.tar'):

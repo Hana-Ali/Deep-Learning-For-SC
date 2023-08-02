@@ -6,11 +6,24 @@ import torch.nn as nn
 from models.model_options import *
 
 # Function to get the model
-def get_model(model_name, input_nc, output_nc, ngf, num_blocks, norm_layer,
-              use_dropout, padding_type, voxel_wise, cube_size):
+def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, norm_layer=None,
+              use_dropout=None, padding_type=None, voxel_wise=None, cube_size=15, num_rnn_layers=2,
+              num_rnn_hidden_neurons=1000):
     
     try:
         if "resnet" in model_name.lower():
+            
+            # Assert that none of the parameters are None
+            assert input_nc is not None
+            assert output_nc is not None
+            assert ngf is not None
+            assert num_blocks is not None
+            assert norm_layer is not None
+            assert use_dropout is not None
+            assert padding_type is not None
+            assert voxel_wise is not None
+
+            # Return the ResNet encoder
             return ResnetEncoder(input_nc=input_nc, 
                                  output_nc=output_nc,
                                  ngf=ngf,
@@ -21,16 +34,30 @@ def get_model(model_name, input_nc, output_nc, ngf, num_blocks, norm_layer,
                                  voxel_wise=voxel_wise)
         
         elif "attention_unet" in model_name.lower():
+            
+            # Assert that none of the parameters are None
+            assert input_nc is not None
+            assert output_nc is not None
+            assert voxel_wise is not None
+
+            # Return the Attention U-Net
             return Attention_UNet(in_channels=input_nc, 
                                   n_classes=output_nc,
                                   voxel_wise=voxel_wise,
                                   cube_size=cube_size)
         
-        # elif "upanet" in model_name.lower():
-        #     return UPANets(input_nc=input_nc,
-        #                    output_nc=output_nc,
-        #                    num_blocks=num_blocks,
-        #                    img_size=32)
+        elif "conv_attention" in model_name.lower():
+
+            # Assert that none of the parameters are None
+            assert input_nc is not None
+            assert num_rnn_layers is not None
+            assert num_rnn_hidden_neurons is not None
+
+            # Return the CNN Attention
+            return CNN_Attention(in_channels=input_nc,
+                                 num_rnn_layers=num_rnn_layers,
+                                 num_rnn_hidden_neurons=num_rnn_hidden_neurons,
+                                 cube_size=cube_size)
 
     except AttributeError:
         raise ValueError("Model {} not found".format(model_name))

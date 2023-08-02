@@ -10,76 +10,71 @@ from utils import *
 from models import *
 from utils.training_utils import loss_funcs
 
-# Function to do the training
-def run_training(config, metric_to_monitor="train_loss", bias=None):
-    """
-    Wrapper function for training a model. Has most of the extra fluff before training,
-    and starts the training
-    """
-
-    # Get whether we're doing streamline or dwi training
-
-
-
-# Define the trainer wrapping function
-def run_pytorch_training(config, model_filename, training_log_filename, residual_arrays_path, cube_size,
-                         verbose=1, use_multiprocessing=False,
-                         n_workers=1, model_name='resnet', n_gpus=1, regularized=False,
-                         test_input=1, metric_to_monitor="loss", model_metrics=(), 
-                         bias=None, pin_memory=False, amp=False,
-                         prefetch_factor=1, **unused_args):
-    """
-    Wrapper function for training a PyTorch model.
-
-    Parameters
-    ----------
-    config : dict
-        Dictionary containing the training configuration.
-    model_filename : str
-        Filename of the model.
-    training_log_filename : str
-        Filename of the training log.
-    verbose : int
-        Verbosity level.
-    use_multiprocessing : bool
-        Whether to use multiprocessing.
-    n_workers : int
-        Number of workers.
-    max_queue_size : int
-        Maximum queue size.
-    model_name : str
-        Name of the model.
-    n_gpus : int
-        Number of GPUs.
-    regularized : bool
-        Whether the model is regularized.
-    sequence_class : type
-        Sequence class.
-    directory : str
-        Directory.
-    test_input : int
-        Test input.
-    metric_to_monitor : str
-        Metric to monitor.
-    model_metrics : tuple
-        Model metrics.
-    """
-    print("model name is: ", model_name)
-    # Get whether we're doing fod or dwi, to know number of channels
-    if config["wmfod_dwi"] == "dwi":
-        input_nc = 1
-    elif config["wmfod_dwi"] == "wmfod":
-        input_nc = 45
-        
-    # Build or load the model
-    model = build_or_load_model(model_name, model_filename, input_nc=input_nc, 
-                                output_nc=config["output_nc"], ngf=config["ngf"], 
-                                num_blocks=config["num_blocks"], norm_layer=config["norm_layer"],
-                                use_dropout=config["use_dropout"], padding_type=config["padding_type"],
-                                cube_size=config["cube_size"],
-                                n_gpus=n_gpus, bias=bias, freeze_bias=in_config("freeze_bias", config, False),
-                                strict=False, voxel_wise=config["voxel_wise"])
     
+# Function to do streamline training
+def run_training(config, metric_to_monitor="train_loss", bias=None):
+    """"
+    Function to do streamline training, slightly different from dwi training
+    """
+
+    ##########################################################################################################
+    ######################################### TRAIN PREPARATION ##############################################
+    ##########################################################################################################
+
+    # Get the model information
+    model_name = config["model_name"]
+    model_filename = config["model_filename"]
+    main_data_path = config["main_data_path"]
+    training_log_filename = config["training_log_filename"]
+    residual_arrays_path = config["residual_arrays_path"] if "residual_arrays_path" in config else None
+
+    # Get the training parameters
+    n_epochs = config["n_epochs"]
+    learning_rate_decay_patience = config["decay_patience"] if "decay_patience" in config else None
+    learning_rate_decay_step_size = config["decay_step_size"] if "decay_step_size" in config else None
+    decay_factor = config["decay_factor"] if "decay_factor" in config else 0.1
+    min_lr = config["min_learning_rate"] if "min_learning_rate" in config else 0.
+    early_stopping_patience = config["early_stopping_patience"] if "early_stopping_patience" in config else None
+    separate_hemisphere = config["separate_hemisphere"] if "separate_hemisphere" in config else True
+    voxel_wise = config["voxel_wise"] if "voxel_wise" in config else False
+    cube_size = config["cube_size"] if "cube_size" in config else 15
+
+    # Get general parameters
+    n_gpus = config["n_gpus"] if "n_gpus" in config else 1
+    n_workers = config["n_workers"] if "n_workers" in config else 1
+    pin_memory = config["pin_memory"] if "pin_memory" in config else False
+    prefetch_factor = config["prefetch_factor"] if "prefetch_factor" in config else 1
+    amp = config["amp"] if "amp" in config else False
+    save_best = config["save_best"] if "save_best" in config else False
+    save_every_n_epochs = config["save_every_n_epochs"] if "save_every_n_epochs" in config else None
+    save_last_n_models = config["save_last_n_models"] if "save_last_n_models" in config else None
+    verbose = config["verbose"] if "verbose" in config else 1
+    regularized = config["regularized"] if "regularized" in config else False
+    vae = config["vae"] if "vae" in config else False
+
+        
+    # Build or load the model depending on streamline or dwi training, and build dataset differently
+    if config["training_type"] == "streamline":
+        # Build the model
+        model = build_or_load_model(model_name, model_filename, input_nc=config["input_nc"], cube_size=config["cube_size"],
+                                    num_rnn_layers=config["num_rnn_layers"], num_rnn_hidden_neurons=config["num_rnn_hidden_neurons"])
+        # Build the dataset
+        dataset = StreamlineDataset(main_data_path, transforms=None, train=True, tck_type=config["tck_type"])
+    elif config["training_type"] == "residual":
+        # Build the model
+        model = build_or_load_model(model_name, model_filename, input_nc=config["input_nc"], 
+                                    output_nc=config["output_nc"], ngf=config["ngf"], 
+                                    num_blocks=config["num_blocks"], norm_layer=config["norm_layer"],
+                                    use_dropout=config["use_dropout"], padding_type=config["padding_type"],
+                                    cube_size=config["cube_size"],
+                                    n_gpus=n_gpus, bias=bias, freeze_bias=in_config("freeze_bias", config, False),
+                                    strict=False, voxel_wise=config["voxel_wise"])
+        # Build the dataset
+        dataset = NiftiDataset(main_data_path, transforms=None, train=True)
+    else:
+        raise ValueError("Training type {} not found".format(config["training_type"]))
+
+    # Print the model name and metric to monitor as logging
     print("Model is: {}".format(model.__class__.__name__))
     print("Metric to monitor is: {}".format(metric_to_monitor))
 
@@ -109,9 +104,6 @@ def run_pytorch_training(config, model_filename, training_log_filename, residual
     from torch.utils.data.dataloader import default_collate
     collate_fn = default_collate
 
-    # Get the dataset
-    dataset = NiftiDataset(config["main_data_path"], transforms=None, train=True)
-    
     # Define the split size
     proportions = [.75, .10, .15]
     lengths = [int(p * len(dataset)) for p in proportions]
@@ -119,7 +111,7 @@ def run_pytorch_training(config, model_filename, training_log_filename, residual
 
     # Split the data
     seed = torch.Generator().manual_seed(42)
-    train_set, val_set, test_set = torch.utils.data.random_split(dataset, lengths)
+    train_set, val_set, test_set = torch.utils.data.random_split(dataset, lengths, seed=seed)
         
     # Define the training loader
     train_loader = torch.utils.data.DataLoader(train_set,
@@ -148,30 +140,9 @@ def run_pytorch_training(config, model_filename, training_log_filename, residual
                                                 pin_memory=pin_memory,
                                                 prefetch_factor=prefetch_factor)
         
-    # Train the model
-    train(model=model, optimizer=optimizer, criterion=criterion, n_epochs=config["n_epochs"], cube_size=cube_size, verbose=bool(verbose),
-        training_loader=train_loader, validation_loader=val_loader, test_loader=test_loader, model_filename=model_filename,
-        training_log_filename=training_log_filename, residual_arrays_path=residual_arrays_path, 
-        separate_hemisphere=config["separate_hemisphere"], metric_to_monitor=metric_to_monitor,
-        early_stopping_patience=in_config("early_stopping_patience", config),
-        save_best=in_config("save_best", config, False),
-        learning_rate_decay_patience=in_config("decay_patience", config),
-        regularized=in_config("regularized", config, regularized),
-        n_gpus=n_gpus, voxel_wise=config["voxel_wise"],
-        vae=in_config("vae", config, False),
-        decay_factor=in_config("decay_factor", config),
-        min_lr=in_config("min_learning_rate", config),
-        learning_rate_decay_step_size=in_config("decay_step_size", config),
-        save_every_n_epochs=in_config("save_every_n_epochs", config),
-        save_last_n_models=in_config("save_last_n_models", config),
-        amp=False)
-
-# Main train function
-def train(model, optimizer, criterion, n_epochs, training_loader, validation_loader, test_loader, training_log_filename,
-          model_filename, residual_arrays_path, separate_hemisphere=True, voxel_wise=False, cube_size=16, metric_to_monitor="val_loss", 
-          early_stopping_patience=None, learning_rate_decay_patience=None, save_best=False, n_gpus=1, verbose=True, 
-          regularized=False, vae=False, decay_factor=0.1, min_lr=0., learning_rate_decay_step_size=None, save_every_n_epochs=None,
-          save_last_n_models=None, amp=False):
+    #########################################################################################################
+    ########################################## MODEL TRAINING ###############################################
+    #########################################################################################################
 
     # Make a list of the training log
     training_log = []
@@ -228,30 +199,32 @@ def train(model, optimizer, criterion, n_epochs, training_loader, validation_loa
             break
 
         # Train the model
-        loss = epoch_training(training_loader, model, criterion, optimizer=optimizer, epoch=epoch, voxel_wise=voxel_wise,
-                              residual_arrays_path=residual_arrays_path, separate_hemisphere=separate_hemisphere,
-                              cube_size=cube_size, n_gpus=n_gpus, regularized=regularized, vae=vae, scaler=scaler)
-
+        train_loss = epoch_training(train_loader=train_loader, val_loader=val_loader, model=model, criterion=criterion, optimizer=optimizer, 
+                                    epoch=epoch, residual_arrays_path=residual_arrays_path, separate_hemisphere=separate_hemisphere, 
+                                    cube_size=cube_size, n_gpus=n_gpus, voxel_wise=voxel_wise, distributed=False,
+                                    print_gpu_memory=False, scaler=scaler, train_or_val="train", training_type=config["training_type"])
+                               
         try:
-            training_loader.dataset.on_epoch_end()
+            train_loader.dataset.on_epoch_end()
         except AttributeError:
             warnings.warn("'on_epoch_end' method not implemented for the {} dataset.".format(
-                type(training_loader.dataset)))
+                type(train_loader.dataset)))
             
         # Clear the cache
         if n_gpus:
             torch.cuda.empty_cache()
 
         # Predict validation set
-        if validation_loader:
-            val_loss = epoch_validation(validation_loader, model, criterion, epoch=epoch, residual_arrays_path=residual_arrays_path, 
-                                        separate_hemisphere=separate_hemisphere, cube_size=cube_size, voxel_wise=voxel_wise,
-                                        n_gpus=n_gpus, regularized=regularized, vae=vae, use_amp=scaler is not None)
+        if val_loader:
+            val_loss = epoch_training(train_loader=train_loader, val_loader=val_loader, model=model, criterion=criterion, optimizer=optimizer, 
+                                    epoch=epoch, residual_arrays_path=residual_arrays_path, separate_hemisphere=separate_hemisphere, 
+                                    cube_size=cube_size, n_gpus=n_gpus, voxel_wise=voxel_wise, distributed=False,
+                                    print_gpu_memory=False, scaler=scaler, train_or_val="val", training_type=config["training_type"])
         else:
             val_loss = None
         
         # Update the training log
-        training_log.append([epoch, loss, get_learning_rate(optimizer), val_loss])
+        training_log.append([epoch, train_loss, get_learning_rate(optimizer), val_loss])
 
         # Update the dataframe
         pd.DataFrame(training_log, columns=training_log_header).set_index("epoch").to_csv(training_log_filename)
@@ -263,11 +236,11 @@ def train(model, optimizer, criterion, n_epochs, training_loader, validation_loa
         # Check the scheduler
         if scheduler:
             # If the scheduler is ReduceLROnPlateau
-            if validation_loader and isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+            if val_loader and isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
                 scheduler.step(val_loss)
             # If the scheduler is training
             elif isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
-                scheduler.step(loss)
+                scheduler.step(train_loss)
             else:
                 scheduler.step()
 
@@ -291,3 +264,56 @@ def train(model, optimizer, criterion, n_epochs, training_loader, validation_loa
                 remove_file(to_delete)
             epoch_filename = model_filename.replace(".h5", "_{}.h5".format(epoch))
             forced_copy(model_filename, epoch_filename)
+
+# Define the epoch training
+def epoch_training(train_loader, val_loader, model, criterion, optimizer, epoch, residual_arrays_path, separate_hemisphere, 
+                   cube_size=16, n_gpus=None, voxel_wise=False, distributed=False, print_gpu_memory=False, 
+                   scaler=None, train_or_val="train", training_type="residual"):
+    
+    # Define the meters
+    batch_time = AverageMeter("Time", ":6.3f")
+    data_time = AverageMeter("Data", ":6.3f")
+    losses = AverageMeter("Loss", ":.4e")
+    progress = ProgressMeter(
+        len(train_loader),
+        [batch_time, data_time, losses],
+        prefix='Epoch [{}]'.format(epoch)
+    )
+
+    # Perform necessary operations based on train or val
+    if train_or_val == "train":
+        # Define use_amp
+        use_amp = scaler is not None
+        # Switch to train mode
+        model.train()
+    else:
+        # Switch to evaluate mode
+        model.eval()
+
+    # Define indices for the coordinates
+    x_coord = 2
+    y_coord = 3
+    z_coord = 4
+    coordinates = [x_coord, y_coord, z_coord]
+    
+    # Define the kernel size (cube will be 2 * kernel_size) - HYPERPARAMETER
+    kernel_size = cube_size
+
+    # Do the inner loop, depending on whether we are training or validating
+    if train_or_val == "train":
+        # If the training type is residual
+        if training_type == "residual":
+            training_loop_residual(train_loader, model, criterion, optimizer, epoch, residual_arrays_path, separate_hemisphere,
+                                    kernel_size=kernel_size, n_gpus=n_gpus, voxel_wise=voxel_wise, distributed=distributed,
+                                    print_gpu_memory=print_gpu_memory, scaler=scaler, data_time=data_time, coordinates=coordinates,
+                                    use_amp=use_amp, losses=losses, batch_time=batch_time, progress=progress)
+        
+    else:
+        # If the training type is residual
+        if training_type == "residual":
+            validation_loop_residual(val_loader, model, criterion, epoch, residual_arrays_path, separate_hemisphere,
+                                    kernel_size=kernel_size, n_gpus=n_gpus, voxel_wise=voxel_wise, distributed=distributed,
+                                    coordinates=coordinates, use_amp=use_amp, losses=losses, batch_time=batch_time, progress=progress)
+         
+    # Return the losses
+    return losses.avg

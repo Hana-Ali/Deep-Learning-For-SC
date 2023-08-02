@@ -12,7 +12,8 @@ class StreamlineDataset(torch.utils.data.Dataset):
     def __init__(self, data_path,
                  transforms=None,
                  train=False,
-                 test=False):
+                 test=False,
+                 tck_type="trk"):
         
         # Define the data paths
         self.data_path = data_path
@@ -21,19 +22,27 @@ class StreamlineDataset(torch.utils.data.Dataset):
         # 1. FOD images (INPUTS)
         # 2. Streamlines (TARGETS)
         
-        # Get all the nii.gz and tck files
+        # Get all the nii.gz, tck and trk files
         nii_gz_files = glob_files(self.data_path, "nii.gz")        
         tck_files = glob_files(self.data_path, "tck")
+        trk_files = glob_files(self.data_path, "trk")
 
         # Filter out the WMFOD images (INPUTS 1)
         wmfod_images = [file for file in nii_gz_files if "wmfod" in file]
 
         # Filter out the streamlines (TARGETS)
-        streamlines = [file for file in tck_files if "tracer" in file and "sharp" not in file]
+        tck_streamlines = [file for file in tck_files if "tracer" in file and "sharp" not in file]
+        trk_streamlines = [file for file in trk_files if "tracer" in file and "sharp" not in file]
 
         # Prepare the lists
         self.wmfod_images = []
         self.streamlines = []
+
+        # If the tck type is trk, then we use the trk streamlines
+        if tck_type == "trk":
+            streamlines = trk_streamlines
+        else:
+            streamlines = tck_streamlines
 
         # For every item in the streamlines
         for i in range(len(streamlines)):

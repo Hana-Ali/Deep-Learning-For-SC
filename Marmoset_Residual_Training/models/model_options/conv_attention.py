@@ -16,7 +16,7 @@ import torch.nn as nn
 class CNN_Attention(nn.Module):
 
     # Constructor
-    def __init__(self, in_channels, num_rnn_layers, num_rnn_hidden_neurons, cube_size=15, num_channels=45):
+    def __init__(self, in_channels=45, num_rnn_layers=2, num_rnn_hidden_neurons=1000, cube_size=15):
 
         # Call parent constructor
         super(CNN_Attention, self).__init__()
@@ -36,7 +36,7 @@ class CNN_Attention(nn.Module):
         self.adaptive_average_pool = nn.AdaptiveAvgPool3d(1)
 
         # Define the MLP part
-        self.flattened_input_size = cube_size * cube_size * cube_size * num_channels
+        self.flattened_input_size = cube_size * cube_size * cube_size * self.in_channels 
         self.mlp = self.build_mlp_layers()
 
         # Define the number of coordinates
