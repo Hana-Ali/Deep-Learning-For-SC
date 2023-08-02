@@ -112,7 +112,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
 
     # Split the data
     seed = torch.Generator().manual_seed(42)
-    train_set, val_set, test_set = torch.utils.data.random_split(dataset, lengths, seed=seed)
+    train_set, val_set, test_set = torch.utils.data.random_split(dataset, lengths, generator=seed)
         
     # Define the training loader
     train_loader = torch.utils.data.DataLoader(train_set,
@@ -140,6 +140,10 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
                                                 collate_fn=collate_fn,
                                                 pin_memory=pin_memory,
                                                 prefetch_factor=prefetch_factor)
+    
+    print("Training set size: {}".format(len(train_set)))
+    print("Validation set size: {}".format(len(val_set)))
+    print("Test set size: {}".format(len(test_set)))
         
     #########################################################################################################
     ########################################## MODEL TRAINING ###############################################
