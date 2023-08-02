@@ -35,6 +35,9 @@ class CNN_Attention(nn.Module):
         # Define the adaptive average pool
         self.adaptive_average_pool = nn.AdaptiveAvgPool3d(1)
 
+        # Define the number of coordinates
+        self.num_coordinates = 3
+
     # Build convolutional layers
     def build_convolutional_layers(self):
 
@@ -137,8 +140,11 @@ class CNN_Attention(nn.Module):
     # Define the MLP pass
     def mlp_pass(self, input_x):
 
-        # Flatten the input
-        flattened_input = input_x.view(input_x.shape[0], -1)
+        # Calculate the flattened input size
+        flattened_input_size = input_x.shape[1] * input_x.shape[2] * input_x.shape[3] * input_x.shape[4]
+
+        # Flatten the input, preserving batch size
+        flattened_input = input_x.view(-1, flattened_input_size)
 
         # Define the filter sizes
         neurons = [512, 256, 128, 3]
@@ -156,6 +162,9 @@ class CNN_Attention(nn.Module):
 
         # Pass the input through the MLP
         mlp_output = self.mlp(flattened_input)
+
+        # Reshape the output
+        mlp_output = mlp_output.view(-1, 1, self.num_coordinates)
 
         # Return the output
         return mlp_output
