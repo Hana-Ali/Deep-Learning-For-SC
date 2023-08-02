@@ -3,7 +3,8 @@ import torch.nn.parallel
 import torch.optim
 import torch.utils.data
 import torch.utils.data.distributed
-import time
+import shutil
+from utils.training_utils import loss_funcs
 import numpy as np
 
 try:
@@ -130,6 +131,49 @@ def human_readable_size(size_bytes):
 # Check if it's in config
 def in_config(string, dictionary, if_not_in_config_return=None):
     return dictionary[string] if string in dictionary else if_not_in_config_return
+
+# Define the save checkpoint
+def save_checkpoint(state, is_best, filename='checkpoint.pth.tar', best_filename='model_best.pth.tar'):
+
+    # Save the checkpoint
+    torch.save(state, filename)
+
+    # If best
+    if is_best:
+        shutil.copyfile(filename, best_filename)
+
+# Function to get the learning rate
+def get_learning_rate(optimizer):
+    lrs = [params['lr'] for params in optimizer.param_groups]
+    return np.squeeze(np.unique(lrs))
+
+# Function to load the criterion
+def load_criterion(criterion_name, n_gpus=0):
+    try:
+        criterion = getattr(loss_funcs, criterion_name)
+    except AttributeError:
+        criterion = getattr(torch.nn, criterion_name)()
+        if n_gpus > 0:
+            criterion.cuda()
+    return criterion
+
+# Function to force copy
+def forced_copy(src, dst):
+    # Remove the file
+    remove_file(dst)
+    # Copy the file
+    shutil.copyfile(src, dst)
+
+# Function to remove a file
+def remove_file(filename):
+    # If the file exists
+    if os.path.isfile(filename):
+        # Remove the file
+        os.remove(filename)
+
+# Function to build optimizer
+def build_optimizer(optimizer_name, model_parameters, learning_rate=1e-4):
+    return getattr(torch.optim, optimizer_name)(model_parameters, lr=learning_rate)
 
 # Function to grab the cube around a certain voxel
 def grab_cube_around_voxel(image, voxel_coordinates, kernel_size):
@@ -305,48 +349,44 @@ def get_predictions_indexing(x, y, z, half_kernel, predictions_array):
     return (start_idx_x, start_idx_y, start_idx_z, end_idx_x, end_idx_y, end_idx_z)
 
 # Function to get the b0 and residual hemispheres
-def get_b0_residual_hemispheres(coordinates, separate_hemisphere, residual, b0, is_flipped, kernel_size):
+def get_hemisphere(coordinates, separate_hemisphere, image, kernel_size, is_flipped=False):
     
     # Get the coordinates
     x_coord, y_coord, z_coord = coordinates
     
     # Get the midpoint of the x dimension
-    x_midpoint = int(residual.shape[x_coord] / 2)
+    x_midpoint = int(image.shape[x_coord] / 2)
 
     # If we want to separate by hemisphere
     if separate_hemisphere:
 
         # Define the half shape
-        half_shape_b0 = (b0.shape[0], b0.shape[1], x_midpoint, b0.shape[3], b0.shape[4])
-        half_shape_res = (residual.shape[0], residual.shape[1], x_midpoint, 
-                          residual.shape[3], residual.shape[4])
+        half_shape = (image.shape[0], image.shape[1], x_midpoint, image.shape[3], image.shape[4])
 
         # Define the hemisphere tensors with the correct shape
-        b0_hemisphere = torch.empty(half_shape_b0)
-        residual_hemisphere = torch.empty(half_shape_res)
+        hemisphere = torch.empty(half_shape)
 
         # Get the left or right hemisphere, depending on whether it's flipped or not
-        for item in range(b0.shape[0]):
+        for item in range(image.shape[0]):
             if is_flipped[item]: # Flipped means we go from 256 -> 128 because it's on the left (can check mrtrix to verify this)
-                b0_hemisphere[item, :, :, :, :] = b0[item, :, x_midpoint:, :, :]
-                residual_hemisphere[item, :, :, :, :] = residual[item, :, x_midpoint:, :, :]
+                hemisphere[item, :, :, :, :] = image[item, :, x_midpoint:, :, :]
+                hemisphere[item, :, :, :, :] = image[item, :, x_midpoint:, :, :]
             else: # Not flipped means we go from 0 -> 128 because it's on the right (can check mrtrix to verify this)
-                b0_hemisphere[item, :, :, :, :] = b0[item, :, :x_midpoint, :, :]
-                residual_hemisphere[item, :, :, :, :] = residual[item, :, :x_midpoint, :, :]
+                hemisphere[item, :, :, :, :] = image[item, :, :x_midpoint, :, :]
+                hemisphere[item, :, :, :, :] = image[item, :, :x_midpoint, :, :]
 
     # If we don't want to separate by hemisphere, we instead just use the things as they are
     else:
 
         # Define the hemispheres as the inputs themselves
-        b0_hemisphere, residual_hemisphere = b0, residual
+        hemisphere = image
 
 
-    # Pad the b0 and residuals to be of a shape that is a multiple of the kernel_size
-    b0_hemisphere = pad_to_shape(b0_hemisphere, kernel_size)
-    residual_hemisphere = pad_to_shape(residual_hemisphere, kernel_size)
+    # Pad the hemisphere to be of a shape that is a multiple of the kernel_size
+    hemisphere = pad_to_shape(hemisphere, kernel_size)
     
-    # Return the b0 and residual hemispheres
-    return b0_hemisphere, residual_hemisphere
+    # Return the hemisphere
+    return hemisphere
 
 # Function to unpack the injection centers and image coordinates into the right shape
 def unpack_injection_and_coordinates_to_tensor(input_data, kernel_size, batch_size):

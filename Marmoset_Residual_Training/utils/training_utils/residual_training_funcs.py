@@ -1,7 +1,5 @@
 from .general_funcs import *
 import numpy as np
-import shutil
-from utils.training_utils import loss_funcs
 import os
 import time
 
@@ -19,9 +17,9 @@ def training_loop_residual(train_loader, model, criterion, optimizer, epoch, res
         
         # Define whether we do b0 or wmfod
         if input == "b0":
-            curr_input = b0
+            brain_input = b0
         else:
-            curr_input = wmfod
+            brain_input = wmfod
                         
         # Measure the data loading time
         data_time.update(time.time() - end)
@@ -43,12 +41,12 @@ def training_loop_residual(train_loader, model, criterion, optimizer, epoch, res
         # Zero the parameter gradients
         optimizer.zero_grad()
         
-        # Get the b0 and residual hemispheres
-        b0_hemisphere, residual_hemisphere = get_b0_residual_hemispheres(coordinates, separate_hemisphere, residual, curr_input, 
-                                                                         is_flipped, kernel_size)
+        # Get the brain and residual hemispheres
+        brain_hemisphere = get_hemisphere(coordinates, separate_hemisphere, brain_input, kernel_size, is_flipped)
+        residual_hemisphere = get_hemisphere(coordinates, separate_hemisphere, residual, kernel_size, is_flipped)
         
         # Get the batch size
-        batch_size = b0_hemisphere.shape[0]
+        batch_size = brain_hemisphere.shape[0]
                 
         # Create a new tensor of size batch_size x 3 x kernel_size x kernel_size x kernel_size, that has the injection centers tiled
         injection_center_tiled = unpack_injection_and_coordinates_to_tensor(injection_center, kernel_size, 1)
@@ -80,7 +78,7 @@ def training_loop_residual(train_loader, model, criterion, optimizer, epoch, res
                     current_residual = get_current_residual(residual_hemisphere, curr_coord, int(kernel_size / 2), voxel_wise)
                     
                     # Get the cube in the DWI that corresponds to this coordinate
-                    b0_cube = grab_cube_around_voxel(image=b0_hemisphere, voxel_coordinates=curr_coord, kernel_size=kernel_size)
+                    b0_cube = grab_cube_around_voxel(image=brain_hemisphere, voxel_coordinates=curr_coord, kernel_size=kernel_size)
                     
                     
                     # Turn the cubes into tensors
@@ -177,16 +175,16 @@ def validation_loop_residual(val_loader, model, criterion, epoch, residual_array
 
             # Define whether we do b0 or wmfod
             if input == "b0":
-                curr_input = b0
+                brain_input = b0
             else:
-                curr_input = wmfod
+                brain_input = wmfod
 
-            # Get the b0 and residual hemispheres
-            b0_hemisphere, residual_hemisphere = get_b0_residual_hemispheres(coordinates, separate_hemisphere, residual, curr_input, 
-                                                                             is_flipped, kernel_size)
+            # Get the brain and residual hemispheres
+            brain_hemisphere = get_hemisphere(coordinates, separate_hemisphere, brain_input, kernel_size, is_flipped)
+            residual_hemisphere = get_hemisphere(coordinates, separate_hemisphere, residual, kernel_size, is_flipped)
 
             # Get the batch size
-            batch_size = b0_hemisphere.shape[0]
+            batch_size = brain_hemisphere.shape[0]
 
             # Create a new tensor of size batch_size x 3 x kernel_size x kernel_size x kernel_size, that has the injection centers tiled
             injection_center_tiled = unpack_injection_and_coordinates_to_tensor(injection_center, kernel_size, 1)
@@ -218,7 +216,7 @@ def validation_loop_residual(val_loader, model, criterion, epoch, residual_array
                         current_residual = get_current_residual(residual_hemisphere, curr_coord, int(kernel_size / 2), voxel_wise)
 
                         # Get the cube in the DWI that corresponds to this coordinate
-                        b0_cube = grab_cube_around_voxel(image=b0_hemisphere, voxel_coordinates=curr_coord, kernel_size=kernel_size)
+                        b0_cube = grab_cube_around_voxel(image=brain_hemisphere, voxel_coordinates=curr_coord, kernel_size=kernel_size)
 
 
                         # Turn the cubes into tensors
@@ -276,14 +274,14 @@ def validation_loop_residual(val_loader, model, criterion, epoch, residual_array
             np.save(groundtruth_filename, groundtruth_array)
 
 # Define the function to get model output
-def batch_loss(model, b0_cube, injection_center, image_coordinates, residual_cube, criterion, 
+def batch_loss(model, brain_cube, injection_center, image_coordinates, residual_cube, criterion, 
                distributed=False, n_gpus=None, use_amp=False):
     
     # If number of GPUs
     if n_gpus:
         
         # Cast all the data to float
-        b0_cube = b0_cube.float()
+        brain_cube = brain_cube.float()
         residual_cube = residual_cube.float()
         injection_center = injection_center.float()
         image_coordinates = image_coordinates.float()
@@ -295,7 +293,7 @@ def batch_loss(model, b0_cube, injection_center, image_coordinates, residual_cub
             torch.cuda.empty_cache()
 
             # Get all the data on the GPU
-            b0_cube = b0_cube.cuda()
+            brain_cube = brain_cube.cuda()
             residual_cube = residual_cube.cuda()
             injection_center = injection_center.cuda()
             image_coordinates = image_coordinates.cuda()
@@ -303,65 +301,21 @@ def batch_loss(model, b0_cube, injection_center, image_coordinates, residual_cub
     # Compute the output
     if use_amp:
         with torch.cuda.amp.autocast():
-            return _batch_loss(model, b0_cube, injection_center, image_coordinates, residual_cube, criterion)
+            return _batch_loss(model, brain_cube, injection_center, image_coordinates, residual_cube, criterion)
     else:
-        return _batch_loss(model, b0_cube, injection_center, image_coordinates, residual_cube, criterion)
+        return _batch_loss(model, brain_cube, injection_center, image_coordinates, residual_cube, criterion)
     
 # Define the batch loss
-def _batch_loss(model, b0_cube, injection_center, image_coordinates, residual_cube, criterion):
+def _batch_loss(model, brain_cube, injection_center, image_coordinates, residual_cube, criterion):
     
     # Compute the output
-    predicted_residual = model(b0_cube, injection_center, image_coordinates)
+    predicted_residual = model(brain_cube, injection_center, image_coordinates)
             
     # Find the loss between the output and the voxel value
     loss = criterion(predicted_residual, residual_cube)
         
     # Get the batch size
-    batch_size = b0_cube.size(0)
+    batch_size = brain_cube.size(0)
         
     # Return the loss
     return predicted_residual, loss, batch_size
-
-
-# Define the save checkpoint
-def save_checkpoint(state, is_best, filename='checkpoint.pth.tar', best_filename='model_best.pth.tar'):
-
-    # Save the checkpoint
-    torch.save(state, filename)
-
-    # If best
-    if is_best:
-        shutil.copyfile(filename, best_filename)
-
-# Function to get the learning rate
-def get_learning_rate(optimizer):
-    lrs = [params['lr'] for params in optimizer.param_groups]
-    return np.squeeze(np.unique(lrs))
-
-# Function to load the criterion
-def load_criterion(criterion_name, n_gpus=0):
-    try:
-        criterion = getattr(loss_funcs, criterion_name)
-    except AttributeError:
-        criterion = getattr(torch.nn, criterion_name)()
-        if n_gpus > 0:
-            criterion.cuda()
-    return criterion
-
-# Function to force copy
-def forced_copy(src, dst):
-    # Remove the file
-    remove_file(dst)
-    # Copy the file
-    shutil.copyfile(src, dst)
-
-# Function to remove a file
-def remove_file(filename):
-    # If the file exists
-    if os.path.isfile(filename):
-        # Remove the file
-        os.remove(filename)
-
-# Function to build optimizer
-def build_optimizer(optimizer_name, model_parameters, learning_rate=1e-4):
-    return getattr(torch.optim, optimizer_name)(model_parameters, lr=learning_rate)
