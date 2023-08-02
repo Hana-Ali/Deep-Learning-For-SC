@@ -127,10 +127,13 @@ class StreamlineDataset(torch.utils.data.Dataset):
     def read_streamline(self, streamline_path):
 
         # Read the streamline
-        streamline = nib.streamlines.load(streamline_path).streamlines
+        streamlines = nib.streamlines.load(streamline_path).streamlines
+
+        # Round the streamline
+        streamlines = np.round(streamlines).astype(int)
 
         # Return the streamline list of lists of coordinates
-        return streamline
+        return streamlines
     
     # Function to get item
     def __getitem__(self, index):

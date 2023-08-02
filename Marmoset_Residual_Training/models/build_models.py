@@ -8,7 +8,8 @@ from models.model_options import *
 # Function to get the model
 def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, norm_layer=None,
               use_dropout=None, padding_type=None, voxel_wise=None, cube_size=15, num_rnn_layers=2,
-              num_rnn_hidden_neurons=1000):
+              num_rnn_hidden_neurons=1000, num_nodes=1, num_coordinates=3, prev_output_size=32,
+              combination=True):
     
     try:
         if "resnet" in model_name.lower():
@@ -50,30 +51,36 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
 
             # Assert that none of the parameters are None
             assert input_nc is not None
-            assert num_rnn_layers is not None
-            assert num_rnn_hidden_neurons is not None
+            assert num_nodes is not None
+            assert combination is not None
 
             # Return the CNN Attention
             return CNN_Attention(in_channels=input_nc,
                                  num_rnn_layers=num_rnn_layers,
                                  num_rnn_hidden_neurons=num_rnn_hidden_neurons,
-                                 cube_size=cube_size)
+                                 cube_size=cube_size, 
+                                 num_nodes=num_nodes,
+                                 num_coordinates=num_coordinates,
+                                 prev_output_size=prev_output_size,
+                                 combination=combination)
 
     except AttributeError:
         raise ValueError("Model {} not found".format(model_name))
     
 # Function to build or load the model
-def build_or_load_model(model_name, model_filename, input_nc, output_nc, ngf, 
-                        num_blocks, norm_layer=nn.BatchNorm3d, use_dropout=False, 
-                        padding_type="reflect", cube_size=16, voxel_wise=False,
-                        n_gpus=0, bias=None, freeze_bias=False,
-                        strict=False):
+def build_or_load_model(model_name, model_filename, input_nc, output_nc=None, ngf=None, num_blocks=None, norm_layer=nn.BatchNorm3d,
+                        use_dropout=False, padding_type="reflect", voxel_wise=False, cube_size=15, num_rnn_layers=2,
+                        num_rnn_hidden_neurons=1000, num_nodes=1, num_coordinates=3, prev_output_size=32, combination=True,
+                        n_gpus=0, bias=None, freeze_bias=False, strict=False, ):
 
     # Get the model
     model = get_model(model_name=model_name, input_nc=input_nc, output_nc=output_nc,
                       ngf=ngf, num_blocks=num_blocks, norm_layer=norm_layer,
                       use_dropout=use_dropout, padding_type=padding_type,
-                      voxel_wise=voxel_wise, cube_size=cube_size)
+                      voxel_wise=voxel_wise, cube_size=cube_size, num_rnn_layers=num_rnn_layers,
+                      num_rnn_hidden_neurons=num_rnn_hidden_neurons, num_nodes=num_nodes,
+                      num_coordinates=num_coordinates, prev_output_size=prev_output_size,
+                      combination=combination)
 
     # If there's bias
     if bias is not None:

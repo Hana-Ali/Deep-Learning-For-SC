@@ -27,6 +27,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
     main_data_path = config["main_data_path"]
     training_log_filename = config["training_log_filename"]
     residual_arrays_path = config["residual_arrays_path"] if "residual_arrays_path" in config else None
+    streamline_arrays_path = config["streamline_arrays_path"] if "streamline_arrays_path" in config else None
 
     # Get the training parameters
     n_epochs = config["n_epochs"]
@@ -57,7 +58,9 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
     if config["training_type"] == "streamline":
         # Build the model
         model = build_or_load_model(model_name, model_filename, input_nc=config["input_nc"], cube_size=config["cube_size"],
-                                    num_rnn_layers=config["num_rnn_layers"], num_rnn_hidden_neurons=config["num_rnn_hidden_neurons"])
+                                    num_rnn_layers=config["num_rnn_layers"], num_rnn_hidden_neurons=config["num_rnn_hidden_neurons"],
+                                    num_nodes=config["num_nodes"], num_coordinates=config["num_coordinates"],
+                                    prev_output_size=config["prev_output_size"], combination=config["combination"])
         # Build the dataset
         dataset = StreamlineDataset(main_data_path, transforms=None, train=True, tck_type=config["tck_type"])
     elif config["training_type"] == "residual":
@@ -202,7 +205,8 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
         train_loss = epoch_training(train_loader=train_loader, val_loader=val_loader, model=model, criterion=criterion, optimizer=optimizer, 
                                     epoch=epoch, residual_arrays_path=residual_arrays_path, separate_hemisphere=separate_hemisphere, 
                                     cube_size=cube_size, n_gpus=n_gpus, voxel_wise=voxel_wise, distributed=False,
-                                    print_gpu_memory=False, scaler=scaler, train_or_val="train", training_type=config["training_type"])
+                                    print_gpu_memory=False, scaler=scaler, train_or_val="train", training_type=config["training_type"],
+                                    streamline_arrays_path=streamline_arrays_path, input_type=config["tck_type"])
                                
         try:
             train_loader.dataset.on_epoch_end()
@@ -217,9 +221,10 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
         # Predict validation set
         if val_loader:
             val_loss = epoch_training(train_loader=train_loader, val_loader=val_loader, model=model, criterion=criterion, optimizer=optimizer, 
-                                    epoch=epoch, residual_arrays_path=residual_arrays_path, separate_hemisphere=separate_hemisphere, 
-                                    cube_size=cube_size, n_gpus=n_gpus, voxel_wise=voxel_wise, distributed=False,
-                                    print_gpu_memory=False, scaler=scaler, train_or_val="val", training_type=config["training_type"])
+                                        epoch=epoch, residual_arrays_path=residual_arrays_path, separate_hemisphere=separate_hemisphere, 
+                                        cube_size=cube_size, n_gpus=n_gpus, voxel_wise=voxel_wise, distributed=False,
+                                        print_gpu_memory=False, scaler=scaler, train_or_val="val", training_type=config["training_type"],
+                                        streamline_arrays_path=streamline_arrays_path, input_type=config["tck_type"])
         else:
             val_loss = None
         
@@ -267,8 +272,8 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
 
 # Define the epoch training
 def epoch_training(train_loader, val_loader, model, criterion, optimizer, epoch, residual_arrays_path, separate_hemisphere, 
-                   cube_size=16, n_gpus=None, voxel_wise=False, distributed=False, print_gpu_memory=False, 
-                   scaler=None, train_or_val="train", training_type="residual"):
+                   streamline_arrays_path, input_type, cube_size=16, n_gpus=None, voxel_wise=False, distributed=False, 
+                   print_gpu_memory=False, scaler=None, train_or_val="train", training_type="residual"):
     
     # Define the meters
     batch_time = AverageMeter("Time", ":6.3f")
@@ -307,6 +312,13 @@ def epoch_training(train_loader, val_loader, model, criterion, optimizer, epoch,
                                     kernel_size=kernel_size, n_gpus=n_gpus, voxel_wise=voxel_wise, distributed=distributed,
                                     print_gpu_memory=print_gpu_memory, scaler=scaler, data_time=data_time, coordinates=coordinates,
                                     use_amp=use_amp, losses=losses, batch_time=batch_time, progress=progress)
+        elif training_type == "streamline":
+            training_loop_nodes(train_loader, model, criterion, optimizer, epoch, streamline_arrays_path, separate_hemisphere,
+                                kernel_size=16, n_gpus=None, distributed=False, print_gpu_memory=False, scaler=None, 
+                                data_time=None, coordinates=None, use_amp=False, losses=None, batch_time=None,
+                                progress=None, input_type=input_type)
+        else:
+            raise ValueError("Training type {} not found".format(training_type))
         
     else:
         # If the training type is residual
@@ -314,6 +326,12 @@ def epoch_training(train_loader, val_loader, model, criterion, optimizer, epoch,
             validation_loop_residual(val_loader, model, criterion, epoch, residual_arrays_path, separate_hemisphere,
                                     kernel_size=kernel_size, n_gpus=n_gpus, voxel_wise=voxel_wise, distributed=distributed,
                                     coordinates=coordinates, use_amp=use_amp, losses=losses, batch_time=batch_time, progress=progress)
-         
+        elif training_type == "streamline":
+            validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays_path, separate_hemisphere,
+                                    kernel_size=16, n_gpus=None, distributed=False, coordinates=None, use_amp=False, losses=None,
+                                    batch_time=None, progress=None, input_type=input_type)
+        else:
+            raise ValueError("Training type {} not found".format(training_type))
+            
     # Return the losses
     return losses.avg
