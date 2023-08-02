@@ -182,9 +182,15 @@ def grab_cube_around_voxel(image, voxel_coordinates, kernel_size):
     # Get the voxel coordinates
     voxel_x, voxel_y, voxel_z = voxel_coordinates
 
+    print("Voxel coordinates are: {}".format(voxel_coordinates))
+    print("Image shape is: {}".format(image.shape))
+    print("Kernel size is: {}".format(kernel_size))
+
     # Create the cube
     cube_size = kernel_size * 2
     cube = np.zeros((image.shape[0], image.shape[1], cube_size, cube_size, cube_size))
+
+    print("Cube shape is: {}".format(cube.shape))
     
     # For every dimension
     for x in range(cube_size):
@@ -195,6 +201,8 @@ def grab_cube_around_voxel(image, voxel_coordinates, kernel_size):
                 x_coord = voxel_x - kernel_size + x
                 y_coord = voxel_y - kernel_size + y
                 z_coord = voxel_z - kernel_size + z
+
+                print("Coordinates inside cube are: {}".format((x_coord, y_coord, z_coord)))
 
                 # If the coordinates are out of bounds, set to the boundary
                 x_coord = set_value_if_out_of_bounds(x_coord, image.shape[2])
