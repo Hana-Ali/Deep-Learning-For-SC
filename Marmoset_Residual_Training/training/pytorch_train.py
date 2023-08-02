@@ -25,7 +25,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
     model_name = config["model_name"]
     model_filename = config["model_filename"]
     main_data_path = config["main_data_path"]
-    training_log_filename = config["training_log_filename"]
+    training_log_path = config["training_log_path"]
     residual_arrays_path = config["residual_arrays_path"] if "residual_arrays_path" in config else None
     streamline_arrays_path = config["streamline_arrays_path"] if "streamline_arrays_path" in config else None
 
@@ -149,9 +149,9 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
     training_log = []
     
     # If the training log filename is not None
-    if os.path.exists(training_log_filename):
+    if os.path.exists(training_log_path):
         # Load the training log
-        training_log.extend(pd.read_csv(training_log_filename).values)
+        training_log.extend(pd.read_csv(training_log_path).values)
         # Define the start epoch
         start_epoch = int(training_log[-1][0]) + 1
     # If the training log filename is None
@@ -230,7 +230,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
         training_log.append([epoch, train_loss, get_learning_rate(optimizer), val_loss])
 
         # Update the dataframe
-        pd.DataFrame(training_log, columns=training_log_header).set_index("epoch").to_csv(training_log_filename)
+        pd.DataFrame(training_log, columns=training_log_header).set_index("epoch").to_csv(training_log_path)
 
         # Find the minimum epoch
         min_epoch = np.asarray(training_log)[:, training_log_header.index(metric_to_monitor)].argmin()
