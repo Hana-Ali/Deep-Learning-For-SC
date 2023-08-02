@@ -147,8 +147,12 @@ class StreamlineDataset(torch.utils.data.Dataset):
         # Read the wmfod image
         wmfod_image_array = self.read_image(wmfod_image_path)
 
+        print("Read wmfod shape: {}".format(wmfod_image_array.shape))
+
         # Read the streamline
         streamline_list = self.read_streamline(streamline_path)
+
+        print("Read streamline shape: {}".format(len(streamline_list)))
         
         # Define a dictionary to store the images
         sample = {'wmfod' : wmfod_image_array,
