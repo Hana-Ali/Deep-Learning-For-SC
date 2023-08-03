@@ -145,6 +145,8 @@ class EfficientNet3D(nn.Module):
 
         # Build blocks
         self._blocks = nn.ModuleList([])
+        print("Number of blocks", len(self._blocks_args))
+
         for block_args in self._blocks_args:
 
             # Update block input and output filters based on depth multiplier.
@@ -160,6 +162,10 @@ class EfficientNet3D(nn.Module):
                 block_args = block_args._replace(input_filters=block_args.output_filters, stride=1)
             for _ in range(block_args.num_repeat - 1):
                 self._blocks.append(MBConvBlock3D(block_args, self._global_params))
+
+            print("Num repeat", block_args.num_repeat)
+
+        print("Number of blocks", len(self._blocks))
 
         # Head
         in_channels = block_args.output_filters  # output of final block
@@ -188,6 +194,7 @@ class EfficientNet3D(nn.Module):
 
         # Blocks
         for idx, block in enumerate(self._blocks):
+            print("Block", idx, "x shape", x.shape)
             drop_connect_rate = self._global_params.drop_connect_rate
             if drop_connect_rate:
                 drop_connect_rate *= float(idx) / len(self._blocks)
@@ -201,9 +208,19 @@ class EfficientNet3D(nn.Module):
     def forward(self, inputs):
         """ Calls extract_features to extract features, applies final linear layer, and returns logits. """
         bs = inputs.size(0)
+        in_channels = inputs.size(1)
+        # Change shape so we do everything channel-wise
+        reshaped_inputs = inputs.view(-1, 1, inputs.shape[2], inputs.shape[3], inputs.shape[4])
         # Convolution layers
-        x = self.extract_features(inputs)
-        print("Extract features shape", x.shape)
+        x = self.extract_features(reshaped_inputs)
+        # print("Extract features shape", x.shape)
+        # Resize to original shape
+        x = x.view(bs, -1, x.shape[2], x.shape[3], x.shape[4])
+        # print("View shape", x.shape)
+        # Convolve to get it to have in_channels as the outchannels
+        # print("Conv shape", x.shape[1] // in_channels)
+        x = nn.Conv3d(x.shape[1], x.shape[1] // in_channels, kernel_size=1, stride=1, padding=0).cuda()(x)
+        # print("Conv shape", x.shape)
 
         if self._global_params.include_top:
             # Pooling and final linear layer

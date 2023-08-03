@@ -239,6 +239,7 @@ class BlockDecoder(object):
         blocks_args = []
         for block_string in string_list:
             blocks_args.append(BlockDecoder._decode_block_string(block_string))
+            print("Block args", blocks_args)
         return blocks_args
 
     @staticmethod
@@ -259,10 +260,16 @@ def efficientnet3d(width_coefficient=None, depth_coefficient=None, dropout_rate=
                  drop_connect_rate=0.2, image_size=None, num_classes=1000, include_top=True):
     """ Creates a efficientnet model. """
 
+    # blocks_args = [
+    #     'r1_k3_s222_e1_i32_o16_se0.25', 'r2_k3_s222_e6_i16_o24_se0.25',
+    #     'r2_k5_s222_e6_i24_o40_se0.25', 'r3_k3_s222_e6_i40_o80_se0.25',
+    #     'r3_k5_s111_e6_i80_o112_se0.25', 'r4_k5_s222_e6_i112_o192_se0.25',
+    #     'r1_k3_s111_e6_i192_o320_se0.25',
+    # ]
     blocks_args = [
-        'r1_k3_s222_e1_i32_o16_se0.25', 'r2_k3_s222_e6_i16_o24_se0.25',
-        'r2_k5_s222_e6_i24_o40_se0.25', 'r3_k3_s222_e6_i40_o80_se0.25',
-        'r3_k5_s111_e6_i80_o112_se0.25', 'r4_k5_s222_e6_i112_o192_se0.25',
+        'r1_k3_s222_e1_i32_o16_se0.25', 'r2_k3_s111_e6_i16_o24_se0.25',
+        'r2_k5_s111_e6_i24_o40_se0.25', 'r3_k3_s111_e6_i40_o80_se0.25',
+        'r3_k5_s111_e6_i80_o112_se0.25', 'r4_k5_s111_e6_i112_o192_se0.25',
         'r1_k3_s111_e6_i192_o320_se0.25',
     ]
     blocks_args = BlockDecoder.decode(blocks_args)
