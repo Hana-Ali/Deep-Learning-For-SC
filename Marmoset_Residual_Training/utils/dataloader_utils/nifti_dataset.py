@@ -184,7 +184,7 @@ class NiftiDataset(torch.utils.data.Dataset):
 
         # Load the injection center into a numpy array
         injection_center = np.loadtxt(injection_center_path, delimiter=',')
-
+        
         # Define a dictionary to store the images
         sample = {'b0' : b0_image_array, 
                   'wmfod' : wmfod_image_array,

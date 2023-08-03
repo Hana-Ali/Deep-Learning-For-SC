@@ -53,8 +53,9 @@ configs = {
     "training_log_path" : training_log_path, # Training log path
     "model_filename" : model_filename, # Model filename
     "streamline_arrays_path" : streamline_arrays_path, # Path to the streamlines array
-    "batch_size" : 16, # Batch size
-    "validation_batch_size" : 1, # Validation batch size
+    "batch_size" : 1, # Batch size
+    "validation_batch_size" : 8, # Validation batch size
+    "num_streamlines" : 10, # Number of streamlines to consider from each site
     
     ####### Parameters #######
     "initial_learning_rate" : 1e-04, # Initial learning rate
@@ -94,4 +95,4 @@ else:
 
 model_metrics = (configs["evaluation_metric"],)
 
-run_training(configs, metric_to_monitor=metric_to_monitor, bias=False)
+run_training(configs, metric_to_monitor=metric_to_monitor, bias=None)

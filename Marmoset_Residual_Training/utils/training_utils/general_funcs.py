@@ -50,11 +50,6 @@ class AverageMeter(object):
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
-        
-        # print("Value is: {}".format(self.val))
-        # print("Sum is: {}".format(self.sum))
-        # print("Count is: {}".format(self.count))
-        # print("Average is: {}".format(self.avg))
 
     # Return the string representation
     def __str__(self):
@@ -178,14 +173,23 @@ def build_optimizer(optimizer_name, model_parameters, learning_rate=1e-4):
 
 # Function to grab the cube around a certain voxel
 def grab_cube_around_voxel(image, voxel_coordinates, kernel_size):
+    
+    # Convert the list of torch tensors to NumPy arrays if necessary
+    if isinstance(voxel_coordinates, list):
+        voxel_coordinates = [coord.detach().cpu().numpy() if isinstance(coord, torch.Tensor) else coord for coord in voxel_coordinates]
+        voxel_coordinates = np.array(voxel_coordinates)
 
-    # Get the voxel coordinates
+    # Get the voxel coordinates and turn them into numpy arrays
     voxel_x, voxel_y, voxel_z = voxel_coordinates
-
+    
     # Create the cube
     cube_size = kernel_size * 2
     cube = np.zeros((image.shape[0], image.shape[1], cube_size, cube_size, cube_size))
     
+    # Get the batch size
+    batch_size = image.shape[0]
+    
+
     # For every dimension
     for x in range(cube_size):
         for y in range(cube_size):
@@ -196,33 +200,33 @@ def grab_cube_around_voxel(image, voxel_coordinates, kernel_size):
                 y_coord = voxel_y - kernel_size + y
                 z_coord = voxel_z - kernel_size + z
 
-                print("Coordinates inside cube are: {}".format((x_coord, y_coord, z_coord)))
-
                 # If the coordinates are out of bounds, set to the boundary
                 x_coord = set_value_if_out_of_bounds(x_coord, image.shape[2])
                 y_coord = set_value_if_out_of_bounds(y_coord, image.shape[3])
                 z_coord = set_value_if_out_of_bounds(z_coord, image.shape[4])
 
                 # Get the value at the coordinate
-                value = image[:, :, x_coord, y_coord, z_coord]
-
-                # Set the value in the cube
-                cube[:, :, x, y, z] = value
-                        
+                if isinstance(x_coord, np.ndarray):
+                    # For each item in the batch
+                    for batch in range(batch_size):
+                        # Get the value in the image
+                        value = image[batch, :, x_coord[batch], y_coord[batch], z_coord[batch]]
+                        # Set the value in the cube
+                        cube[batch, :, x, y, z] = value
+                else:
+                    # Get the value at the coordinate
+                    value = image[:, :, x_coord, y_coord, z_coord]
+                    # Set the value in the cube
+                    cube[:, :, x, y, z] = value
+    
     # Return the cube
     return cube
 
 # Function to set the value if out of bounds
-def set_value_if_out_of_bounds(value, bound):
+def set_value_if_out_of_bounds(coord, bound):
 
     # If the value is out of bounds
-    if value < 0:
-        value = 0
-    elif value >= bound:
-        value = bound - 1
-
-    # Return the value
-    return value
+    return np.clip(coord, 0, bound - 1)
 
 # Function to pad 3D array to a shape
 def pad_to_shape(input_array, kernel_size):

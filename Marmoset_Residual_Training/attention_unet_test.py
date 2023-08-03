@@ -28,7 +28,7 @@ configs = {
 
     ####### Model #######
     "model_name" : "attention_unet", # Model name
-    "input_nc" : 1, # Number of input channels
+    "input_nc" : 45, # Number of input channels
     "output_nc" : 3, # Number of output channels
     "ngf" : 64, # Number of filters in first conv layer
     "num_blocks" : 3, # Number of residual blocks
@@ -68,6 +68,7 @@ configs = {
 
     ####### Misc #######
     "skip_val" : False, # Skip validation
+    "training_type" : "residual", # Training type
 
 }
 
@@ -94,7 +95,4 @@ else:
 
 model_metrics = (configs["evaluation_metric"],)
 
-run_pytorch_training(configs, configs["model_filename"], configs["training_log_path"],
-                     configs["residual_arrays_path"], model_name=configs["model_name"],
-                     cube_size=configs["cube_size"], metric_to_monitor=metric_to_monitor,
-                     bias=None)
+run_training(configs, metric_to_monitor=metric_to_monitor, bias=None)

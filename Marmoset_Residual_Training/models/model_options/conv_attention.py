@@ -38,7 +38,8 @@ class CNN_Attention(nn.Module):
         self.previous_predictions_mlp_output_size = prev_output_size
 
         # Define the flattened input size to the CNN/Attention MLP
-        self.flattened_input_size = cube_size * cube_size * cube_size * self.in_channels
+        cube_size_sq = cube_size * 2
+        self.flattened_input_size = cube_size_sq * cube_size_sq * cube_size_sq * self.in_channels
 
         # Define CNN part
         self.cnn = self.build_convolutional_layers()
@@ -205,17 +206,26 @@ class CNN_Attention(nn.Module):
         # reshape the input, so the channels are stacked in the batch dimension
         # (N, C, H, W) -> (N * C, 1, H, W) - http://bitly.ws/PGMQ
         
+        # print("====================== BEFORE FIRST BLOCK =====================")
+        # print(torch.cuda.memory_summary(device=None, abbreviated=False))
+            
         # Do the first block of convolution and attention
         first_block = self.pass_pass_pool_multiply(wmfod_input)
-        print("Shape of first_block", first_block.shape)
-
+        # print("Shape of first_block", first_block.shape)
+        
+        # print("====================== BEFORE SECOND BLOCK =====================")
+        # print(torch.cuda.memory_summary(device=None, abbreviated=False))
+        
         # Do the second block of convolution and attention
         second_block = self.pass_pass_pool_multiply(first_block)
-        print("Shape of second_block", second_block.shape)
+        # print("Shape of second_block", second_block.shape)
+        
+        # print("====================== BEFORE THIRD BLOCK =====================")
+        # print(torch.cuda.memory_summary(device=None, abbreviated=False))
 
         # Do the third block of convolution and attention
         third_block = self.pass_pass_pool_multiply(second_block)
-        print("Shape of third_block", third_block.shape)
+        # print("Shape of third_block", third_block.shape)
 
         # Do the fourth block of convolution and attention
         fourth_block = self.pass_pass_pool_multiply(third_block)
@@ -231,20 +241,30 @@ class CNN_Attention(nn.Module):
 
         # If we want to use the previous predictions
         if self.combination:
+            
+            # print("====================== BEFORE PREVIOUS MLP BLOCK =====================")
+            # print(torch.cuda.memory_summary(device=None, abbreviated=False))
 
             # Pass the previous predictions through the MLP
             previous_predictions_mlp_output = self.previous_predictions_mlp(previous_predictions)
-            print("Shape of previous_predictions_mlp_output", previous_predictions_mlp_output.shape)
+            # print("Shape of previous_predictions_mlp_output", previous_predictions_mlp_output.shape)
+            
+            # print("====================== BEFORE FINAL MLP BLOCK =====================")
+            # print(torch.cuda.memory_summary(device=None, abbreviated=False))
 
             # Pass the previous predictions and the sixth block through the combination MLP
-            final_mlp = self.combination_mlp(previous_predictions_mlp_output, sixth_block)
-            print("Shape of final_mlp", final_mlp.shape)
+            final_mlp = self.combination_mlp(previous_predictions_mlp_output, third_block)
+            # print("Shape of final_mlp", final_mlp.shape)
 
         # If we don't want to use the previous predictions
         else:
+            # print("====================== BEFORE FINAL MLP BLOCK =====================")
+            # print(torch.cuda.memory_summary(device=None, abbreviated=False))
+            
             # Do the final MLP pass
-            final_mlp = self.mlp_pass(sixth_block)
-            print("Shape of final_mlp", final_mlp.shape)
+            final_mlp = self.mlp_pass(third_block)
+            # print("Shape of final_mlp", final_mlp.shape)
+            
 
         return final_mlp
 
@@ -271,7 +291,7 @@ class Previous_Predictions_MLP(nn.Module):
     def build_previous_predictions_mlp(self):
 
         # Define the number of neurons in each layer
-        neurons = [64]
+        neurons = [32]
 
         # Define the MLP layers
         self.previous_predictions_mlp = nn.Sequential(
@@ -322,7 +342,7 @@ class Combination_MLP(nn.Module):
     def build_combination_mlp(self):
 
         # Define the number of neurons in each layer
-        neurons = [512, 256, 128, 64]
+        neurons = [128, 64, 32]
 
         # Define the MLP layers
         self.combination_mlp = nn.Sequential(
@@ -332,9 +352,7 @@ class Combination_MLP(nn.Module):
             nn.ReLU(inplace=True),
             nn.Linear(neurons[1], neurons[2]),
             nn.ReLU(inplace=True),
-            nn.Linear(neurons[2], neurons[3]),
-            nn.ReLU(inplace=True),
-            nn.Linear(neurons[3], self.num_nodes * self.num_coordinates)
+            nn.Linear(neurons[2], self.num_nodes * self.num_coordinates)
         )
 
         # Return the MLP layers
@@ -343,12 +361,12 @@ class Combination_MLP(nn.Module):
     # Forward pass
     def forward(self, previous_predictions, cnn_attention_output):
         
-        print("Shape of previous_predictions", previous_predictions.shape)
-        print("Shape of cnn_attention_output", cnn_attention_output.shape)
+        # print("Shape of previous_predictions", previous_predictions.shape)
+        # print("Shape of cnn_attention_output", cnn_attention_output.shape)
 
         # Flatten the input, preserving batch size
         flattened_input = cnn_attention_output.view(-1, self.flattened_input_size)
-        print("Shape of flattened_input", flattened_input.shape)
+        # print("Shape of flattened_input", flattened_input.shape)
 
         # Concatenate the previous predictions with the flattened input
         combination_mlp_input = torch.cat((previous_predictions, flattened_input), dim=1)

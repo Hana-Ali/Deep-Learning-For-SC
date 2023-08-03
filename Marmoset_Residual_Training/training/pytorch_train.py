@@ -58,9 +58,11 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
         model = build_or_load_model(model_name, model_filename, input_nc=config["input_nc"], cube_size=config["cube_size"],
                                     num_rnn_layers=config["num_rnn_layers"], num_rnn_hidden_neurons=config["num_rnn_hidden_neurons"],
                                     num_nodes=config["num_nodes"], num_coordinates=config["num_coordinates"],
-                                    prev_output_size=config["prev_output_size"], combination=config["combination"])
+                                    prev_output_size=config["prev_output_size"], combination=config["combination"],
+                                    n_gpus=n_gpus, bias=bias, freeze_bias=in_config("freeze_bias", config, False),
+                                    strict=False)
         # Build the dataset
-        dataset = StreamlineDataset(main_data_path, transforms=None, train=True, tck_type=config["tck_type"])
+        dataset = StreamlineDataset(main_data_path, num_streamlines=config["num_streamlines"], transforms=None, train=True, tck_type=config["tck_type"])
     elif config["training_type"] == "residual":
         # Build the model
         model = build_or_load_model(model_name, model_filename, input_nc=config["input_nc"], 
@@ -74,12 +76,12 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
         dataset = NiftiDataset(main_data_path, transforms=None, train=True)
     else:
         raise ValueError("Training type {} not found".format(config["training_type"]))
-
+        
     # Print the model name and metric to monitor as logging
     print("Model is: {}".format(model.__class__.__name__))
     print("Metric to monitor is: {}".format(metric_to_monitor))
 
-    # Set the model to train mode
+    # Set the model to train
     model.train()
     
     # Get the criterion
@@ -140,10 +142,6 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
                                                 collate_fn=collate_fn,
                                                 pin_memory=pin_memory,
                                                 prefetch_factor=prefetch_factor)
-    
-    print("Training set size: {}".format(len(train_set)))
-    print("Validation set size: {}".format(len(val_set)))
-    print("Test set size: {}".format(len(test_set)))
         
     #########################################################################################################
     ########################################## MODEL TRAINING ###############################################
@@ -208,7 +206,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
                                     epoch=epoch, residual_arrays_path=residual_arrays_path, separate_hemisphere=separate_hemisphere, 
                                     cube_size=cube_size, n_gpus=n_gpus, voxel_wise=voxel_wise, distributed=False,
                                     print_gpu_memory=False, scaler=scaler, train_or_val="train", training_type=config["training_type"],
-                                    streamline_arrays_path=streamline_arrays_path, input_type=config["tck_type"])
+                                    streamline_arrays_path=in_config("streamline_arrays_path", config, False), input_type=in_config("tck_type", config, False))
                                        
         try:
             train_loader.dataset.on_epoch_end()
@@ -226,7 +224,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
                                         epoch=epoch, residual_arrays_path=residual_arrays_path, separate_hemisphere=separate_hemisphere, 
                                         cube_size=cube_size, n_gpus=n_gpus, voxel_wise=voxel_wise, distributed=False,
                                         print_gpu_memory=False, scaler=scaler, train_or_val="val", training_type=config["training_type"],
-                                        streamline_arrays_path=streamline_arrays_path, input_type=config["tck_type"])
+                                        streamline_arrays_path=in_config("streamline_arrays_path", config, False), input_type=in_config("tck_type", config, False))
         else:
             val_loss = None
         

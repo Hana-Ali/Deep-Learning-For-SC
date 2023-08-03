@@ -10,6 +10,7 @@ class StreamlineDataset(torch.utils.data.Dataset):
 
     # Constructor
     def __init__(self, data_path,
+                 num_streamlines=5000,
                  transforms=None,
                  train=False,
                  test=False,
@@ -17,6 +18,12 @@ class StreamlineDataset(torch.utils.data.Dataset):
         
         # Define the data paths
         self.data_path = data_path
+        
+        # Define the number of streamlines
+        self.num_streamlines = num_streamlines
+        
+        # Define the tck_type
+        self.tck_type = tck_type
 
         # Define the following paths that we use in the model
         # 1. FOD images (INPUTS)
@@ -136,7 +143,7 @@ class StreamlineDataset(torch.utils.data.Dataset):
         streamlines_range = np.arange(len(streamlines))
 
         # Randomly sample 9000 indices from the range
-        streamlines_range = np.random.choice(streamlines_range, 9000)
+        streamlines_range = np.random.choice(streamlines_range, self.num_streamlines)
 
         # Get the streamlines
         streamlines = streamlines[streamlines_range]

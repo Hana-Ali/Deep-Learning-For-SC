@@ -58,6 +58,8 @@ def training_loop_residual(train_loader, model, criterion, optimizer, epoch, res
         # Get the start and end indices, based on voxel_wise or not
         overlapping = False
         x_list, y_list, z_list = get_indices_list(residual_hemisphere, kernel_size, overlapping, voxel_wise)
+        
+        print("About to start")
                 
         # For every x coordinate
         for x in x_list:
