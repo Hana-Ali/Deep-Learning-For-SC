@@ -143,9 +143,9 @@ class Conv3dStaticSamePadding(nn.Conv3d):
 
     def forward(self, x):
         x = self.static_padding(x)
-        print("Shape of x in static padding", x.shape)
+        # print("Shape of x in static padding", x.shape)
         x = F.conv3d(x, self.weight, self.bias, self.stride, self.padding, self.dilation, self.groups)
-        print("Conv3D in padding shape", x.shape)
+        # print("Conv3D in padding shape", x.shape)
         return x
 
 
@@ -239,7 +239,7 @@ class BlockDecoder(object):
         blocks_args = []
         for block_string in string_list:
             blocks_args.append(BlockDecoder._decode_block_string(block_string))
-            print("Block args", blocks_args)
+            # print("Block args", blocks_args)
         return blocks_args
 
     @staticmethod

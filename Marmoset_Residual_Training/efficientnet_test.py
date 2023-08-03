@@ -1,34 +1,96 @@
-from models import EfficientNet3D
-import torch
+from utils import *
+from models import *
+from training import *
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-print('Using device:', device)
+hpc = False
+labs = False
+paperspace = True
 
-model = EfficientNet3D.from_name("efficientnet-b0", override_params={'num_classes': 2}, in_channels=1)
+if hpc:
+    main_data_path = "/rds/general/user/hsa22/ephemeral/Brain_MINDS/model_data"
+    main_logs_path = "/rds/general/user/hsa22/ephemeral/Brain_MINDS/predicted_streamlines"
+elif labs:
+    main_data_path = "/media/hsa22/Expansion/Brain_MINDS/model_data"
+    main_logs_path = "/media/hsa22/Expansion//Brain_MINDS/predicted_streamlines"
+elif paperspace:
+    main_data_path = "/notebooks/model_data_w_resize"
+    main_logs_path = "/notebooks/predicted_streamlines"
+else:
+    main_data_path = "D:\\Brain-MINDS\\model_data"
+    main_logs_path = "D:\\Brain-MINDS\\predicted_streamlines"
 
-# summary(model, input_size=(1, 224, 224, 224))
+streamline_arrays_path = os.path.join(main_logs_path, "efficientnet")
+training_log_path = os.path.join(main_logs_path, "training_logs", "conv_attn.csv")
+model_filename = os.path.join(main_logs_path, "models", "conv_attn_model.h5")
 
-model = model.to(device)
-inputs = torch.randn((1, 1, 15, 15, 15)).to(device)
-labels = torch.tensor([0]).to(device)
-# test forward
-num_classes = 2
+check_output_folders(streamline_arrays_path, "streamline arrays", wipe=False)
 
-criterion = torch.nn.CrossEntropyLoss()
-optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+# Create the configs dictionary
+configs = {
 
-model.train()
-for epoch in range(2):
-    # zero the parameter gradients
-    optimizer.zero_grad()
+    ####### Model #######
+    "model_name" : "efficientnet", # Model name
+    "input_nc" : 1, # Number of input channels
+    "num_nodes" : 1, # Number of nodes"    
+    "num_coordinates" : 3, # Number of coordinates
+    "prev_output_size" : 32, # Previous output size
+    "combination" : True, # Combination
 
-    # forward + backward + optimize
-    outputs = model(inputs)
-    loss = criterion(outputs, labels)
-    loss.backward()
-    optimizer.step()
+    ####### Training #######
+    "n_epochs" : 50, # Number of epochs
+    "loss" : "mse_loss", # Loss function
+    "optimizer" : "Adam", # Optimizer
+    "evaluation_metric" : "MSE_loss", # Evaluation metric
+    "shuffle_dataset" : True,
+    "separate_hemisphere" : False,
+    "cube_size" : 16,
+    "save_best" : True, # Save best model
 
-    # print statistics
-    print('[%d] loss: %.3f' % (epoch + 1, loss.item()))
+    ####### Data #######
+    "main_data_path" : main_data_path, # Data path
+    "training_log_path" : training_log_path, # Training log path
+    "model_filename" : model_filename, # Model filename
+    "streamline_arrays_path" : streamline_arrays_path, # Path to the streamlines array
+    "batch_size" : 1, # Batch size
+    "validation_batch_size" : 8, # Validation batch size
+    "num_streamlines" : 10, # Number of streamlines to consider from each site
+    
+    ####### Parameters #######
+    "initial_learning_rate" : 1e-04, # Initial learning rate
+    "early_stopping_patience": 50, # Early stopping patience
+    "decay_patience": 20, # Learning rate decay patience
+    "decay_factor": 0.5, # Learning rate decay factor
+    "min_learning_rate": 1e-08, # Minimum learning rate
+    "save_last_n_models": 10, # Save last n models
 
-print('Finished Training')
+    ####### Misc #######
+    "skip_val" : False, # Skip validation
+    "training_type" : "streamline", # Training type
+    "tck_type" : "trk" # TCK type
+
+}
+
+# Define the configuration path and save it as a .json file
+config_path = os.path.join("configs", configs["model_name"] + ".json")
+
+# Save the configuration
+dump_json(configs, config_path)
+
+# Load the configuration
+configs = load_json(config_path)
+
+# Define the metric to monitor based on whether we're skipping val or not
+if configs["skip_val"]:
+    metric_to_monitor = "val_loss"
+else:
+    metric_to_monitor = "train_loss"
+
+# Define the groups
+if configs["skip_val"]:
+    groups = ("training",)
+else:
+    groups = ("training", "validation")
+
+model_metrics = (configs["evaluation_metric"],)
+
+run_training(configs, metric_to_monitor=metric_to_monitor, bias=None)

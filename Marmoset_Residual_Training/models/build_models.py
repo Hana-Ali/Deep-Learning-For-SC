@@ -63,6 +63,18 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
                                  num_coordinates=num_coordinates,
                                  prev_output_size=prev_output_size,
                                  combination=combination)
+        
+        elif "efficientnet" in model_name.lower():
+
+            # Assert that none of the parameters are none
+            assert input_nc is not None
+            assert num_nodes is not None
+            assert combination is not None
+
+            # Return the EfficientNet
+            return EfficientNet3D.from_name("efficientnet-b0", 
+                                            override_params={'num_classes': num_coordinates}, 
+                                            in_channels=input_nc)
 
     except AttributeError:
         raise ValueError("Model {} not found".format(model_name))
