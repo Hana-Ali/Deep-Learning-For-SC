@@ -56,9 +56,9 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
     if config["training_type"] == "streamline":
         # Build the model
         model = build_or_load_model(model_name, model_filename, input_nc=config["input_nc"], cube_size=config["cube_size"],
-                                    num_rnn_layers=config["num_rnn_layers"], num_rnn_hidden_neurons=config["num_rnn_hidden_neurons"],
+                                    num_rnn_layers=in_config("num_rnn_layers", config, False), num_rnn_hidden_neurons=in_config("num_rnn_hidden_neurons", config, False),
                                     num_nodes=config["num_nodes"], num_coordinates=config["num_coordinates"],
-                                    prev_output_size=config["prev_output_size"], combination=config["combination"],
+                                    prev_output_size=in_config("prev_output_size", config, False), combination=config["combination"],
                                     n_gpus=n_gpus, bias=bias, freeze_bias=in_config("freeze_bias", config, False),
                                     strict=False)
         # Build the dataset

@@ -33,7 +33,6 @@ configs = {
     "input_nc" : 1, # Number of input channels
     "num_nodes" : 1, # Number of nodes"    
     "num_coordinates" : 3, # Number of coordinates
-    "prev_output_size" : 32, # Previous output size
     "combination" : True, # Combination
 
     ####### Training #######

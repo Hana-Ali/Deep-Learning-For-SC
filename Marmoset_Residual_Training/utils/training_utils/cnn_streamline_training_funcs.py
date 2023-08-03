@@ -46,10 +46,10 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
         predicted_streamlines_array = []
 
         # Store the previous two predictions, to use as input for the next prediction
-        previous_prediction_1 = torch.randn((batch_size, 1, 3))
-        previous_prediction_2 = torch.randn((batch_size, 1, 3))
-        # Concatenate the previous predictions together along dimension 2
-        previous_predictions = torch.cat((previous_prediction_1, previous_prediction_2), dim=2)
+        previous_prediction_1 = torch.randn((batch_size, 3))
+        previous_prediction_2 = torch.randn((batch_size, 3))
+        # Concatenate the previous predictions together along dimension 1
+        previous_predictions = torch.cat((previous_prediction_1, previous_prediction_2), dim=1)
         print("Previous prediction size outside", previous_predictions.shape)
         
         # Define the indices of the streamlines
@@ -99,6 +99,12 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                 # Append the node to the list
                 predicted_nodes_array.append(predicted_node)
                 
+                # If the size of the predicted nodes array is greater than or equal to 2, then use the last 2 as predictions
+                if len(predicted_nodes_array) >= 2:
+                    previous_prediction_1 = torch.from_numpy(predicted_nodes_array[-1])
+                    previous_prediction_2 = torch.from_numpy(predicted_nodes_array[-2])
+                    previous_predictions = torch.cat((previous_prediction_1, previous_prediction_2), dim=1)
+                    
                 # Empty cache
                 if n_gpus and not distributed:
                     torch.cuda.empty_cache()
@@ -141,7 +147,7 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                     # Zero the parameter gradients
                     optimizer.zero_grad()
                     
-                torch.cuda.empty_cache()
+                print("loss is", loss.item())
                     
                 # print("====================== AFTER BACKWARD BOTH =====================")
                 # print(torch.cuda.memory_summary(device=None, abbreviated=False))
@@ -151,13 +157,6 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                 
                 # Delete the output
                 del predicted_node
-                
-                # Delete the other inputs
-                del streamline_node
-                del previous_predictions
-                del curr_coord
-                del wmfod_cube
-                del batch_size
                 
                 # print("====================== END =====================")
                 # print(torch.cuda.memory_summary(device=None, abbreviated=False))
