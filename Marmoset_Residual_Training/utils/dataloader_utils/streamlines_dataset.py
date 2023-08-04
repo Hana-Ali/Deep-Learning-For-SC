@@ -296,6 +296,7 @@ def map_points_to_directions(points):
     # Get the directions
     directions = define_direction(angles)
 
+    print("Angles: ", angles)
     print("Directions: ", directions)
 
     # Return the directions
