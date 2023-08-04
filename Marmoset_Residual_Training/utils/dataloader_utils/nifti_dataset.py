@@ -196,11 +196,3 @@ class NiftiDataset(torch.utils.data.Dataset):
     
     def __len__(self):
         return self.b0_size
-
-
-# Function to glob files
-def glob_files(PATH_NAME, file_format):
-    INPUT_FILES = []
-    for file in glob.glob(os.path.join(PATH_NAME, os.path.join("**", "*.{}".format(file_format))), recursive=True):
-        INPUT_FILES.append(file)
-    return INPUT_FILES

@@ -166,22 +166,124 @@ class StreamlineDataset(torch.utils.data.Dataset):
         # Read the streamline
         streamline_list = self.read_streamline(streamline_path)
 
+        # Get the streamline angles
+        streamline_angles = map_points_to_angles(streamline_list)
+
+        # Get the streamline directions
+        streamline_directions = map_points_to_directions(streamline_list)
+
         print("Read streamline shape: {}".format(len(streamline_list)))
+        print("Read streamline angles shape: {}".format(len(streamline_angles)))
+        print("Read streamline directions shape: {}".format(len(streamline_directions)))
         
         # Define a dictionary to store the images
         sample = {'wmfod' : wmfod_image_array,
-                  'streamlines' : streamline_list}
+                  'streamlines' : streamline_list,
+                  'angles' : streamline_angles,
+                  'directions' : streamline_directions}
         
         # Return the nps. This is the final output to feed the network
-        return sample["wmfod"], sample["streamlines"]
+        return sample["wmfod"], sample["streamlines"], sample["angles"], sample["directions"]
     
     def __len__(self):
         return self.streamlines_size
 
+# Function to find the angle between 2 consecutive 3D points
+def find_angle(point1, point2):
 
-# Function to glob files
-def glob_files(PATH_NAME, file_format):
-    INPUT_FILES = []
-    for file in glob.glob(os.path.join(PATH_NAME, os.path.join("**", "*.{}".format(file_format))), recursive=True):
-        INPUT_FILES.append(file)
-    return INPUT_FILES
+    # Get the vector between the 2 points - VECTOR 1
+    vector = point2 - point1
+
+    # Define the x-axis - VECTOR 2
+    x_axis = np.array([1, 0, 0])
+
+    # Get the norm of the vector 1
+    norm = np.linalg.norm(vector)
+
+    # Get the numerator of the multiplication of the two vectors
+    numerator = np.dot(vector, x_axis)
+
+    # Get the angle between the two vectors
+    angle = np.arccos(numerator / (norm * np.linalg.norm(x_axis))) 
+
+    # Return the angle in degrees
+    return np.degrees(angle)
+
+# Function to map consecutive points (streamline nodes) to angles
+def map_points_to_angles(points):
+
+    # Define the list of angles
+    angles = []
+
+    # For every point in the points
+    for i in range(len(points)):
+
+        # If it's the first point, then set the angle to 0
+        if i == 0:
+            angles.append(0)
+        else:
+            # Get the angle between the previous point and the current point
+            angle = find_angle(points[i-1], points[i])
+
+            # Append the angle to the list of angles
+            angles.append(angle)
+
+    # Return the angles
+    return angles
+
+# Function to define the direction of the streamline (classification)
+def define_direction(angles):
+
+    # Define the direction
+    direction = []
+
+    # For every angle in the angles
+    for angle in angles:
+
+        # If the angle is between 0 and 45 degrees, then the direction is 0
+        if angle >= 0 and angle <= 45:
+            direction.append(0)
+
+        # If the angle is between 45 and 90 degrees, then the direction is 1
+        elif angle > 45 and angle <= 90:
+            direction.append(1)
+
+        # If the angle is between 90 and 135 degrees, then the direction is 2
+        elif angle > 90 and angle <= 135:
+            direction.append(2)
+
+        # If the angle is between 135 and 180 degrees, then the direction is 3
+        elif angle > 135 and angle <= 180:
+            direction.append(3)
+
+        # If the angle is between 180 and 225 degrees, then the direction is 4
+        elif angle > 180 and angle <= 225:
+            direction.append(4)
+
+        # If the angle is between 225 and 270 degrees, then the direction is 5
+        elif angle > 225 and angle <= 270:
+            direction.append(5)
+
+        # If the angle is between 270 and 315 degrees, then the direction is 6
+        elif angle > 270 and angle <= 315:
+            direction.append(6)
+
+        # If the angle is between 315 and 360 degrees, then the direction is 7
+        elif angle > 315 and angle <= 360:
+            direction.append(7)
+
+    # Return the direction
+    return direction
+
+# Function to map consecutive points (streamline nodes) to directions
+def map_points_to_directions(points):
+
+    # Get the angles
+    angles = map_points_to_angles(points)
+
+    # Get the directions
+    directions = define_direction(angles)
+
+    # Return the directions
+    return directions
+

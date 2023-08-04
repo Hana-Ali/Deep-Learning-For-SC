@@ -16,9 +16,13 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
     
     # For each batch
     # for i, (wmfod, streamlines) in enumerate(train_loader):
-    (wmfod, streamlines) = next(iter(train_loader))
+    (wmfod, streamlines, angles, directions) = next(iter(train_loader))
     print(wmfod.shape)
     print(streamlines.shape)
+    print(angles.shape)
+    print(directions.shape)
+
+    return
     
 
     # print("Trial {}".format(i))
