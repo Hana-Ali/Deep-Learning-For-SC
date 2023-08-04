@@ -136,20 +136,31 @@ class StreamlineDataset(torch.utils.data.Dataset):
         # Read the streamline
         streamlines = nib.streamlines.load(streamline_path).streamlines
 
-        # Round the streamline
-        streamlines = np.round(streamlines).astype(int)
-
         # Create range of length of streamlines
         streamlines_range = np.arange(len(streamlines))
 
-        # Randomly sample 9000 indices from the range
+        # Randomly sample self.num_streamlines indices from the range
         streamlines_range = np.random.choice(streamlines_range, self.num_streamlines)
 
         # Get the streamlines
         streamlines = streamlines[streamlines_range]
 
+        # Get the streamline angles
+        streamline_angles = []
+        for streamline in streamlines:
+            # Print the streamline
+            print("Streamline: ", streamline)
+            # Round the streamline
+            streamlines = np.round(streamlines).astype(int)
+            streamline_angles.append(map_points_to_angles(streamline))
+
+        # Get the streamline directions
+        streamline_directions = []
+        for streamline in streamlines:
+            streamline_directions.append(map_points_to_directions(streamline))
+
         # Return the streamline list of lists of coordinates
-        return streamlines
+        return (streamlines, streamline_angles, streamline_directions)
     
     # Function to get item
     def __getitem__(self, index):
@@ -164,17 +175,8 @@ class StreamlineDataset(torch.utils.data.Dataset):
         wmfod_image_array = self.read_image(wmfod_image_path)
 
         # Read the streamline
-        streamline_list = self.read_streamline(streamline_path)
-
-        # Get the streamline angles
-        streamline_angles = []
-        for streamline in streamline_list:
-            streamline_angles.append(map_points_to_angles(streamline))
-
-        # Get the streamline directions
-        streamline_directions = []
-        for streamline in streamline_list:
-            streamline_directions.append(map_points_to_directions(streamline))
+        (streamline_list, streamline_angles, 
+         streamline_directions) = self.read_streamline(streamline_path)
         
         # Define a dictionary to store the images
         sample = {'wmfod' : wmfod_image_array,
