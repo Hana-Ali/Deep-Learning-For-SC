@@ -151,7 +151,7 @@ class StreamlineDataset(torch.utils.data.Dataset):
             # Print the streamline
             print("Streamline: ", streamline)
             # Round the streamline
-            streamlines = np.round(streamlines).astype(int)
+            streamline = np.round(streamline).astype(int)
             streamline_angles.append(map_points_to_angles(streamline))
 
         # Get the streamline directions
