@@ -148,9 +148,6 @@ class StreamlineDataset(torch.utils.data.Dataset):
         # Get the streamline angles
         streamline_angles = []
         for streamline in streamlines:
-            # Print the streamline
-            # print("Streamline: ", streamline)
-            # Round the streamline
             streamline_angles.append(map_points_to_angles(streamline))
 
         # Get the streamline directions
@@ -295,9 +292,6 @@ def map_points_to_directions(points):
 
     # Get the directions
     directions = define_direction(angles)
-
-    print("Angles: ", angles)
-    print("Directions: ", directions)
 
     # Return the directions
     return directions

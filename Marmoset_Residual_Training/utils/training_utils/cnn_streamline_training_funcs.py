@@ -20,10 +20,7 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
     print(wmfod.shape)
     print(streamlines.shape)
     print(angles.shape)
-    print(directions.shape)
-
-    return
-    
+    print(directions.shape)    
 
     # print("Trial {}".format(i))
     # print("Shape of data is: {}".format((wmfod.shape, streamlines.shape)))
