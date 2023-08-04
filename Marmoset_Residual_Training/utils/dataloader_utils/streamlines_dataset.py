@@ -167,14 +167,14 @@ class StreamlineDataset(torch.utils.data.Dataset):
         streamline_list = self.read_streamline(streamline_path)
 
         # Get the streamline angles
-        streamline_angles = map_points_to_angles(streamline_list)
+        streamline_angles = []
+        for streamline in streamline_list:
+            streamline_angles.append(map_points_to_angles(streamline))
 
         # Get the streamline directions
-        streamline_directions = map_points_to_directions(streamline_list)
-
-        print("Read streamline shape: {}".format(len(streamline_list)))
-        print("Read streamline angles shape: {}".format(len(streamline_angles)))
-        print("Read streamline directions shape: {}".format(len(streamline_directions)))
+        streamline_directions = []
+        for streamline in streamline_list:
+            streamline_directions.append(map_points_to_directions(streamline))
         
         # Define a dictionary to store the images
         sample = {'wmfod' : wmfod_image_array,
