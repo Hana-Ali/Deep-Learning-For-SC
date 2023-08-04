@@ -50,17 +50,16 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
     save_every_n_epochs = config["save_every_n_epochs"] if "save_every_n_epochs" in config else None
     save_last_n_models = config["save_last_n_models"] if "save_last_n_models" in config else None
     verbose = config["verbose"] if "verbose" in config else 1
-
         
     # Build or load the model depending on streamline or dwi training, and build dataset differently
     if config["training_type"] == "streamline":
         # Build the model
         model = build_or_load_model(model_name, model_filename, input_nc=config["input_nc"], cube_size=config["cube_size"],
-                                    num_rnn_layers=in_config("num_rnn_layers", config, False), num_rnn_hidden_neurons=in_config("num_rnn_hidden_neurons", config, False),
-                                    num_nodes=config["num_nodes"], num_coordinates=config["num_coordinates"],
+                                    num_rnn_layers=in_config("num_rnn_layers", config, None), num_rnn_hidden_neurons=in_config("num_rnn_hidden_neurons", config, None),
+                                    num_nodes=in_config("num_nodes", config, None), num_coordinates=in_config("num_coordinates", config, None),
                                     prev_output_size=in_config("prev_output_size", config, False), combination=config["combination"],
                                     n_gpus=n_gpus, bias=bias, freeze_bias=in_config("freeze_bias", config, False),
-                                    strict=False)
+                                    strict=False, task=in_config("task", config, "classification"))
         # Build the dataset
         dataset = StreamlineDataset(main_data_path, num_streamlines=config["num_streamlines"], transforms=None, train=True, tck_type=config["tck_type"])
     elif config["training_type"] == "residual":
@@ -85,11 +84,13 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
     model.train()
     
     # Get the criterion
-    criterion = load_criterion(config['loss'], n_gpus=n_gpus)
+    criterion = load_criterion(config['evaluation_metric'], n_gpus=n_gpus)
 
     # If weighted loss
     if "weights" in config and config["weights"] is not None:
         criterion = loss_funcs.WeightedLoss(torch.tensor(config["weights"]), criterion)
+        
+    print("Criterion is: ", criterion)
     
     # Define the optimizer
     optimizer_kwargs = dict()
@@ -207,7 +208,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
                                     cube_size=cube_size, n_gpus=n_gpus, voxel_wise=voxel_wise, distributed=False,
                                     print_gpu_memory=False, scaler=scaler, train_or_val="train", training_type=config["training_type"],
                                     streamline_arrays_path=in_config("streamline_arrays_path", config, False), input_type=in_config("tck_type", config, False),
-                                    training_task=in_config("task", config, False))
+                                    training_task=in_config("task", config, "classification"))
                                        
         try:
             train_loader.dataset.on_epoch_end()
@@ -226,7 +227,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
                                         cube_size=cube_size, n_gpus=n_gpus, voxel_wise=voxel_wise, distributed=False,
                                         print_gpu_memory=False, scaler=scaler, train_or_val="val", training_type=config["training_type"],
                                         streamline_arrays_path=in_config("streamline_arrays_path", config, False), input_type=in_config("tck_type", config, False),
-                                        training_task=in_config("task", config, False))
+                                        training_task=in_config("task", config, "classification"))
         else:
             val_loss = None
         

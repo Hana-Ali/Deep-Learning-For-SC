@@ -30,6 +30,7 @@ configs = {
 
     ####### Model #######
     "model_name" : "baseline_mlp", # Model name
+    "input_nc" : 45,
     "combination" : True, # Combination
     "task" : "classification", # Task
 
@@ -37,7 +38,7 @@ configs = {
     "n_epochs" : 50, # Number of epochs
     "loss" : "mse_loss", # Loss function
     "optimizer" : "Adam", # Optimizer
-    "evaluation_metric" : "MSE_loss", # Evaluation metric
+    "evaluation_metric" : "cross_entropy_loss", # Evaluation metric
     "shuffle_dataset" : True,
     "separate_hemisphere" : False,
     "cube_size" : 3, # cube size
@@ -48,9 +49,9 @@ configs = {
     "training_log_path" : training_log_path, # Training log path
     "model_filename" : model_filename, # Model filename
     "streamline_arrays_path" : streamline_arrays_path, # Path to the streamlines array
-    "batch_size" : 1, # Batch size
+    "batch_size" : 8, # Batch size
     "validation_batch_size" : 8, # Validation batch size
-    "num_streamlines" : 10, # Number of streamlines to consider from each site
+    "num_streamlines" : 500, # Number of streamlines to consider from each site
     
     ####### Parameters #######
     "initial_learning_rate" : 1e-04, # Initial learning rate

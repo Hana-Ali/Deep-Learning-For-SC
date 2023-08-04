@@ -9,8 +9,7 @@ from models.model_options import *
 def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, norm_layer=None,
               use_dropout=None, padding_type=None, voxel_wise=None, cube_size=15, num_rnn_layers=2,
               num_rnn_hidden_neurons=1000, num_nodes=1, num_coordinates=3, prev_output_size=32,
-              combination=True, task="classification", efficientnet_output_size=45*5*5*5,
-              output_size=1):
+              combination=True, task="classification", flattened_mlp_size=45*5*5*5):
     
     try:
         if "resnet" in model_name.lower():
@@ -80,12 +79,22 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
         elif "baseline_mlp" in model_name.lower():
 
             # Assert that none of the parameters are none
-            assert efficientnet_output_size is not None
-            assert output_size is not None
+            assert input_nc is not None
+            assert cube_size is not None
             assert task is not None
+            
+            # Define the flattened mlp size
+            flattened_mlp_size = input_nc * ((cube_size * 2) ** 3)
+                        
+            # Change output size depending task
+            if task == "classification":
+                output_size = 7
+            else:
+                output_size = 1
 
             # Return the Baseline MLP
-            return Baseline_MLP(efficientnet_output_size=efficientnet_output_size,
+            return Baseline_MLP(previous_predictions_size=output_size * 2,
+                                efficientnet_output_size=flattened_mlp_size,
                                 hidden_size=100,
                                 output_size=output_size,
                                 task=task)
@@ -98,7 +107,8 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
 def build_or_load_model(model_name, model_filename, input_nc, output_nc=None, ngf=None, num_blocks=None, norm_layer=nn.BatchNorm3d,
                         use_dropout=False, padding_type="reflect", voxel_wise=False, cube_size=15, num_rnn_layers=2,
                         num_rnn_hidden_neurons=1000, num_nodes=1, num_coordinates=3, prev_output_size=32, combination=True,
-                        n_gpus=0, bias=None, freeze_bias=False, strict=False, ):
+                        n_gpus=0, bias=None, freeze_bias=False, strict=False, task="classification", 
+                        flattened_mlp_size=45*6*6*6):
 
     # Get the model
     model = get_model(model_name=model_name, input_nc=input_nc, output_nc=output_nc,
@@ -107,7 +117,7 @@ def build_or_load_model(model_name, model_filename, input_nc, output_nc=None, ng
                       voxel_wise=voxel_wise, cube_size=cube_size, num_rnn_layers=num_rnn_layers,
                       num_rnn_hidden_neurons=num_rnn_hidden_neurons, num_nodes=num_nodes,
                       num_coordinates=num_coordinates, prev_output_size=prev_output_size,
-                      combination=combination)
+                      combination=combination, task=task)
 
     # If there's bias
     if bias is not None:
