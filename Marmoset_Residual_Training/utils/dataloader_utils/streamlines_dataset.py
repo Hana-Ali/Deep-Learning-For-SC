@@ -227,8 +227,6 @@ def map_points_to_angles(points):
     # Define the list of angles
     angles = []
 
-    print("Points: ", points)
-
     # For every point in the points
     for i in range(len(points)):
 
