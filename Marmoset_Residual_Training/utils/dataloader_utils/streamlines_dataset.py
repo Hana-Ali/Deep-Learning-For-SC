@@ -206,6 +206,12 @@ def find_angle(point1, point2):
     # Get the angle between the two vectors
     angle = np.arccos(numerator / (norm * np.linalg.norm(x_axis))) 
 
+    print("Point 1: ", point1)
+    print("Point 2: ", point2)
+    print("Vector: ", vector)
+    print("Norm: ", norm)
+    print("Angle: ", angle)
+
     # Return the angle in degrees
     return np.degrees(angle)
 
