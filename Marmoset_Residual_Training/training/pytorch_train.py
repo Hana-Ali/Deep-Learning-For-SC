@@ -206,7 +206,8 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
                                     epoch=epoch, residual_arrays_path=residual_arrays_path, separate_hemisphere=separate_hemisphere, 
                                     cube_size=cube_size, n_gpus=n_gpus, voxel_wise=voxel_wise, distributed=False,
                                     print_gpu_memory=False, scaler=scaler, train_or_val="train", training_type=config["training_type"],
-                                    streamline_arrays_path=in_config("streamline_arrays_path", config, False), input_type=in_config("tck_type", config, False))
+                                    streamline_arrays_path=in_config("streamline_arrays_path", config, False), input_type=in_config("tck_type", config, False),
+                                    training_task=in_config("task", config, False))
                                        
         try:
             train_loader.dataset.on_epoch_end()
@@ -224,7 +225,8 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
                                         epoch=epoch, residual_arrays_path=residual_arrays_path, separate_hemisphere=separate_hemisphere, 
                                         cube_size=cube_size, n_gpus=n_gpus, voxel_wise=voxel_wise, distributed=False,
                                         print_gpu_memory=False, scaler=scaler, train_or_val="val", training_type=config["training_type"],
-                                        streamline_arrays_path=in_config("streamline_arrays_path", config, False), input_type=in_config("tck_type", config, False))
+                                        streamline_arrays_path=in_config("streamline_arrays_path", config, False), input_type=in_config("tck_type", config, False),
+                                        training_task=in_config("task", config, False))
         else:
             val_loss = None
         
@@ -273,7 +275,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
 # Define the epoch training
 def epoch_training(train_loader, val_loader, model, criterion, optimizer, epoch, residual_arrays_path, separate_hemisphere, 
                    streamline_arrays_path, input_type, cube_size=16, n_gpus=None, voxel_wise=False, distributed=False, 
-                   print_gpu_memory=False, scaler=None, train_or_val="train", training_type="residual"):
+                   print_gpu_memory=False, scaler=None, train_or_val="train", training_type="residual", training_task="classification"):
     
     # Define the meters
     batch_time = AverageMeter("Time", ":6.3f")
@@ -317,7 +319,7 @@ def epoch_training(train_loader, val_loader, model, criterion, optimizer, epoch,
             training_loop_nodes(train_loader, model, criterion, optimizer, epoch, streamline_arrays_path, separate_hemisphere,
                                 kernel_size=kernel_size, n_gpus=n_gpus, distributed=distributed, print_gpu_memory=print_gpu_memory, 
                                 scaler=scaler, data_time=data_time, coordinates=coordinates, use_amp=use_amp, losses=losses, 
-                                batch_time=batch_time, progress=progress, input_type=input_type)
+                                batch_time=batch_time, progress=progress, input_type=input_type, training_task=training_task)
         else:
             raise ValueError("Training type {} not found".format(training_type))
         
@@ -330,7 +332,8 @@ def epoch_training(train_loader, val_loader, model, criterion, optimizer, epoch,
         elif training_type == "streamline":
             validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays_path, separate_hemisphere,
                                     kernel_size=kernel_size, n_gpus=n_gpus, distributed=distributed, coordinates=coordinates, 
-                                    use_amp=use_amp, losses=losses, batch_time=batch_time, progress=progress, input_type=input_type)
+                                    use_amp=use_amp, losses=losses, batch_time=batch_time, progress=progress, input_type=input_type,
+                                    training_task=training_task)
         else:
             raise ValueError("Training type {} not found".format(training_type))
             
