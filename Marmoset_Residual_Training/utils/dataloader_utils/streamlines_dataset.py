@@ -204,16 +204,18 @@ def find_angle(point1, point2):
     numerator = np.dot(vector, x_axis)
 
     # Get the angle between the two vectors
-    angle = np.arccos(numerator / (norm * np.linalg.norm(x_axis))) 
+    angle = np.degrees(np.arccos(numerator / (norm * np.linalg.norm(x_axis))) )
 
-    print("Point 1: ", point1)
-    print("Point 2: ", point2)
-    print("Vector: ", vector)
-    print("Norm: ", norm)
-    print("Angle: ", angle)
+    # If it's nan, print the points
+    if np.isnan(angle):
+        print("Point 1: ", point1)
+        print("Point 2: ", point2)
+        print("Vector: ", vector)
+        print("Norm: ", norm)
+        print("Angle: ", angle)
 
     # Return the angle in degrees
-    return np.degrees(angle)
+    return angle
 
 # Function to map consecutive points (streamline nodes) to angles
 def map_points_to_angles(points):
