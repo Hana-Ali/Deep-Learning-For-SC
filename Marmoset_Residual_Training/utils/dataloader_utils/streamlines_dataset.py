@@ -179,8 +179,8 @@ class StreamlineDataset(torch.utils.data.Dataset):
         # Define a dictionary to store the images
         sample = {'wmfod' : wmfod_image_array,
                   'streamlines' : streamline_list,
-                  'angles' : streamline_angles,
-                  'directions' : streamline_directions}
+                  'angles' : np.array(streamline_angles),
+                  'directions' : np.array(streamline_directions)}
         
         # Return the nps. This is the final output to feed the network
         return sample["wmfod"], sample["streamlines"], sample["angles"], sample["directions"]
@@ -227,6 +227,8 @@ def map_points_to_angles(points):
 
             # Append the angle to the list of angles
             angles.append(angle)
+
+    print("Angles: ", angles)
 
     # Return the angles
     return angles
@@ -283,6 +285,8 @@ def map_points_to_directions(points):
 
     # Get the directions
     directions = define_direction(angles)
+
+    print("Directions: ", directions)
 
     # Return the directions
     return directions
