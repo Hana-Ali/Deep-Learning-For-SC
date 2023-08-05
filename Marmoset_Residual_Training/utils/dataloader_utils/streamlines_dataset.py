@@ -144,7 +144,7 @@ class StreamlineDataset(torch.utils.data.Dataset):
 
         # Get the streamlines
         streamlines = streamlines[streamlines_range]
-
+        
         # Get the streamline angles
         streamline_angles = []
         for streamline in streamlines:
@@ -229,7 +229,7 @@ def map_points_to_angles(points):
 
         # If it's the first point, then set the angle to 0
         if i == 0:
-            angles.append(0)
+            pass
         else:
             # Get the angle between the previous point and the current point
             angle = find_angle(points[i-1], points[i])

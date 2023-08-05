@@ -9,29 +9,29 @@ from ..model_builders.efficientnet_utils import TwoInputMLP
 class Baseline_MLP(nn.Module):
 
     # Constructor
-    def __init__(self, previous_predictions_size, efficientnet_output_size, hidden_size, output_size, task="classification"):
+    def __init__(self, cnn_flattened_size, hidden_size, output_size, task="classification"):
 
         # Inherit from parent
         super(Baseline_MLP, self).__init__()
 
-        # Define the number of coordinates (output size)
+        # Define the output size (different depending on task)
         self.output_size = output_size
 
-        # Define the input size of efficientnet
-        self.efficientnet_output_size = efficientnet_output_size
+        # Define the shape of the flattened output of the CNN
+        self.cnn_flattened_size = cnn_flattened_size
 
         # Define the number of neurons
         self.neurons = hidden_size
 
-        # Define the input size of the previous predictions MLP
-        self.previous_predictions_size = previous_predictions_size
+        # Define the input size of the previous predictions MLP - will always be output * 2
+        self.previous_predictions_size = self.output_size * 2
         
         # Define the task
         self.task = task
 
         # Inherit the layers from the TwoInputMLP
         # Define the combination MLP
-        self.combination_mlp = TwoInputMLP(previous_predictions_size=self.previous_predictions_size, efficientnet_output_size=self.efficientnet_output_size, 
+        self.combination_mlp = TwoInputMLP(previous_predictions_size=self.previous_predictions_size, cnn_flattened_size=self.cnn_flattened_size, 
                                            neurons=self.neurons, output_size=self.output_size, task=self.task)
         
         # Define the final activation depending on the task

@@ -309,14 +309,14 @@ def get_model_params(model_name, override_params):
 # Define class that takes in two inputs, the first the output of the efficient net, and the
 # second the previous predictions, and outputs the final predictions as a combination of both
 class TwoInputMLP(nn.Module):
-    def __init__(self, previous_predictions_size, efficientnet_output_size, neurons, output_size, task="classification"):
+    def __init__(self, previous_predictions_size, cnn_flattened_size, neurons, output_size, task="classification"):
         
         # Call the super constructor
         super(TwoInputMLP, self).__init__()
 
         # Define attributes
         self.previous_predictions_size = previous_predictions_size
-        self.efficientnet_output_size = efficientnet_output_size
+        self.cnn_flattened_size = cnn_flattened_size
         self.neurons = neurons
         self.output_size = output_size
 
@@ -326,7 +326,7 @@ class TwoInputMLP(nn.Module):
         # print("Output size", self.output_size)
 
         self.prev_pred_FC = nn.Linear(previous_predictions_size, neurons)  # First MLP for input of size [batch_size, 6]
-        self.efficientnet_FC = nn.Linear(efficientnet_output_size, neurons)  # Second MLP for input of size [batch_size, 3]
+        self.cnn_output_FC = nn.Linear(cnn_flattened_size, neurons)  # Second MLP for input of size [batch_size, 3]
         self.combo_FC = nn.Linear(neurons * 2, output_size)  # Output layer
 
     def forward(self, previous_predictions, efficientnet_output):
@@ -340,7 +340,7 @@ class TwoInputMLP(nn.Module):
 
         # Pass each input through their respective MLPs
         previous_predictions = self.prev_pred_FC(previous_predictions)
-        efficientnet_output = self.efficientnet_FC(efficientnet_output)
+        efficientnet_output = self.cnn_output_FC(efficientnet_output)
 
         # print("Previous predictions shape", previous_predictions.shape)
         # print("Efficientnet output shape", efficientnet_output.shape)

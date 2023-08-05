@@ -93,8 +93,7 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
                 output_size = 1
 
             # Return the Baseline MLP
-            return Baseline_MLP(previous_predictions_size=output_size * 2,
-                                efficientnet_output_size=flattened_mlp_size,
+            return Baseline_MLP(cnn_flattened_size=flattened_mlp_size,
                                 hidden_size=100,
                                 output_size=output_size,
                                 task=task)

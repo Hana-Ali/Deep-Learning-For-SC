@@ -14,7 +14,7 @@
     "model_filename": "/notebooks/predicted_streamlines/models/baseline_mlp.h5",
     "model_name": "baseline_mlp",
     "n_epochs": 50,
-    "num_streamlines": 5000,
+    "num_streamlines": 10,
     "optimizer": "Adam",
     "save_best": true,
     "save_last_n_models": 10,
