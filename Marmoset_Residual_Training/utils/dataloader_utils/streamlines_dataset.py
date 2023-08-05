@@ -155,6 +155,8 @@ class StreamlineDataset(torch.utils.data.Dataset):
         for streamline in streamlines:
             streamline_directions.append(map_points_to_directions(streamline))
 
+        return
+
         # Round the streamlines
         streamlines = np.round(streamlines).astype(int)
 
@@ -195,28 +197,42 @@ def find_angle(point1, point2):
     # Get the vector between the 2 points - VECTOR 1
     vector = point2 - point1
 
-    # Define the x-axis - VECTOR 2
+    # Define the x-axis, y-axis and z-axis
     x_axis = np.array([1, 0, 0])
+    y_axis = np.array([0, 1, 0])
+    z_axis = np.array([0, 0, 1])
 
-    # Get the norm of the vector 1
-    norm = np.linalg.norm(vector)
+    # Get the norm of the first vector
+    vector_norm = np.linalg.norm(vector)
 
-    # Get the numerator of the multiplication of the two vectors
-    numerator = np.dot(vector, x_axis)
+    # We want to find alpha, beta and gamma, which are the angles between the vector and the x, y and z axes
+    # respectively. To do this, we have the equations:
+    # cos(alpha) = (vector . x_axis) / (norm(vector) * norm(x_axis))
+    # cos(beta) = (vector . y_axis) / (norm(vector) * norm(y_axis))
+    # cos(gamma) = (vector . z_axis) / (norm(vector) * norm(z_axis))
+    # We can get the angles by taking the arccos of the above equations
 
-    # Get the angle between the two vectors
-    angle = np.degrees(np.arccos(numerator / (norm * np.linalg.norm(x_axis))) )
+    # Get the alpha angle
+    alpha = np.degrees(np.arccos(np.dot(vector, x_axis) / (vector_norm * np.linalg.norm(x_axis))))
 
-    # If it's nan, print the points
-    if np.isnan(angle):
-        print("Point 1: ", point1)
-        print("Point 2: ", point2)
-        print("Vector: ", vector)
-        print("Norm: ", norm)
-        print("Angle: ", angle)
+    # Get the beta angle
+    beta = np.degrees(np.arccos(np.dot(vector, y_axis) / (vector_norm * np.linalg.norm(y_axis))))
 
-    # Return the angle in degrees
-    return angle
+    # Get the gamma angle
+    gamma = np.degrees(np.arccos(np.dot(vector, z_axis) / (vector_norm * np.linalg.norm(z_axis))))
+
+    # Print out if the angles are nan
+    if np.isnan(alpha) or np.isnan(beta) or np.isnan(gamma):
+
+        # Print the angles and vector
+        print("Alpha: {}, Beta: {}, Gamma: {}".format(alpha, beta, gamma))
+        print("Vector: {}".format(vector))
+
+        # Raise a value error
+        raise ValueError("Angle is nan!")
+
+    # Return the angles
+    return alpha, beta, gamma
 
 # Function to map consecutive points (streamline nodes) to angles
 def map_points_to_angles(points):
@@ -227,7 +243,7 @@ def map_points_to_angles(points):
     # For every point in the points
     for i in range(len(points)):
 
-        # If it's the first point, then set the angle to 0
+        # If it's the first point, then skip
         if i == 0:
             pass
         else:
@@ -241,35 +257,45 @@ def map_points_to_angles(points):
     return angles
 
 # Function to define the direction of the streamline (classification)
-def define_direction(angles):
+def find_direction(point1, point2):
 
-    # Define the direction
-    direction = []
+    # Get the difference between the 2 points
+    difference = point2 - point1
 
-    # For every angle in the angles
-    for angle in angles:
-
-        # We want to create a binning strategy, where we have 360 bins (1 for each degree). To do this, we 
-        # can just round the angle to the nearest degree. This will give us a number between 0 and 359.
-
-        # Round the angle
-        angle = np.round(angle)
-
-        # Append the angle to the direction
-        direction.append(angle)
+    # Print the difference
+    print("Difference: {}".format(difference))
 
     # Return the direction
-    return direction
+    return difference
 
 # Function to map consecutive points (streamline nodes) to directions
 def map_points_to_directions(points):
 
-    # Get the angles
-    angles = map_points_to_angles(points)
+    # Define the list of directions
+    directions = []
 
-    # Get the directions
-    directions = define_direction(angles)
+    # For every point in the points
+    for i in range(len(points)):
+
+        # If it's the first point, then skip
+        if i == 0:
+            pass
+        else:
+            # Get the direction between the previous point and the current point
+            direction = find_direction(points[i-1], points[i])
+
+            # Append the direction to the list of directions
+            directions.append(direction)
 
     # Return the directions
     return directions
 
+# Function to, given a direction (discretized angle), find the vector that corresponds to that direction
+def find_vector(angle):
+
+    # Define the x-axis, y-axis and z-axis
+    x_axis = np.array([1, 0, 0])
+    y_axis = np.array([0, 1, 0])
+    z_axis = np.array([0, 0, 1])
+
+    # Define the vector
