@@ -9,7 +9,7 @@ import torch.nn as nn
 def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, streamline_arrays_path, separate_hemisphere,
                         kernel_size=3, n_gpus=None, distributed=False, print_gpu_memory=True, scaler=None, 
                         data_time=None, coordinates=None, use_amp=False, losses=None, batch_time=None,
-                        progress=None, input_type="trk", training_task="classification"):
+                        progress=None, input_type="trk", training_task="classification", output_size=359):
     
     # Initialize the end time
     end = time.time()
@@ -48,18 +48,10 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
 
         # Create a numpy array of the same size as the streamlines
         predicted_streamlines_array = []
-
-        # Get the size of each prediction, depending on task
-        if training_task == "classification":
-            prediction_size = 7
-        elif training_task == "regression":
-            prediction_size = 1
-        else:
-            prediction_size = 3
         
         # Store the previous two predictions, to use as input for the next prediction
-        previous_prediction_1 = torch.randn((batch_size, prediction_size))
-        previous_prediction_2 = torch.randn((batch_size, prediction_size))
+        previous_prediction_1 = torch.randn((batch_size, output_size))
+        previous_prediction_2 = torch.randn((batch_size, output_size))
         # Concatenate the previous predictions together along dimension 1
         previous_predictions = torch.cat((previous_prediction_1, previous_prediction_2), dim=1)
 
@@ -216,7 +208,8 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
 # Define the inner loop validation
 def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays_path, separate_hemisphere,
                             kernel_size=16, n_gpus=None, distributed=False, coordinates=None, use_amp=False, 
-                            losses=None, batch_time=None, progress=None, input_type="trk", training_task="classification"):
+                            losses=None, batch_time=None, progress=None, input_type="trk", training_task="classification",
+                            output_size=359):
     
     # No gradients
     with torch.no_grad():
@@ -238,8 +231,8 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
             predicted_streamlines_array = []
 
             # Store the previous two predictions, to use as input for the next prediction
-            previous_prediction_1 = torch.randn((batch_size, 1, 3))
-            previous_prediction_2 = torch.randn((batch_size, 1, 3))
+            previous_prediction_1 = torch.randn((batch_size, 1, output_size))
+            previous_prediction_2 = torch.randn((batch_size, 1, output_size))
             # Concatenate the previous predictions together along dimension 2
             previous_predictions = torch.cat((previous_prediction_1, previous_prediction_2), dim=2)
                         

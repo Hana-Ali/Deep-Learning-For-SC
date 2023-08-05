@@ -249,37 +249,14 @@ def define_direction(angles):
     # For every angle in the angles
     for angle in angles:
 
-        # If the angle is between 0 and 45 degrees, then the direction is 0
-        if angle >= 0 and angle <= 45:
-            direction.append(0)
+        # We want to create a binning strategy, where we have 360 bins (1 for each degree). To do this, we 
+        # can just round the angle to the nearest degree. This will give us a number between 0 and 359.
 
-        # If the angle is between 45 and 90 degrees, then the direction is 1
-        elif angle > 45 and angle <= 90:
-            direction.append(1)
+        # Round the angle
+        angle = np.round(angle)
 
-        # If the angle is between 90 and 135 degrees, then the direction is 2
-        elif angle > 90 and angle <= 135:
-            direction.append(2)
-
-        # If the angle is between 135 and 180 degrees, then the direction is 3
-        elif angle > 135 and angle <= 180:
-            direction.append(3)
-
-        # If the angle is between 180 and 225 degrees, then the direction is 4
-        elif angle > 180 and angle <= 225:
-            direction.append(4)
-
-        # If the angle is between 225 and 270 degrees, then the direction is 5
-        elif angle > 225 and angle <= 270:
-            direction.append(5)
-
-        # If the angle is between 270 and 315 degrees, then the direction is 6
-        elif angle > 270 and angle <= 315:
-            direction.append(6)
-
-        # If the angle is between 315 and 360 degrees, then the direction is 7
-        elif angle > 315 and angle <= 360:
-            direction.append(7)
+        # Append the angle to the direction
+        direction.append(angle)
 
     # Return the direction
     return direction
