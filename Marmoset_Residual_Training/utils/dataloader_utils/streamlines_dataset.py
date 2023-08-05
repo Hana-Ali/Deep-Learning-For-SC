@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import glob
 import nibabel as nib
+import itertools
 
 # Define the StreamlineDataset class
 class StreamlineDataset(torch.utils.data.Dataset):
@@ -40,7 +41,7 @@ class StreamlineDataset(torch.utils.data.Dataset):
         # Filter out the streamlines (TARGETS)
         tck_streamlines = [file for file in tck_files if "tracer" in file and "sharp" not in file]
         trk_streamlines = [file for file in trk_files if "tracer" in file and "sharp" not in file]
-
+           
         # Prepare the lists
         self.wmfod_images = []
         self.streamlines = []
@@ -145,23 +146,27 @@ class StreamlineDataset(torch.utils.data.Dataset):
         # Get the streamlines
         streamlines = streamlines[streamlines_range]
         
-        # Get the streamline angles
+        # Define a list that will store the angles
         streamline_angles = []
+        # For every streamline, get the angles
         for streamline in streamlines:
             streamline_angles.append(map_points_to_angles(streamline))
 
-        # Get the streamline directions
-        streamline_directions = []
+        # Define lists that will store the direction (one-hot encoded class) and the direction tuples
+        streamline_directions, streamline_direction_tuples = [], []
+        # For every streamline, get the directions
         for streamline in streamlines:
-            streamline_directions.append(map_points_to_directions(streamline))
-
-        return
+            # Get the directions
+            directions, directions_tuples = map_points_to_directions(streamline)
+            # Append them to the appropriate lists
+            streamline_directions.append(directions)
+            streamline_direction_tuples.append(directions_tuples)
 
         # Round the streamlines
         streamlines = np.round(streamlines).astype(int)
 
         # Return the streamline list of lists of coordinates
-        return (streamlines, streamline_angles, streamline_directions)
+        return (streamlines, streamline_angles, streamline_directions, streamline_direction_tuples)
     
     # Function to get item
     def __getitem__(self, index):
@@ -177,16 +182,17 @@ class StreamlineDataset(torch.utils.data.Dataset):
 
         # Read the streamline
         (streamline_list, streamline_angles, 
-         streamline_directions) = self.read_streamline(streamline_path)
+         streamline_directions, streamline_direction_tuples) = self.read_streamline(streamline_path)
         
         # Define a dictionary to store the images
         sample = {'wmfod' : wmfod_image_array,
                   'streamlines' : streamline_list,
                   'angles' : np.array(streamline_angles),
-                  'directions' : np.array(streamline_directions)}
+                  'directions' : np.array(streamline_directions),
+                  'direction_tuples' : np.array(streamline_direction_tuples)}
         
         # Return the nps. This is the final output to feed the network
-        return sample["wmfod"], sample["streamlines"], sample["angles"], sample["directions"]
+        return sample["wmfod"], sample["streamlines"], sample["angles"], sample["directions"], sample["direction_tuples"]
     
     def __len__(self):
         return self.streamlines_size
@@ -230,6 +236,13 @@ def find_angle(point1, point2):
 
         # Raise a value error
         raise ValueError("Angle is nan!")
+    
+    # Define the number of decimals to round to
+    num_decimals = 1
+    # Round the angles to the number of decimal places
+    alpha = round(alpha, num_decimals)
+    beta = round(beta, num_decimals)
+    gamma = round(gamma, num_decimals)
 
     # Return the angles
     return alpha, beta, gamma
@@ -256,23 +269,84 @@ def map_points_to_angles(points):
     # Return the angles
     return angles
 
-# Function to define the direction of the streamline (classification)
+
+# Function to define the bins
+def define_bins():
+
+    # Define all possible combinations of 0s, 1s and -1s
+    combinations = list(itertools.product([-1, 0, 1], repeat=3))
+
+    # Define the number of neighbours
+    num_neighbours = len(combinations)
+
+    # For each combination, we want to map it to a number between 0 and 26
+    bins = {}
+    for i in range(num_neighbours):
+
+        # If at center (0, 0, 0), then skip
+        if combinations[i] == (0, 0, 0):
+            pass
+        else:
+            bins[combinations[i]] = i
+
+    # Return the bins
+    return bins
+
+# Function to threshold the normalized difference
+def threshold_normalized_difference(difference, normalized_difference):
+
+    # Define the list that holds the new values
+    new_values = []
+
+    # For each value in the normalized difference
+    for i in range(len(normalized_difference)):
+
+        # If the value is greater than 0.4, then get its sign from the difference array, then append it to the new list
+        if normalized_difference[i] > 0.4:
+            new_values.append(np.sign(difference[i]) * 1)
+        else:
+            new_values.append(0)
+
+    # Turn it into a tuple
+    new_values = tuple(new_values)
+
+    # Return the new values
+    return new_values
+
+
+# Function to find the direction of the streamline (classification)
 def find_direction(point1, point2):
 
     # Get the difference between the 2 points
     difference = point2 - point1
 
-    # Print the difference
-    print("Difference: {}".format(difference))
+    # Define it as an absolute value and clip it to 1
+    abs_difference = np.clip(np.abs(difference), 0, 1)
+
+    # Normalize the difference based on the absolute value
+    normalized_difference = (abs_difference / np.linalg.norm(abs_difference))
+
+    # Based on the normalized difference, we can define the direction. The way we do this is we discretize the
+    # normalized difference into 26 possible bins (each is a neighbourhood of the voxel)
+
+    # Get the bins
+    bins = define_bins()
+
+    # Threshold the normalized difference, so that we can map it to a bin
+    thresholded_difference = threshold_normalized_difference(difference, normalized_difference)
+
+    # Map the normalized difference to a bin - this is the direction
+    direction = bins[thresholded_difference]          
 
     # Return the direction
-    return difference
+    return direction, thresholded_difference
 
 # Function to map consecutive points (streamline nodes) to directions
 def map_points_to_directions(points):
 
     # Define the list of directions
     directions = []
+    directions_tuples = []
 
     # For every point in the points
     for i in range(len(points)):
@@ -282,20 +356,73 @@ def map_points_to_directions(points):
             pass
         else:
             # Get the direction between the previous point and the current point
-            direction = find_direction(points[i-1], points[i])
-
+            direction, thresholded_difference = find_direction(points[i-1], points[i])
+            
             # Append the direction to the list of directions
             directions.append(direction)
-
+            directions_tuples.append(thresholded_difference)
+    
     # Return the directions
-    return directions
+    return directions, directions_tuples
 
-# Function to, given a direction (discretized angle), find the vector that corresponds to that direction
-def find_vector(angle):
+# Function to, given a direction and previous node, find what the corresponding next node should be
+def find_next_node(direction, previous_node):
 
-    # Define the x-axis, y-axis and z-axis
-    x_axis = np.array([1, 0, 0])
-    y_axis = np.array([0, 1, 0])
-    z_axis = np.array([0, 0, 1])
+    # If the direction is a single value, then we need to get which tuple it corresponds to
+    if type(direction) == int:
+        # Get the bins
+        bins = define_bins()
+        # Get the direction tuple
+        direction_tuple = list(bins.keys())[list(bins.values()).index(direction)]
+    # If it's already a tuple, then we can just use it
+    else:
+        direction_tuple = direction
 
-    # Define the vector
+    # Get the next node
+    next_node = previous_node + np.array(direction_tuple)
+
+    # Return the next node
+    return next_node
+
+# Function to get the next node for a given a list of directions
+def reconstruct_predicted_streamline(directions):
+
+    # The first item in directions is always the starting point
+    starting_point = directions[0]
+
+    # Define the list of nodes
+    nodes = [starting_point]
+
+    # For every direction in the directions
+    for i in range(1, len(directions) - 1):
+
+        # Get the previous node
+        previous_node = nodes[i-1]
+
+        # Get the next node
+        next_node = find_next_node(directions[i], previous_node)
+
+        # Append the next node to the list of nodes
+        nodes.append(next_node)
+
+    # Return the nodes
+    return nodes
+
+# Function to reconstruct all streamlines in a list of streamlines
+def reconstruct_predicted_streamlines(streamlines):
+
+    # Define the list of reconstructed streamlines
+    reconstructed_streamlines = []
+
+    # For every streamline in the streamlines
+    for streamline in streamlines:
+
+        # Reconstruct the streamline
+        reconstructed_streamline = reconstruct_predicted_streamline(streamline)
+
+        # Append the reconstructed streamline to the list of reconstructed streamlines
+        reconstructed_streamlines.append(reconstructed_streamline)
+
+    # Return the reconstructed streamlines
+    return reconstructed_streamlines
+

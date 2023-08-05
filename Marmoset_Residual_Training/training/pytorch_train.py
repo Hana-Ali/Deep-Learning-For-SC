@@ -50,6 +50,14 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
     save_every_n_epochs = config["save_every_n_epochs"] if "save_every_n_epochs" in config else None
     save_last_n_models = config["save_last_n_models"] if "save_last_n_models" in config else None
     verbose = config["verbose"] if "verbose" in config else 1
+
+    # Define the output size depending on the task
+    if in_config("task", config, None) == "classification":
+        output_size = 26 # Predicting directions, there are 26 directions
+    elif in_config("task", config, None) == "regression_angles":
+        output_size = 3 # Predicting angles
+    elif in_config("task", config, None) == "regression_coords":
+        output_size = 3 # Predicting coordinates
         
     # Build or load the model depending on streamline or dwi training, and build dataset differently
     if config["training_type"] == "streamline":
@@ -59,7 +67,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
                                     num_nodes=in_config("num_nodes", config, None), num_coordinates=in_config("num_coordinates", config, None),
                                     prev_output_size=in_config("prev_output_size", config, False), combination=config["combination"],
                                     n_gpus=n_gpus, bias=bias, freeze_bias=in_config("freeze_bias", config, False),
-                                    strict=False, task=in_config("task", config, "classification"), output_size=in_config("output_size", config, 359))
+                                    strict=False, task=in_config("task", config, "classification"), output_size=output_size)
         # Build the dataset
         dataset = StreamlineDataset(main_data_path, num_streamlines=config["num_streamlines"], transforms=None, train=True, tck_type=config["tck_type"])
     elif config["training_type"] == "residual":
@@ -208,7 +216,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
                                     cube_size=cube_size, n_gpus=n_gpus, voxel_wise=voxel_wise, distributed=False,
                                     print_gpu_memory=False, scaler=scaler, train_or_val="train", training_type=config["training_type"],
                                     streamline_arrays_path=in_config("streamline_arrays_path", config, False), input_type=in_config("tck_type", config, False),
-                                    training_task=in_config("task", config, "classification"), output_size=in_config("output_size", config, 359))
+                                    training_task=in_config("task", config, "classification"), output_size=output_size)
                                        
         try:
             train_loader.dataset.on_epoch_end()
@@ -227,7 +235,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
                                         cube_size=cube_size, n_gpus=n_gpus, voxel_wise=voxel_wise, distributed=False,
                                         print_gpu_memory=False, scaler=scaler, train_or_val="val", training_type=config["training_type"],
                                         streamline_arrays_path=in_config("streamline_arrays_path", config, False), input_type=in_config("tck_type", config, False),
-                                        training_task=in_config("task", config, "classification"), output_size=in_config("output_size", config, 359))
+                                        training_task=in_config("task", config, "classification"), output_size=output_size)
         else:
             val_loss = None
         
@@ -277,7 +285,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
 def epoch_training(train_loader, val_loader, model, criterion, optimizer, epoch, residual_arrays_path, separate_hemisphere, 
                    streamline_arrays_path, input_type, cube_size=16, n_gpus=None, voxel_wise=False, distributed=False, 
                    print_gpu_memory=False, scaler=None, train_or_val="train", training_type="residual", training_task="classification",
-                   output_size=359):
+                   output_size=1):
     
     # Define the meters
     batch_time = AverageMeter("Time", ":6.3f")

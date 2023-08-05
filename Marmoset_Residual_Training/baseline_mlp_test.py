@@ -4,7 +4,7 @@ from training import *
 
 hpc = False
 labs = False
-paperspace = True
+paperspace = False
 
 if hpc:
     main_data_path = "/rds/general/user/hsa22/ephemeral/Brain_MINDS/model_data"
@@ -16,8 +16,8 @@ elif paperspace:
     main_data_path = "/notebooks/model_data_w_resize"
     main_logs_path = "/notebooks/predicted_streamlines"
 else:
-    main_data_path = "D:\\Brain-MINDS\\model_data"
-    main_logs_path = "D:\\Brain-MINDS\\predicted_streamlines"
+    main_data_path = "/mnt/d/Brain-MINDS/model_data_w_resize"
+    main_logs_path = "/mnt/d/Brain-MINDS/predicted_streamlines"
 
 streamline_arrays_path = os.path.join(main_logs_path, "baseline_mlp")
 training_log_path = os.path.join(main_logs_path, "training_logs", "baseline_mlp.csv")

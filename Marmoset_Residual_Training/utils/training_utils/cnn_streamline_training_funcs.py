@@ -9,7 +9,7 @@ import torch.nn as nn
 def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, streamline_arrays_path, separate_hemisphere,
                         kernel_size=3, n_gpus=None, distributed=False, print_gpu_memory=True, scaler=None, 
                         data_time=None, coordinates=None, use_amp=False, losses=None, batch_time=None,
-                        progress=None, input_type="trk", training_task="classification", output_size=359):
+                        progress=None, input_type="trk", training_task="classification", output_size=1):
     
     # Initialize the end time
     end = time.time()

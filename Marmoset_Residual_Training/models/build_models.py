@@ -88,10 +88,10 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
 
             # Ensure that the output size matches the task
             if task == "classification":
-                assert output_size == 359
-            elif task == "regression":
                 assert output_size == 1
-            elif task == "coordinate_prediction":
+            elif task == "regression_angles":
+                assert output_size == 3
+            elif task == "regression_coords":
                 assert output_size == 3
             else:
                 raise ValueError("Task {} not found".format(task))
@@ -120,7 +120,7 @@ def build_or_load_model(model_name, model_filename, input_nc, output_nc=None, ng
                       voxel_wise=voxel_wise, cube_size=cube_size, num_rnn_layers=num_rnn_layers,
                       num_rnn_hidden_neurons=num_rnn_hidden_neurons, num_nodes=num_nodes,
                       num_coordinates=num_coordinates, prev_output_size=prev_output_size,
-                      combination=combination, task=task, output_size=1)
+                      combination=combination, task=task, output_size=output_size)
 
     # If there's bias
     if bias is not None:
