@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-from ..model_builders.efficientnet_utils import TwoInputMLP
+from ..model_builders.twoinput_mlp import TwoInputMLP
 
 # Two layer MLP that takes in the cube and outputs either the direction, angle,
 # or the actual coordinates of the streamline node.
@@ -28,7 +28,7 @@ class Baseline_MLP(nn.Module):
         
         # Define the task
         self.task = task
-
+        
         # Inherit the layers from the TwoInputMLP
         # Define the combination MLP
         self.combination_mlp = TwoInputMLP(previous_predictions_size=self.previous_predictions_size, cnn_flattened_size=self.cnn_flattened_size, 
@@ -36,7 +36,7 @@ class Baseline_MLP(nn.Module):
         
         # Define the final activation depending on the task
         if task == "classification":
-            self.final_activation = nn.Softmax(dim=1)
+            self.final_activation = nn.Softmax(dim=0)
         elif task == "regression_angles":
             self.final_activation = nn.Sigmoid()
 
@@ -45,10 +45,10 @@ class Baseline_MLP(nn.Module):
 
         # Pass through the combination MLP
         x = self.combination_mlp(previous_predictions, x)
-
+        
         # Pass through the final activation
         x = self.final_activation(x)
-        
+                
         # The output is different, depending on if the task is regression of angles or classification
         if self.task == "regression_angles":
             return np.round(x * 360, 1)

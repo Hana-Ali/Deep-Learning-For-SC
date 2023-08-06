@@ -17,8 +17,8 @@ from ..model_builders.efficientnet_utils import (
                                                 efficientnet_params,
                                                 Swish,
                                                 MemoryEfficientSwish,
-                                                TwoInputMLP
                                             )
+from ..model_builders.twoinput_mlp import TwoInputMLP
 
 class MBConvBlock3D(nn.Module):
     """

@@ -19,11 +19,17 @@ else:
     main_data_path = "/mnt/d/Brain-MINDS/model_data_w_resize"
     main_logs_path = "/mnt/d/Brain-MINDS/predicted_streamlines"
 
-streamline_arrays_path = os.path.join(main_logs_path, "baseline_mlp")
-training_log_path = os.path.join(main_logs_path, "training_logs", "baseline_mlp.csv")
-model_filename = os.path.join(main_logs_path, "models", "baseline_mlp.h5")
+streamline_arrays_path = os.path.join(main_logs_path, "streamline_predictions", "baseline_mlp")
+training_log_folder = os.path.join(main_logs_path, "training_logs")
+model_folder = os.path.join(main_logs_path, "models", "baseline_mlp")
 
 check_output_folders(streamline_arrays_path, "streamline arrays", wipe=False)
+check_output_folders(training_log_folder, "training_log_folder", wipe=False)
+check_output_folders(model_folder, "model_folder", wipe=False)
+
+training_log_path = os.path.join(training_log_folder, "baseline_mlp.csv")
+model_filename = os.path.join(model_folder, "baseline_mlp.h5")
+
 
 # Create the configs dictionary
 configs = {

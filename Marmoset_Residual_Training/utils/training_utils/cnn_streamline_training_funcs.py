@@ -17,11 +17,11 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
     # For each batch
     for i, (wmfod, streamlines, labels) in enumerate(train_loader):
         
-        print("Trial {}".format(i))
-        print("Shape of wmfods is: {}".format(wmfod.shape))
-        print("Shape of streamlines is: {}".format(streamlines.shape))
-        print("Shape of labels is: {}".format(labels.shape))
-        print("output_size is: {}".format(output_size))
+        # print("Trial {}".format(i))
+        # print("Shape of wmfods is: {}".format(wmfod.shape))
+        # print("Shape of streamlines is: {}".format(streamlines.shape))
+        # print("Shape of labels is: {}".format(labels.shape))
+        # print("output_size is: {}".format(output_size))
 
         # Measure the data loading time
         data_time.update(time.time() - end)
@@ -168,7 +168,7 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
     check_output_folders(predictions_folder, "predictions folder", wipe=False)
     
     # Print the shape
-    print("Shape of predicted_streamlines_array", predictions_array.shape)
+    # print("Shape of predicted_streamlines_array", predictions_array.shape)
 
     # Define the extension depending on the task (the output is either a npy file or a trk/tck file)
     if training_task == "classification" or training_task == "regression_angles":
@@ -181,7 +181,7 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
     # Since we're doing batch, we want to save each batch by batch
     for batch in range(streamlines.shape[batch_idx]):
         
-        print("Saving batch {}".format(batch))
+        # print("Saving batch {}".format(batch))
         
         # Define the folder for this batch
         batch_folder = os.path.join(predictions_folder, "batch_{}".format(batch))
@@ -301,9 +301,6 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
                     # Delete the predicted label
                     del predicted_label
 
-                # Append the predicted nodes array to the predicted streamlines array
-                predicted_streamlines_array.append(predicted_nodes_array)
-
                 # Measure the elapsed time for every streamline done
                 batch_time.update(time.time() - end)
                 end = time.time()
@@ -320,7 +317,7 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
         check_output_folders(predictions_folder, "predictions folder", wipe=False)
         
         # Print the shape
-        print("Shape of predicted_streamlines_array", predictions_array.shape)
+        # print("Shape of predicted_streamlines_array", predictions_array.shape)
 
         # Define the extension depending on the task (the output is either a npy file or a trk/tck file)
         if training_task == "classification" or training_task == "regression_angles":
@@ -333,7 +330,7 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
         # Since we're doing batch, we want to save each batch by batch
         for batch in range(streamlines.shape[batch_idx]):
             
-            print("Saving batch {}".format(batch))
+            # print("Saving batch {}".format(batch))
             
             # Define the folder for this batch
             batch_folder = os.path.join(predictions_folder, "batch_{}".format(batch))
@@ -405,6 +402,6 @@ def _batch_loss(model, wmfod_cube, label, previous_predictions, criterion, train
         
     # Get the batch size
     batch_size = wmfod_cube.size(0)
-        
+            
     # Return the loss
     return predicted_output, loss, batch_size
