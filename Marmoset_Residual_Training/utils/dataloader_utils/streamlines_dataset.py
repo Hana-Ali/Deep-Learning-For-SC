@@ -6,6 +6,9 @@ import glob
 import nibabel as nib
 import itertools
 
+# Set the seed
+np.random.seed(0)
+
 # Define the StreamlineDataset class
 class StreamlineDataset(torch.utils.data.Dataset):
 
@@ -30,10 +33,11 @@ class StreamlineDataset(torch.utils.data.Dataset):
         # 1. FOD images (INPUTS)
         # 2. Streamlines (TARGETS)
         
-        # Get all the nii.gz, tck and trk files
+        # Get all the nii.gz, tck, trk, and npy files
         nii_gz_files = glob_files(self.data_path, "nii.gz")        
         tck_files = glob_files(self.data_path, "tck")
         trk_files = glob_files(self.data_path, "trk")
+        npy_files = glob_files(self.data_path, "npy")
 
         # Filter out the WMFOD images (INPUTS 1)
         wmfod_images = [file for file in nii_gz_files if "wmfod" in file]
@@ -41,13 +45,33 @@ class StreamlineDataset(torch.utils.data.Dataset):
         # Filter out the streamlines (TARGETS)
         tck_streamlines = [file for file in tck_files if "tracer" in file and "sharp" not in file]
         trk_streamlines = [file for file in trk_files if "tracer" in file and "sharp" not in file]
+
+        # Filter out the angle, direction, and direction tuple npy files (TARGETS)
+        angle_npy_files = [file for file in npy_files if "angle" in file]
+        direction_npy_files = [file for file in npy_files if "direction" in file]
+        direction_tuple_npy_files = [file for file in npy_files if "direction_tuple" in file]
+
+        # Filter the angles as tck or trk
+        angle_npy_tck_files = [file for file in angle_npy_files if "tck" in file]
+        angle_npy_trk_files = [file for file in angle_npy_files if "trk" in file]
+
+        # Filter the directions as tck or trk
+        direction_npy_tck_files = [file for file in direction_npy_files if "tck" in file]
+        direction_npy_trk_files = [file for file in direction_npy_files if "trk" in file]
+
+        # Filter the direction tuples as tck or trk
+        direction_tuple_npy_tck_files = [file for file in direction_tuple_npy_files if "tck" in file]
+        direction_tuple_npy_trk_files = [file for file in direction_tuple_npy_files if "trk" in file]
            
         # Prepare the lists
         self.wmfod_images = []
         self.streamlines = []
+        self.angles = []
+        self.directions = []
+        self.direction_tuples = []
 
         # If the tck type is trk, then we use the trk streamlines
-        if tck_type == "trk":
+        if self.tck_type == "trk":
             streamlines = trk_streamlines
         else:
             streamlines = tck_streamlines
@@ -64,7 +88,21 @@ class StreamlineDataset(torch.utils.data.Dataset):
             # Get the wmfod path that corresponds to the region ID
             wmfod_path  = [file for file in wmfod_images if region_id in file]
 
-            # If it's empty, choose a random wmfod image
+            # Get the angle, direction and direction tuple npy files that correspond to the region ID in either tck or trk
+            if self.tck_type == "trk":
+                angles_npy_path = [file for file in angle_npy_trk_files if region_id in file]
+                directions_npy_path = [file for file in direction_npy_trk_files if region_id in file]
+                direction_tuples_npy_path = [file for file in direction_tuple_npy_trk_files if region_id in file]
+            else:
+                angles_npy_path = [file for file in angle_npy_tck_files if region_id in file]
+                directions_npy_path = [file for file in direction_npy_tck_files if region_id in file]
+                direction_tuples_npy_path = [file for file in direction_tuple_npy_tck_files if region_id in file]
+
+            # Raise an error if they're empty
+            if angles_npy_path == [] or directions_npy_path == [] or direction_tuples_npy_path == []:
+                raise ValueError("Angle, direction or direction tuple npy files are empty!")
+
+            # If wmfod is empty it's empty, choose a random wmfod image
             if wmfod_path == []:
                 wmfod_path = np.random.choice(wmfod_images)
             else:
@@ -76,12 +114,23 @@ class StreamlineDataset(torch.utils.data.Dataset):
             # Append the streamline to the list
             self.streamlines.append(streamline_path)
 
+            # Append the angle, direction and direction tuple npy files to the list
+            self.angles.append(angles_npy_path[0])
+            self.directions.append(directions_npy_path[0])
+            self.direction_tuples.append(direction_tuples_npy_path[0])
+
         # Define the size of the lists
         self.wmfod_size = len(self.wmfod_images)
         self.streamlines_size = len(self.streamlines)
-
+        self.angles_size = len(self.angles)
+        self.directions_size = len(self.directions)
+        self.direction_tuples_size = len(self.direction_tuples)
         # Assert that we have the same number of wmfod as streamlines
         assert self.wmfod_size == self.streamlines_size, "WMFOD and streamlines list are not the same length!"
+        # Assert that we have the same number of angles, directions and direction tuples as streamlines
+        assert self.angles_size == self.streamlines_size, "Angles and streamlines list are not the same length!"
+        assert self.directions_size == self.streamlines_size, "Directions and streamlines list are not the same length!"
+        assert self.direction_tuples_size == self.streamlines_size, "Direction tuples and streamlines list are not the same length!"
 
         # Define the transforms
         self.transforms = transforms
@@ -89,7 +138,6 @@ class StreamlineDataset(torch.utils.data.Dataset):
         # Define the train and test flags
         self.train = train
         self.test = test
-
 
     # Function to read an image
     def read_image(self, image_path):
@@ -131,8 +179,8 @@ class StreamlineDataset(torch.utils.data.Dataset):
         # Return the image
         return image
     
-    # Function to read a streamline
-    def read_streamline(self, streamline_path):
+    # Functon to choose a random number of streamlines from the path
+    def choose_random_streamlines_range(self, streamline_path):
 
         # Read the streamline
         streamlines = nib.streamlines.load(streamline_path).streamlines
@@ -143,30 +191,41 @@ class StreamlineDataset(torch.utils.data.Dataset):
         # Randomly sample self.num_streamlines indices from the range
         streamlines_range = np.random.choice(streamlines_range, self.num_streamlines)
 
-        # Get the streamlines
-        streamlines = streamlines[streamlines_range]
-        
-        # Define a list that will store the angles
-        streamline_angles = []
-        # For every streamline, get the angles
-        for streamline in streamlines:
-            streamline_angles.append(map_points_to_angles(streamline))
+        # Return the range
+        return streamlines_range
 
-        # Define lists that will store the direction (one-hot encoded class) and the direction tuples
-        streamline_directions, streamline_direction_tuples = [], []
-        # For every streamline, get the directions
-        for streamline in streamlines:
-            # Get the directions
-            directions, directions_tuples = map_points_to_directions(streamline)
-            # Append them to the appropriate lists
-            streamline_directions.append(directions)
-            streamline_direction_tuples.append(directions_tuples)
+    # Function to read a streamline
+    def read_streamline(self, streamline_path):
+
+        # Read the streamline
+        streamlines = nib.streamlines.load(streamline_path).streamlines
+
+        # Get a random range of streamlines
+        streamlines_range = self.choose_random_streamlines_range(streamline_path)
+
+        # Get the streamlines from the range
+        streamlines = streamlines[streamlines_range]
 
         # Round the streamlines
         streamlines = np.round(streamlines).astype(int)
 
         # Return the streamline list of lists of coordinates
-        return (streamlines, streamline_angles, streamline_directions, streamline_direction_tuples)
+        return streamlines
+    
+    # Function to read a npy file
+    def read_npy(self, npy_path):
+
+        # Read the npy file
+        npy = np.load(npy_path, allow_pickle=True)
+
+        # Get a random range of streamlines
+        streamlines_range = self.choose_random_streamlines_range(npy_path)
+
+        # Get the npy files that correspond to the streamlines range
+        npy = npy[streamlines_range]
+
+        # Return the npy
+        return npy
     
     # Function to get item
     def __getitem__(self, index):
@@ -177,19 +236,36 @@ class StreamlineDataset(torch.utils.data.Dataset):
         # Get the streamline path
         streamline_path = self.streamlines[index]
 
+        # Get the angle path
+        angle_path = self.angles[index]
+
+        # Get the direction path
+        direction_path = self.directions[index]
+
+        # Get the direction tuple path
+        direction_tuple_path = self.direction_tuples[index]
+
         # Read the wmfod image
         wmfod_image_array = self.read_image(wmfod_image_path)
 
         # Read the streamline
-        (streamline_list, streamline_angles, 
-         streamline_directions, streamline_direction_tuples) = self.read_streamline(streamline_path)
+        streamline_list = self.read_streamline(streamline_path)
+
+        # Read the angle
+        angle_array = self.read_npy(angle_path)
+
+        # Read the direction
+        direction_array = self.read_npy(direction_path)
+
+        # Read the direction tuple
+        direction_tuple_array = self.read_npy(direction_tuple_path)
         
         # Define a dictionary to store the images
         sample = {'wmfod' : wmfod_image_array,
                   'streamlines' : streamline_list,
-                  'angles' : np.array(streamline_angles),
-                  'directions' : np.array(streamline_directions),
-                  'direction_tuples' : np.array(streamline_direction_tuples)}
+                  'angles' : angle_array,
+                  'directions' : direction_array,
+                  'direction_tuples' : direction_tuple_array}
         
         # Return the nps. This is the final output to feed the network
         return sample["wmfod"], sample["streamlines"], sample["angles"], sample["directions"], sample["direction_tuples"]
@@ -282,13 +358,10 @@ def define_bins():
     # For each combination, we want to map it to a number between 0 and 26
     bins = {}
     for i in range(num_neighbours):
-
-        # If at center (0, 0, 0), then skip
-        if combinations[i] == (0, 0, 0):
-            pass
-        else:
-            bins[combinations[i]] = i
-
+        
+        # Map the combination to the number
+        bins[combinations[i]] = i
+    
     # Return the bins
     return bins
 
@@ -425,4 +498,3 @@ def reconstruct_predicted_streamlines(streamlines):
 
     # Return the reconstructed streamlines
     return reconstructed_streamlines
-

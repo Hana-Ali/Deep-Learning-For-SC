@@ -16,7 +16,6 @@
     "n_epochs": 50,
     "num_streamlines": 10,
     "optimizer": "Adam",
-    "output_size": 359,
     "save_best": true,
     "save_last_n_models": 10,
     "separate_hemisphere": false,

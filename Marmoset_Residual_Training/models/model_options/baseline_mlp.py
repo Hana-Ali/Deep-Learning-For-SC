@@ -37,7 +37,7 @@ class Baseline_MLP(nn.Module):
         # Define the final activation depending on the task
         if task == "classification":
             self.final_activation = nn.Softmax(dim=1)
-        elif task == "regression":
+        elif task == "regression_angles":
             self.final_activation = nn.Sigmoid()
 
     # Forward pass
@@ -49,8 +49,8 @@ class Baseline_MLP(nn.Module):
         # Pass through the final activation
         x = self.final_activation(x)
         
-        # The output is different, depending on if the task is regression or classification
-        if self.task == "regression":
-            return x * 360
+        # The output is different, depending on if the task is regression of angles or classification
+        if self.task == "regression_angles":
+            return np.round(x * 360, 1)
         else:
             return x

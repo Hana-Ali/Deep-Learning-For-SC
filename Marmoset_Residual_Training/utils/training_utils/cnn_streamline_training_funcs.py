@@ -15,13 +15,14 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
     end = time.time()
     
     # For each batch
-    for i, (wmfod, streamlines, angles, directions) in enumerate(train_loader):
+    for i, (wmfod, streamlines, angles, directions, direction_tuples) in enumerate(train_loader):
         
         print("Trial {}".format(i))
         print("Shape of wmfods is: {}".format(wmfod.shape))
         print("Shape of streamlines is: {}".format(streamlines.shape))
         print("Shape of angles is: {}".format(angles.shape))
         print("Shape of directions is: {}".format(directions.shape))
+        print("Shape of direction_tuples is: {}".format(direction_tuples.shape))
 
         # Measure the data loading time
         data_time.update(time.time() - end)
@@ -82,12 +83,6 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                 # Get the current direction from all batches
                 streamline_direction = directions[:, streamline, point]
     
-                # print("Shape of streamline node is: {}".format(streamline_node.shape))
-                # print("Shape of streamline angle is: {}".format(streamline_angle.shape))
-                # print("Shape of streamline direction is: {}".format(streamline_direction.shape))
-                # print("Shape of previous predictions is : {}".format(previous_predictions.shape))
-                # print("Size of predicted nodes array is: {}".format(np.array(predicted_nodes_array).shape))
-
                 # Get the cube in the wmfod that corresponds to this coordinate
                 wmfod_cube = grab_cube_around_voxel(image=brain_hemisphere, voxel_coordinates=curr_coord, kernel_size=kernel_size)
 
@@ -99,24 +94,24 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                 # Define the label based on the task
                 if training_task == "classification":
                     label = streamline_direction
-                elif training_task == "regression":
+                elif training_task == "regression_angles":
                     label = streamline_angle
-                elif training_task == "nodes":
+                elif training_task == "regression_coords":
                     label = streamline_node
                 else:
                     raise ValueError("Task {} not recognized".format(training_task))
 
                 # Get model output
-                (predicted_node, loss, batch_size) = batch_loss(model, wmfod_cube, label, previous_predictions, criterion, 
+                (predicted_label, loss, batch_size) = batch_loss(model, wmfod_cube, label, previous_predictions, criterion, 
                                                                 distributed=distributed, n_gpus=n_gpus, use_amp=use_amp)
 
-                # Get the node as a numpy array
-                predicted_node = predicted_node.cpu().detach().numpy()
+                # Get the prediction for this node as a numpy array
+                predicted_label = predicted_label.cpu().detach().numpy()
                 
-                print("predicted_node.shape", predicted_node.shape)
+                print("predicted_label.shape", predicted_label.shape)
 
                 # Append the node to the list
-                predicted_nodes_array.append(predicted_node)
+                predicted_nodes_array.append(predicted_label)
 
                 # If the size of the predicted nodes array is greater than or equal to 2, then use the last 2 as predictions
                 if len(predicted_nodes_array) >= 2:
@@ -167,7 +162,7 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                 del loss
 
                 # Delete the output
-                del predicted_node
+                del predicted_label
 
             # Append the predicted nodes array to the predicted streamlines array
             predicted_streamlines_array.append(predicted_nodes_array)

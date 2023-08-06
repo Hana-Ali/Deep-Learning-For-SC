@@ -88,7 +88,7 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
 
             # Ensure that the output size matches the task
             if task == "classification":
-                assert output_size == 1
+                assert output_size == 27
             elif task == "regression_angles":
                 assert output_size == 3
             elif task == "regression_coords":

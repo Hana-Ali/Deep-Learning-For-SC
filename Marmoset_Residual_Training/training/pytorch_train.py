@@ -53,7 +53,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
 
     # Define the output size depending on the task
     if in_config("task", config, None) == "classification":
-        output_size = 26 # Predicting directions, there are 26 directions
+        output_size = 27 # Predicting directions, there are 27 bins
     elif in_config("task", config, None) == "regression_angles":
         output_size = 3 # Predicting angles
     elif in_config("task", config, None) == "regression_coords":
