@@ -37,7 +37,7 @@ configs = {
     "model_name" : "efficientnet", # Model name
     "input_nc" : 1,
     "combination" : True, # Combination
-    "task" : "classification", # Task
+    "task" : "regression_coords", # Task
     "hidden_size" : 32, # number of neurons
 
     ####### Training #######

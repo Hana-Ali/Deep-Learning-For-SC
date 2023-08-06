@@ -205,7 +205,7 @@ class EfficientNet3D(nn.Module):
         # Define the final activation depending on the task
         if self.task == "classification":
             self.final_activation = nn.Softmax(dim=1)
-        elif self.task == "regression_angles":
+        elif self.task == "regression_angles" or self.task == "regression_coords":
             self.final_activation = nn.Sigmoid()
 
     def set_swish(self, memory_efficient=True):
@@ -234,7 +234,7 @@ class EfficientNet3D(nn.Module):
 
         return x
 
-    def forward(self, inputs, previous_predictions):
+    def forward(self, inputs, previous_predictions, original_shapes):
         """ Calls extract_features to extract features, applies final linear layer, and returns logits. """
         bs = inputs.size(0)
         in_channels = inputs.size(1)
@@ -260,10 +260,24 @@ class EfficientNet3D(nn.Module):
 
         # Apply the final activation
         x = self.final_activation(x)
+        
+        print("x before multiplication is", x)
+        print("shape of final x is", x.shape)
 
         # The output is different, depending on if the task is regression of angles or classification
         if self.task == "regression_angles":
-            return np.round(x * 360, 1)
+            return torch.round(x * 360, 1)
+        elif self.task == "regression_coords":
+            # Multiply each coordinate by its max possible value (since we sigmoid it)
+            x[:, 0] = x[:, 0] * original_shapes.shape[2]
+            x[:, 1] = x[:, 1] * original_shapes.shape[3]
+            x[:, 2] = x[:, 2] * original_shapes.shape[4]
+            print("original_shapes.shape[2]", original_shapes.shape[2])
+            print("original_shapes.shape[3]", original_shapes.shape[3])
+            print("original_shapes.shape[3]", original_shapes.shape[4])
+            print("x after multiplication is", x)
+            # Return it rounded to the first decimal point
+            return torch.round(x, decimals=1)
         else:
             return x
 

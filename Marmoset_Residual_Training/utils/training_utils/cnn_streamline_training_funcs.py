@@ -14,150 +14,161 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
     # Initialize the end time
     end = time.time()
     
-    # For each batch
-    for i, (wmfod, streamlines, labels) in enumerate(train_loader):
-        
-        # print("Trial {}".format(i))
-        # print("Shape of wmfods is: {}".format(wmfod.shape))
-        # print("Shape of streamlines is: {}".format(streamlines.shape))
-        # print("Shape of labels is: {}".format(labels.shape))
-        # print("output_size is: {}".format(output_size))
-
-        # Measure the data loading time
-        data_time.update(time.time() - end)
-
-        # If print GPU memory
-        if n_gpus:
-            torch.cuda.empty_cache()
-            if print_gpu_memory:
-                for i_gpu in range(n_gpus):
-                    print("Memory allocated (device {}):".format(i_gpu),
-                        human_readable_size(torch.cuda.memory_allocated(i_gpu)))
-                    print("Max memory allocated (device {}):".format(i_gpu),
-                        human_readable_size(torch.cuda.max_memory_allocated(i_gpu)))
-                    print("Memory cached (device {}):".format(i_gpu),
-                        human_readable_size(torch.cuda.memory_cached(i_gpu)))
-                    print("Max memory cached (device {}):".format(i_gpu),
-                        human_readable_size(torch.cuda.max_memory_cached(i_gpu)))
-
-        # Get the brain hemisphere
-        brain_hemisphere = get_hemisphere(coordinates, separate_hemisphere, wmfod, kernel_size)
-
-        # Get the batch size
-        batch_size = brain_hemisphere.shape[0]
-        
-        # Store the previous two predictions, to use as input for the next prediction
-        previous_prediction_1 = torch.randn((batch_size, output_size))
-        previous_prediction_2 = torch.randn((batch_size, output_size))
-        # Concatenate the previous predictions together along dimension 1
-        previous_predictions = torch.cat((previous_prediction_1, previous_prediction_2), dim=1)
-
-        # Define the indices of the streamlines
-        batch_idx = 0
-        streamline_idx = 1
-        node_idx = 2
-        node_coord_idx = 3
-
-        # Create predictions array of the same size as what we'd expect (batch size x number of streamlines x number of nodes x output_size)
-        # Note that it's either num_nodes - 1 or not, depending on if we're predicting nodes, or predicting directions/angles
-        if training_task != "regression_coords":
-            predictions_array = np.zeros((batch_size, streamlines.shape[streamline_idx], streamlines.shape[node_idx] - 1, output_size))
-        else:
-            predictions_array = np.zeros((batch_size, streamlines.shape[streamline_idx], streamlines.shape[node_idx], output_size))
-
-        # For every streamline
-        for streamline in range(streamlines.shape[streamline_idx]):
-
-            # List to store the predicted nodes
-            predicted_nodes_array = []
-
-            # For every point in the streamline
-            for point in range(streamlines.shape[node_idx] - 1):
-
-                # Get the current point from the streamline of all batches
-                streamline_node = streamlines[:, streamline, point]
-
-                # Get the x, y, z coordinate into a list
-                curr_coord = [streamline_node[:, 0], streamline_node[:, 1], streamline_node[:, 2]]
-
-                # Get the current label from all batches
-                streamline_label = labels[:, streamline, point]
+    wmfod, streamlines, labels = next(iter(train_loader))
     
-                # Get the cube in the wmfod that corresponds to this coordinate
-                wmfod_cube = grab_cube_around_voxel(image=brain_hemisphere, voxel_coordinates=curr_coord, kernel_size=kernel_size)
+    # For each batch
+    # for i, (wmfod, streamlines, labels) in enumerate(train_loader):
+        
+    # print("Trial {}".format(i))
+    # print("Shape of wmfods is: {}".format(wmfod.shape))
+    # print("Shape of streamlines is: {}".format(streamlines.shape))
+    # print("Shape of labels is: {}".format(labels.shape))
+    # print("output_size is: {}".format(output_size))
 
-                # Turn the cube into a tensor
-                wmfod_cube = torch.from_numpy(wmfod_cube).float()
-                
-                # print("Cube shape is", wmfod_cube.shape)
+    # Measure the data loading time
+    data_time.update(time.time() - end)
 
-                # Get model output
-                (predicted_label, loss, batch_size) = batch_loss(model, wmfod_cube, streamline_label, previous_predictions, criterion, 
-                                                                distributed=distributed, n_gpus=n_gpus, use_amp=use_amp)
+    # If print GPU memory
+    if n_gpus:
+        torch.cuda.empty_cache()
+        if print_gpu_memory:
+            for i_gpu in range(n_gpus):
+                print("Memory allocated (device {}):".format(i_gpu),
+                    human_readable_size(torch.cuda.memory_allocated(i_gpu)))
+                print("Max memory allocated (device {}):".format(i_gpu),
+                    human_readable_size(torch.cuda.max_memory_allocated(i_gpu)))
+                print("Memory cached (device {}):".format(i_gpu),
+                    human_readable_size(torch.cuda.memory_cached(i_gpu)))
+                print("Max memory cached (device {}):".format(i_gpu),
+                    human_readable_size(torch.cuda.max_memory_cached(i_gpu)))
 
-                # Get the prediction for this node as a numpy array
-                predicted_label = predicted_label.cpu().detach().numpy()
-                
-                # Add the predicted label to the predictions array
-                predictions_array[:, streamline, point] = predicted_label
-                
-                # If the size of the predicted nodes array is greater than or equal to 2, then use the last 2 as predictions
-                if len(predicted_nodes_array) >= 2:
-                    previous_prediction_1 = torch.from_numpy(predicted_nodes_array[-1])
-                    previous_prediction_2 = torch.from_numpy(predicted_nodes_array[-2])
-                    previous_predictions = torch.cat((previous_prediction_1, previous_prediction_2), dim=1)
+    # Get the brain hemisphere
+    brain_hemisphere = get_hemisphere(coordinates, separate_hemisphere, wmfod, kernel_size)
 
-                # Empty cache
-                if n_gpus and not distributed:
-                    torch.cuda.empty_cache()
+    # Get the batch size
+    batch_size = brain_hemisphere.shape[0]
 
-                # Update the loss
-                losses.update(loss.item(), batch_size)
+    # Store the previous two predictions, to use as input for the next prediction
+    previous_prediction_1 = torch.randn((batch_size, output_size))
+    previous_prediction_2 = torch.randn((batch_size, output_size))
+    # Concatenate the previous predictions together along dimension 1
+    previous_predictions = torch.cat((previous_prediction_1, previous_prediction_2), dim=1)
 
-                # If scaler
-                if scaler:
+    # Define the indices of the streamlines
+    batch_idx = 0
+    streamline_idx = 1
+    node_idx = 2
+    node_coord_idx = 3
 
-                    # Scale the loss
-                    scaler.scale(loss).backward()
+    # Create predictions array of the same size as what we'd expect (batch size x number of streamlines x number of nodes x output_size)
+    # Note that it's either num_nodes - 1 or not, depending on if we're predicting nodes, or predicting directions/angles
+    predictions_array = np.zeros((batch_size, streamlines.shape[streamline_idx], streamlines.shape[node_idx] - 1, output_size))
+    
+    # Select one streamline
+    streamline = 0
+    
+        
+#         # For every streamline
+#         for streamline in range(streamlines.shape[streamline_idx]):
 
-                    # Unscale the optimizer
-                    scaler.step(optimizer)
+    # Repeat like a billion times
+    for i in range(0, 300):
+        
+        # List to store the predicted nodes
+        predicted_nodes_array = []
 
-                    # Update the scaler
-                    scaler.update()
+        # For every point in the streamline
+        # for point in range(streamlines.shape[node_idx] - 1):
+        point = 0
 
-                # Else
-                else:
-                    # Compute the gradients
-                    loss.backward()
+        # Get the current point from the streamline of all batches
+        streamline_node = streamlines[:, streamline, point]
 
-                    # Update the parameters
-                    optimizer.step()
-                    
-                    # Clip the gradient
-                    nn.utils.clip_grad_norm_(model.parameters(), max_norm=1000.0, norm_type=2)
-                    
-                    # grads = torch.cat([p.grad.flatten() for p in model.parameters()]).cpu().detach()
-                    # print("Gradient norm", torch.norm(grads).item())
+        # Get the x, y, z coordinate into a list
+        curr_coord = [streamline_node[:, 0], streamline_node[:, 1], streamline_node[:, 2]]
 
-                    # Zero the parameter gradients
-                    optimizer.zero_grad()
-                    
+        # Get the current label from all batches
+        if training_task != "regression_coords":
+            streamline_label = labels[:, streamline, point]
+        else:
+            streamline_label = streamlines[:, streamline, point + 1]
 
-                # print("loss is", loss.item())
+        # Get the cube in the wmfod that corresponds to this coordinate
+        wmfod_cube = grab_cube_around_voxel(image=brain_hemisphere, voxel_coordinates=curr_coord, kernel_size=kernel_size)
 
-                # Delete the loss
-                del loss
+        # Turn the cube into a tensor
+        wmfod_cube = torch.from_numpy(wmfod_cube).float()
 
-                # Delete the output
-                del predicted_label
+        # print("Cube shape is", wmfod_cube.shape)
 
-            # Measure the elapsed time for every streamline done
-            batch_time.update(time.time() - end)
-            end = time.time()
+        # Get model output
+        (predicted_label, loss, batch_size) = batch_loss(model, wmfod_cube, streamline_label, previous_predictions, criterion, 
+                                                         distributed=distributed, n_gpus=n_gpus, use_amp=use_amp, 
+                                                         original_shape=brain_hemisphere.shape)
 
-            # Print out the progress after every streamline is done
-            progress.display(i)
+        # Get the prediction for this node as a numpy array
+        predicted_label = predicted_label.cpu().detach().numpy()
+
+        # Add the predicted label to the predictions array
+        predictions_array[:, streamline, point] = predicted_label
+
+        # If the size of the predicted nodes array is greater than or equal to 2, then use the last 2 as predictions
+        if len(predicted_nodes_array) >= 2:
+            previous_prediction_1 = torch.from_numpy(predicted_nodes_array[-1])
+            previous_prediction_2 = torch.from_numpy(predicted_nodes_array[-2])
+            previous_predictions = torch.cat((previous_prediction_1, previous_prediction_2), dim=1)
+
+        # Empty cache
+        if n_gpus and not distributed:
+            torch.cuda.empty_cache()
+
+        # Update the loss
+        losses.update(loss.item(), batch_size)
+
+        # If scaler
+        if scaler:
+
+            # Scale the loss
+            scaler.scale(loss).backward()
+
+            # Unscale the optimizer
+            scaler.step(optimizer)
+
+            # Update the scaler
+            scaler.update()
+
+        # Else
+        else:
+            # Compute the gradients
+            loss.backward()
+
+            # Update the parameters
+            optimizer.step()
+
+            # Clip the gradient
+            nn.utils.clip_grad_norm_(model.parameters(), max_norm=1000.0, norm_type=2)
+
+            # grads = torch.cat([p.grad.flatten() for p in model.parameters()]).cpu().detach()
+            # print("Gradient norm", torch.norm(grads).item())
+
+            # Zero the parameter gradients
+            optimizer.zero_grad()
+
+
+        # print("loss is", loss.item())
+
+        # Delete the loss
+        del loss
+
+        # Delete the output
+        del predicted_label
+
+        # Measure the elapsed time for every streamline done
+        batch_time.update(time.time() - end)
+        end = time.time()
+
+        # Print out the progress after every streamline is done
+        progress.display(i)
 
     print("Saving...")
 
@@ -358,7 +369,7 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
 
         
 # Define the function to get model output
-def batch_loss(model, wmfod_cube, label, previous_predictions, criterion, distributed=False, n_gpus=None, use_amp=False,
+def batch_loss(model, wmfod_cube, label, previous_predictions, criterion, original_shape, distributed=False, n_gpus=None, use_amp=False,
               training_task="classification"):
     
     # If number of GPUs
@@ -387,15 +398,15 @@ def batch_loss(model, wmfod_cube, label, previous_predictions, criterion, distri
     # Compute the output
     if use_amp:
         with torch.cuda.amp.autocast():
-            return _batch_loss(model, wmfod_cube, label, previous_predictions, criterion, training_task)
+            return _batch_loss(model, wmfod_cube, label, previous_predictions, criterion, training_task, original_shape)
     else:
-        return _batch_loss(model, wmfod_cube, label, previous_predictions, criterion, training_task)
+        return _batch_loss(model, wmfod_cube, label, previous_predictions, criterion, training_task, original_shape)
     
 # Define the batch loss
-def _batch_loss(model, wmfod_cube, label, previous_predictions, criterion, training_task):
+def _batch_loss(model, wmfod_cube, label, previous_predictions, criterion, training_task, original_shape):
         
     # Compute the output
-    predicted_output = model(wmfod_cube, previous_predictions)
+    predicted_output = model(wmfod_cube, previous_predictions, original_shape)
             
     # Find the loss between the output and the voxel value
     loss = criterion(predicted_output, label)

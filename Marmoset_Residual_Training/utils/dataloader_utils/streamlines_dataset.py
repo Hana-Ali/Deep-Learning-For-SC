@@ -64,10 +64,13 @@ class StreamlineDataset(torch.utils.data.Dataset):
             wmfod_path  = [file for file in wmfod_images if region_id in file]
 
             # Get the labels that correspond to the region ID
-            label_path = [file for file in label_npy_files if region_id in file]
+            if self.task != "regression_coords":
+                label_path = [file for file in label_npy_files if region_id in file]
+            else:
+                label_path = []
 
             # Raise an error if it's empty
-            if label_path == []:
+            if label_path == [] and self.task != "regression_coords":
                 raise ValueError("Label npy files are empty!")
 
             # If wmfod is empty it's empty, choose a random wmfod image
@@ -83,8 +86,9 @@ class StreamlineDataset(torch.utils.data.Dataset):
             self.streamlines.append(streamline_path)
 
             # Append the label npy files to the list
-            self.labels.append(label_path[0])
-
+            if self.task != "regression_coords":
+                self.labels.append(label_path[0])
+            
         # Define the size of the lists
         self.wmfod_size = len(self.wmfod_images)
         self.streamlines_size = len(self.streamlines)
@@ -128,7 +132,7 @@ class StreamlineDataset(torch.utils.data.Dataset):
             label_npy_files = self.get_tck_trk_data(label_npy_files)
 
         elif self.task == "regression_coords":
-            pass
+            label_npy_files = []
         else:
             raise ValueError("Task not recognized. Please choose from: classification, regression_angles, regression_directions, regression_coords")
 
@@ -241,17 +245,18 @@ class StreamlineDataset(torch.utils.data.Dataset):
         # Get the streamline path
         streamline_path = self.streamlines[index]
 
-        # Get the label path
-        label_path = self.labels[index]
-
         # Read the wmfod image
         wmfod_image_array = self.read_image(wmfod_image_path)
 
         # Read the streamline
         streamline_list = self.read_streamline(streamline_path)
 
-        # Read the label
-        label_array = self.read_npy(label_path)
+        # Choose and read label if the task is correct
+        if self.task != "regression_coords":
+            label_path = self.labels[index]
+            label_array = self.read_npy(label_path)
+        else:
+            label_array = []
         
         # Define a dictionary to store the images
         sample = {

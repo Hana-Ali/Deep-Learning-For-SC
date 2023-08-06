@@ -23,7 +23,7 @@
     "shuffle_dataset": true,
     "skip_val": false,
     "streamline_arrays_path": "/notebooks/predicted_streamlines/streamline_predictions/efficientnet",
-    "task": "classification",
+    "task": "regression_coords",
     "tck_type": "trk",
     "training_log_path": "/notebooks/predicted_streamlines/training_logs/efficientnet.csv",
     "training_type": "streamline",
