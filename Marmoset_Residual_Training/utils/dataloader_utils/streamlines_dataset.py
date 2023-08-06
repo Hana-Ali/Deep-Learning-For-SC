@@ -18,7 +18,8 @@ class StreamlineDataset(torch.utils.data.Dataset):
                  transforms=None,
                  train=False,
                  test=False,
-                 tck_type="trk"):
+                 tck_type="trk",
+                 task="classification"):
         
         # Define the data paths
         self.data_path = data_path
@@ -29,52 +30,26 @@ class StreamlineDataset(torch.utils.data.Dataset):
         # Define the tck_type
         self.tck_type = tck_type
 
+        # Define the task
+        self.task = task
+
         # Define the following paths that we use in the model
         # 1. FOD images (INPUTS)
         # 2. Streamlines (TARGETS)
         
         # Get all the nii.gz, tck, trk, and npy files
-        nii_gz_files = glob_files(self.data_path, "nii.gz")        
-        tck_files = glob_files(self.data_path, "tck")
-        trk_files = glob_files(self.data_path, "trk")
-        npy_files = glob_files(self.data_path, "npy")
+        self.nii_gz_files = glob_files(self.data_path, "nii.gz")        
+        self.tck_files = glob_files(self.data_path, "tck")
+        self.trk_files = glob_files(self.data_path, "trk")
+        self.npy_files = glob_files(self.data_path, "npy")
 
-        # Filter out the WMFOD images (INPUTS 1)
-        wmfod_images = [file for file in nii_gz_files if "wmfod" in file]
-
-        # Filter out the streamlines (TARGETS)
-        tck_streamlines = [file for file in tck_files if "tracer" in file and "sharp" not in file]
-        trk_streamlines = [file for file in trk_files if "tracer" in file and "sharp" not in file]
-
-        # Filter out the angle, direction, and direction tuple npy files (TARGETS)
-        angle_npy_files = [file for file in npy_files if "angle" in file and "tracer" in file and "sharp" not in file]
-        direction_npy_files = [file for file in npy_files if "direction" in file and "tracer" in file and "sharp" not in file]
-        direction_tuple_npy_files = [file for file in npy_files if "direction_tuple" in file and "tracer" in file and "sharp" not in file]
-
-        # Filter the angles as tck or trk
-        angle_npy_tck_files = [file for file in angle_npy_files if "tck" in file]
-        angle_npy_trk_files = [file for file in angle_npy_files if "trk" in file]
-
-        # Filter the directions as tck or trk
-        direction_npy_tck_files = [file for file in direction_npy_files if "tck" in file]
-        direction_npy_trk_files = [file for file in direction_npy_files if "trk" in file]
-
-        # Filter the direction tuples as tck or trk
-        direction_tuple_npy_tck_files = [file for file in direction_tuple_npy_files if "tck" in file]
-        direction_tuple_npy_trk_files = [file for file in direction_tuple_npy_files if "trk" in file]
+        # Load up the inputs
+        wmfod_images, streamlines, label_npy_files = self.load_inputs()
            
         # Prepare the lists
         self.wmfod_images = []
         self.streamlines = []
-        self.angles = []
-        self.directions = []
-        self.direction_tuples = []
-
-        # If the tck type is trk, then we use the trk streamlines
-        if self.tck_type == "trk":
-            streamlines = trk_streamlines
-        else:
-            streamlines = tck_streamlines
+        self.labels = []
 
         # For every item in the streamlines
         for i in range(len(streamlines)):
@@ -88,19 +63,12 @@ class StreamlineDataset(torch.utils.data.Dataset):
             # Get the wmfod path that corresponds to the region ID
             wmfod_path  = [file for file in wmfod_images if region_id in file]
 
-            # Get the angle, direction and direction tuple npy files that correspond to the region ID in either tck or trk
-            if self.tck_type == "trk":
-                angles_npy_path = [file for file in angle_npy_trk_files if region_id in file]
-                directions_npy_path = [file for file in direction_npy_trk_files if region_id in file]
-                direction_tuples_npy_path = [file for file in direction_tuple_npy_trk_files if region_id in file]
-            else:
-                angles_npy_path = [file for file in angle_npy_tck_files if region_id in file]
-                directions_npy_path = [file for file in direction_npy_tck_files if region_id in file]
-                direction_tuples_npy_path = [file for file in direction_tuple_npy_tck_files if region_id in file]
+            # Get the labels that correspond to the region ID
+            label_path = [file for file in label_npy_files if region_id in file]
 
-            # Raise an error if they're empty
-            if angles_npy_path == [] or directions_npy_path == [] or direction_tuples_npy_path == []:
-                raise ValueError("Angle, direction or direction tuple npy files are empty!")
+            # Raise an error if it's empty
+            if label_path == []:
+                raise ValueError("Label npy files are empty!")
 
             # If wmfod is empty it's empty, choose a random wmfod image
             if wmfod_path == []:
@@ -114,23 +82,18 @@ class StreamlineDataset(torch.utils.data.Dataset):
             # Append the streamline to the list
             self.streamlines.append(streamline_path)
 
-            # Append the angle, direction and direction tuple npy files to the list
-            self.angles.append(angles_npy_path[0])
-            self.directions.append(directions_npy_path[0])
-            self.direction_tuples.append(direction_tuples_npy_path[0])
+            # Append the label npy files to the list
+            self.labels.append(label_path[0])
 
         # Define the size of the lists
         self.wmfod_size = len(self.wmfod_images)
         self.streamlines_size = len(self.streamlines)
-        self.angles_size = len(self.angles)
-        self.directions_size = len(self.directions)
-        self.direction_tuples_size = len(self.direction_tuples)
+        self.labels_size = len(self.labels)
         # Assert that we have the same number of wmfod as streamlines
         assert self.wmfod_size == self.streamlines_size, "WMFOD and streamlines list are not the same length!"
-        # Assert that we have the same number of angles, directions and direction tuples as streamlines
-        assert self.angles_size == self.streamlines_size, "Angles and streamlines list are not the same length!"
-        assert self.directions_size == self.streamlines_size, "Directions and streamlines list are not the same length!"
-        assert self.direction_tuples_size == self.streamlines_size, "Direction tuples and streamlines list are not the same length!"
+        # Assert that we have the same number of labels as streamlines (only if task isn't regression_coords, otherwise we don't need labels)
+        if self.task != "regression_coords":
+            assert self.labels_size == self.streamlines_size, "Labels and streamlines list are not the same length!"
 
         # Define the transforms
         self.transforms = transforms
@@ -138,6 +101,51 @@ class StreamlineDataset(torch.utils.data.Dataset):
         # Define the train and test flags
         self.train = train
         self.test = test
+
+    # Function to get the inputs to the streamlines dataset (neat)
+    def load_inputs(self):
+
+        # Filter out the WMFOD images (INPUTS 1)
+        wmfod_images = [file for file in self.nii_gz_files if "wmfod" in file]
+
+        # Get the correct streamline TYPE, depending on the task and the input type
+        if self.tck_type == "tck":
+            streamlines = [file for file in self.tck_files if "tracer" in file and "sharp" not in file]
+        elif self.tck_type == "trk":
+            streamlines = [file for file in self.trk_files if "tracer" in file and "sharp" not in file]
+
+        # Get the correct LABEL, depending on the task
+        if self.task == "classification":
+            label_npy_files = [file for file in self.npy_files if "direction" in file and "tracer" in file and "sharp" not in file]
+            label_npy_files = self.get_tck_trk_data(label_npy_files)
+
+        elif self.task == "regression_angles":
+            label_npy_files = [file for file in self.npy_files if "angle" in file and "tracer" in file and "sharp" not in file]
+            label_npy_files = self.get_tck_trk_data(label_npy_files)
+
+        elif self.task == "regression_directions":
+            label_npy_files = [file for file in self.npy_files if "direction_tuple" in file and "tracer" in file and "sharp" not in file]
+            label_npy_files = self.get_tck_trk_data(label_npy_files)
+
+        elif self.task == "regression_coords":
+            pass
+        else:
+            raise ValueError("Task not recognized. Please choose from: classification, regression_angles, regression_directions, regression_coords")
+
+        # Return the wmfods, streamlines, and labels
+        return wmfod_images, streamlines, label_npy_files
+
+    # Function to get either tck or trk data
+    def get_tck_trk_data(self, data_files):
+
+        if self.tck_type == "tck":
+            data_files = [file for file in data_files if "tck" in file]
+        elif self.tck_type == "trk":
+            data_files = [file for file in data_files if "trk" in file]
+        else:
+            raise ValueError("Tck type is not valid!")
+        
+        return data_files
 
     # Function to read an image
     def read_image(self, image_path):
@@ -233,14 +241,8 @@ class StreamlineDataset(torch.utils.data.Dataset):
         # Get the streamline path
         streamline_path = self.streamlines[index]
 
-        # Get the angle path
-        angle_path = self.angles[index]
-
-        # Get the direction path
-        direction_path = self.directions[index]
-
-        # Get the direction tuple path
-        direction_tuple_path = self.direction_tuples[index]
+        # Get the label path
+        label_path = self.labels[index]
 
         # Read the wmfod image
         wmfod_image_array = self.read_image(wmfod_image_path)
@@ -248,24 +250,18 @@ class StreamlineDataset(torch.utils.data.Dataset):
         # Read the streamline
         streamline_list = self.read_streamline(streamline_path)
 
-        # Read the angle
-        angle_array = self.read_npy(angle_path)
-
-        # Read the direction
-        direction_array = self.read_npy(direction_path)
-
-        # Read the direction tuple
-        direction_tuple_array = self.read_npy(direction_tuple_path)
+        # Read the label
+        label_array = self.read_npy(label_path)
         
         # Define a dictionary to store the images
-        sample = {'wmfod' : wmfod_image_array,
-                  'streamlines' : streamline_list,
-                  'angles' : angle_array,
-                  'directions' : direction_array,
-                  'direction_tuples' : direction_tuple_array}
-        
+        sample = {
+                    'wmfod' : wmfod_image_array,
+                    'streamlines' : streamline_list,
+                    'labels' : label_array
+                 }       
+         
         # Return the nps. This is the final output to feed the network
-        return sample["wmfod"], sample["streamlines"], sample["angles"], sample["directions"], sample["direction_tuples"]
+        return sample["wmfod"], sample["streamlines"], sample["labels"]
     
     def __len__(self):
         return self.streamlines_size

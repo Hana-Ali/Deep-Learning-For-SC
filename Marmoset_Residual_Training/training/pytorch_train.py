@@ -69,7 +69,8 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
                                     n_gpus=n_gpus, bias=bias, freeze_bias=in_config("freeze_bias", config, False),
                                     strict=False, task=in_config("task", config, "classification"), output_size=output_size)
         # Build the dataset
-        dataset = StreamlineDataset(main_data_path, num_streamlines=config["num_streamlines"], transforms=None, train=True, tck_type=config["tck_type"])
+        dataset = StreamlineDataset(main_data_path, num_streamlines=config["num_streamlines"], transforms=None, train=True, tck_type=config["tck_type"],
+                                    task=in_config("task", config, "classification"))
     elif config["training_type"] == "residual":
         # Build the model
         model = build_or_load_model(model_name, model_filename, input_nc=config["input_nc"], 

@@ -15,14 +15,12 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
     end = time.time()
     
     # For each batch
-    for i, (wmfod, streamlines, angles, directions, direction_tuples) in enumerate(train_loader):
+    for i, (wmfod, streamlines, labels) in enumerate(train_loader):
         
         print("Trial {}".format(i))
         print("Shape of wmfods is: {}".format(wmfod.shape))
         print("Shape of streamlines is: {}".format(streamlines.shape))
-        print("Shape of angles is: {}".format(angles.shape))
-        print("Shape of directions is: {}".format(directions.shape))
-        print("Shape of direction_tuples is: {}".format(direction_tuples.shape))
+        print("Shape of labels is: {}".format(labels.shape))
 
         # Measure the data loading time
         data_time.update(time.time() - end)
@@ -81,11 +79,8 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                 # Get the x, y, z coordinate into a list
                 curr_coord = [streamline_node[:, 0], streamline_node[:, 1], streamline_node[:, 2]]
 
-                # Get the current angle from all batches
-                streamline_angle = angles[:, streamline, point]
-
-                # Get the current direction from all batches
-                streamline_direction = directions[:, streamline, point]
+                # Get the current label from all batches
+                streamline_label = labels[:, streamline, point]
     
                 # Get the cube in the wmfod that corresponds to this coordinate
                 wmfod_cube = grab_cube_around_voxel(image=brain_hemisphere, voxel_coordinates=curr_coord, kernel_size=kernel_size)
@@ -95,18 +90,8 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                 
                 # print("Cube shape is", wmfod_cube.shape)
 
-                # Define the label based on the task
-                if training_task == "classification":
-                    label = streamline_direction
-                elif training_task == "regression_angles":
-                    label = streamline_angle
-                elif training_task == "regression_coords":
-                    label = streamline_node
-                else:
-                    raise ValueError("Task {} not recognized".format(training_task))
-
                 # Get model output
-                (predicted_label, loss, batch_size) = batch_loss(model, wmfod_cube, label, previous_predictions, criterion, 
+                (predicted_label, loss, batch_size) = batch_loss(model, wmfod_cube, streamline_label, previous_predictions, criterion, 
                                                                 distributed=distributed, n_gpus=n_gpus, use_amp=use_amp)
 
                 # Get the prediction for this node as a numpy array
@@ -180,24 +165,38 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
     # Make folder for the predictions
     folder_name = "train_sep" if separate_hemisphere else "train"
     predictions_folder = os.path.join(streamline_arrays_path, str(model.__class__.__name__), 
-                                      folder_name, "epoch_{}".format(epoch))
+                                      folder_name, "epoch_{}".format(epoch), "{}".format(training_task))
     check_output_folders(predictions_folder, "predictions folder", wipe=False)
-    
     
     # Print the shape
     print("Shape of predicted_streamlines_array", predictions_array.shape)
 
-    # Define the filenames
-    prediction_filename = os.path.join(predictions_folder, "tracer_streamlines_predicted.{extension}".format(extension=input_type))
-    groundtruth_filename = os.path.join(predictions_folder, "tracer_streamlines.{extension}".format(extension=input_type))
+    # Define the extension depending on the task (the output is either a npy file or a trk/tck file)
+    if training_task == "classification" or training_task == "regression_angles":
+        extension = "npy"
+    elif training_task == "regression_coords":
+        extension = "{ext}".format(ext=input_type)
+    else:
+        raise ValueError("Invalid training task")
 
-    # Turn the predicted streamlines array into a Tractogram with nibabel
-    predicted_streamlines_array = nib.streamlines.Tractogram(predictions_array, affine_to_rasmm=np.eye(4))
+    # Define the filenames
+    prediction_filename = os.path.join(predictions_folder, "tracer_streamlines_predicted.{extension}".format(extension=extension))
+    groundtruth_filename = os.path.join(predictions_folder, "tracer_streamlines.{extension}".format(extension=extension))
+
+    # Turn the predicted streamlines array into a Tractogram with nibabel and save it
     true_streamlines_array = nib.streamlines.Tractogram(streamlines, affine_to_rasmm=np.eye(4))
-    
-    # Save the predicted and ground truth streamlines
-    nib.streamlines.save(predicted_streamlines_array, prediction_filename)
     nib.streamlines.save(true_streamlines_array, groundtruth_filename)
+
+    # Turn the predicted streamlines array into a Tractogram with nibabel if we're predicting coordinates
+    if training_task == "regression_coords":
+        # Turn the predicted streamlines array into a Tractogram with nibabel and save it
+        predicted_streamlines_array = nib.streamlines.Tractogram(predictions_array, affine_to_rasmm=np.eye(4))    
+        nib.streamlines.save(predicted_streamlines_array, prediction_filename)
+
+    # Else, save the predicted and ground truth streamlines as numpy arrays
+    else:
+        np.save(prediction_filename, predictions_array)
+        np.save(groundtruth_filename, streamlines)
 
 # Define the inner loop validation
 def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays_path, separate_hemisphere,
