@@ -20,9 +20,21 @@ class TwoInputMLP(nn.Module):
         # print("Neurons", self.neurons)
         # print("Output size", self.output_size)
 
-        self.prev_pred_FC = nn.Linear(previous_predictions_size, neurons)  # First MLP for input of size [batch_size, 6]
-        self.cnn_output_FC = nn.Linear(cnn_flattened_size, neurons)  # Second MLP for input of size [batch_size, 3]
-        self.combo_FC = nn.Linear(neurons * 2, output_size)  # Output layer
+        self.prev_pred_FC = nn.Sequential(
+                                            nn.Linear(previous_predictions_size, neurons),  # First MLP for input of size [batch_size, 6]
+                                            nn.ReLU(inplace=True),
+                                            nn.BatchNorm1d(neurons)
+                                         )
+        self.cnn_output_FC = nn.Sequential(
+                                            nn.Linear(cnn_flattened_size, neurons),  # Second MLP for input of size [batch_size, 3]
+                                            nn.ReLU(inplace=True),
+                                            nn.BatchNorm1d(neurons)
+                                         )
+        self.combo_FC = nn.Sequential(
+                                            nn.Linear(neurons * 2, output_size),  # Output layer
+                                            nn.ReLU(inplace=True),
+                                            nn.BatchNorm1d(output_size)
+                                        )
 
     def forward(self, previous_predictions, efficientnet_output):
 
@@ -30,25 +42,14 @@ class TwoInputMLP(nn.Module):
         previous_predictions = previous_predictions.view(previous_predictions.size(0), -1)
         efficientnet_output = efficientnet_output.view(efficientnet_output.size(0), -1)
 
-        # print("Previous predictions shape", previous_predictions.shape)
-        # print("Efficientnet output shape", efficientnet_output.shape)
-
         # Pass each input through their respective MLPs
         previous_predictions = self.prev_pred_FC(previous_predictions)
         efficientnet_output = self.cnn_output_FC(efficientnet_output)
-
-        # print("Previous predictions shape", previous_predictions.shape)
-        # print("Efficientnet output shape", efficientnet_output.shape)
-
-        # Pass them through ReLU activation
-        previous_predictions = torch.relu(previous_predictions)
-        efficientnet_output = torch.relu(efficientnet_output)
-
+        
         # Concatenate the outputs of both MLPs along the last dimension
         x = torch.cat((previous_predictions, efficientnet_output), dim=-1)
 
         # Pass the concatenated output through the final layer
-        x = self.combo_FC(x)
-        
+        x = self.combo_FC(x)        
 
         return x

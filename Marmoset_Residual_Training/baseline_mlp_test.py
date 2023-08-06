@@ -39,6 +39,7 @@ configs = {
     "input_nc" : 45,
     "combination" : True, # Combination
     "task" : "classification", # Task
+    "hidden_size" : 32, # number of neurons
 
     ####### Training #######
     "n_epochs" : 50, # Number of epochs

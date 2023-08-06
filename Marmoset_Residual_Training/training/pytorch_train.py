@@ -67,7 +67,8 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
                                     num_nodes=in_config("num_nodes", config, None), num_coordinates=in_config("num_coordinates", config, None),
                                     prev_output_size=in_config("prev_output_size", config, False), combination=config["combination"],
                                     n_gpus=n_gpus, bias=bias, freeze_bias=in_config("freeze_bias", config, False),
-                                    strict=False, task=in_config("task", config, "classification"), output_size=output_size)
+                                    strict=False, task=in_config("task", config, "classification"), output_size=output_size,
+                                    hidden_size=in_config("hidden_size", config, 32))
         # Build the dataset
         dataset = StreamlineDataset(main_data_path, num_streamlines=config["num_streamlines"], transforms=None, train=True, tck_type=config["tck_type"],
                                     task=in_config("task", config, "classification"))

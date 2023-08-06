@@ -6,6 +6,7 @@
     "decay_patience": null,
     "early_stopping_patience": null,
     "evaluation_metric": "cross_entropy_loss",
+    "hidden_size": 32,
     "initial_learning_rate": 0.0001,
     "input_nc": 45,
     "loss": "mse_loss",

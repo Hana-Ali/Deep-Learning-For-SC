@@ -46,15 +46,14 @@ class Baseline_MLP(nn.Module):
         # Pass through the combination MLP
         x = self.combination_mlp(previous_predictions, x)
         
-        print("Shape of x right before activation", x.shape)
-        print("x right before activation", x)
+        # print("Shape of x right before activation", x.shape)
+        # print("x right before activation", x)
         
         # Pass through the final activation
         x = self.final_activation(x)
         
-        print("x after activation", x)
-        
-        print("Summing up each row, we get", x.cpu().detach().numpy().sum(axis=1))
+        # print("x after activation", x)
+        # print("Summing up each row, we get", x.cpu().detach().numpy().sum(axis=1))
                 
         # The output is different, depending on if the task is regression of angles or classification
         if self.task == "regression_angles":
