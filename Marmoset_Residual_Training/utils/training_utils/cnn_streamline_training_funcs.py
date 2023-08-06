@@ -100,7 +100,7 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                 
                 # Add the predicted label to the predictions array
                 predictions_array[:, streamline, point] = predicted_label
-
+                
                 # If the size of the predicted nodes array is greater than or equal to 2, then use the last 2 as predictions
                 if len(predicted_nodes_array) >= 2:
                     previous_prediction_1 = torch.from_numpy(predicted_nodes_array[-1])
@@ -137,7 +137,7 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                     # Clip the gradient
                     nn.utils.clip_grad_norm_(model.parameters(), max_norm=1000.0, norm_type=2)
                     
-                    grads = torch.cat([p.grad.flatten() for p in model.parameters()]).cpu().detach()
+                    # grads = torch.cat([p.grad.flatten() for p in model.parameters()]).cpu().detach()
                     # print("Gradient norm", torch.norm(grads).item())
 
                     # Zero the parameter gradients
