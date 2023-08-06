@@ -21,6 +21,7 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
         print("Shape of wmfods is: {}".format(wmfod.shape))
         print("Shape of streamlines is: {}".format(streamlines.shape))
         print("Shape of labels is: {}".format(labels.shape))
+        print("output_size is: {}".format(output_size))
 
         # Measure the data loading time
         data_time.update(time.time() - end)
@@ -97,8 +98,6 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                 # Get the prediction for this node as a numpy array
                 predicted_label = predicted_label.cpu().detach().numpy()
                 
-                print("predicted_label.shape", predicted_label.shape)
-
                 # Add the predicted label to the predictions array
                 predictions_array[:, streamline, point] = predicted_label
 
@@ -178,25 +177,34 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
         extension = "{ext}".format(ext=input_type)
     else:
         raise ValueError("Invalid training task")
+        
+    # Since we're doing batch, we want to save each batch by batch
+    for batch in range(streamlines.shape[batch_idx]):
+        
+        print("Saving batch {}".format(batch))
+        
+        # Define the folder for this batch
+        batch_folder = os.path.join(predictions_folder, "batch_{}".format(batch))
+        check_output_folders(batch_folder, "batch_folder", wipe=False)
 
-    # Define the filenames
-    prediction_filename = os.path.join(predictions_folder, "tracer_streamlines_predicted.{extension}".format(extension=extension))
-    groundtruth_filename = os.path.join(predictions_folder, "tracer_streamlines.{extension}".format(extension=extension))
+        # Define the filenames
+        prediction_filename = os.path.join(batch_folder, "tracer_streamlines_predicted.{extension}".format(extension=extension))
+        groundtruth_filename = os.path.join(batch_folder, "tracer_streamlines.{extension}".format(extension=input_type))
 
-    # Turn the predicted streamlines array into a Tractogram with nibabel and save it
-    true_streamlines_array = nib.streamlines.Tractogram(streamlines, affine_to_rasmm=np.eye(4))
-    nib.streamlines.save(true_streamlines_array, groundtruth_filename)
+        # Turn the predicted streamlines array into a Tractogram with nibabel and save it - note that streamlines is now a torch TENSOR,
+        # where the first element is a batch index. Thus, we need to take that into consideration and save batch by batch
+        true_streamlines_array = nib.streamlines.Tractogram(streamlines[batch], affine_to_rasmm=np.eye(4))
+        nib.streamlines.save(true_streamlines_array, groundtruth_filename)
 
-    # Turn the predicted streamlines array into a Tractogram with nibabel if we're predicting coordinates
-    if training_task == "regression_coords":
-        # Turn the predicted streamlines array into a Tractogram with nibabel and save it
-        predicted_streamlines_array = nib.streamlines.Tractogram(predictions_array, affine_to_rasmm=np.eye(4))    
-        nib.streamlines.save(predicted_streamlines_array, prediction_filename)
+        # Turn the predicted streamlines array into a Tractogram with nibabel if we're predicting coordinates
+        if training_task == "regression_coords":
+            # Turn the predicted streamlines array into a Tractogram with nibabel and save it
+            predicted_streamlines_array = nib.streamlines.Tractogram(predictions_array[batch], affine_to_rasmm=np.eye(4))    
+            nib.streamlines.save(predicted_streamlines_array, prediction_filename)
 
-    # Else, save the predicted and ground truth streamlines as numpy arrays
-    else:
-        np.save(prediction_filename, predictions_array)
-        np.save(groundtruth_filename, streamlines)
+        # Else, save the predicted stuff as a numpy array
+        else:
+            np.save(prediction_filename, predictions_array[batch])
 
 # Define the inner loop validation
 def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays_path, separate_hemisphere,

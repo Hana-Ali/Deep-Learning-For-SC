@@ -4,7 +4,7 @@ from training import *
 
 hpc = False
 labs = False
-paperspace = False
+paperspace = True
 
 if hpc:
     main_data_path = "/rds/general/user/hsa22/ephemeral/Brain_MINDS/model_data"
