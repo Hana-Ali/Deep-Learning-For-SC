@@ -189,9 +189,6 @@ class EfficientNet3D(nn.Module):
         #  Define the output size (different depending on task)
         self.output_size = self._global_params.num_classes
 
-        # Define the shape of the flattened output of the CNN
-        self.cnn_flattened_size = cnn_flattened_size
-
         # Define the number of neurons
         self.neurons = hidden_size
 
