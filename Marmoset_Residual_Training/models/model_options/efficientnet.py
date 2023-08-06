@@ -265,14 +265,19 @@ class EfficientNet3D(nn.Module):
         if self.task == "regression_angles":
             return torch.round(x * 360, 1)
         elif self.task == "regression_coords":
-            # Create new output of the same size as x
-            output_x = x.clone()
+            # # Create new output of the same size as x
+            # output_x = x.clone()
             # Create tensor with the shapes we want to multiply by
-            shapes_tensor = torch.from_numpy(np.array([original_shapes[2], original_shapes[3], original_shapes[4]])).cuda()
+            shapes_tensor = torch.tensor([original_shapes[2], original_shapes[3], original_shapes[4]]).cuda()
+            print("shapes_tensor", shapes_tensor)
             # Multiply the two together
-            output_x = torch.mul(output_x, shapes_tensor)
+            output_x = x * shapes_tensor
+            print("x is ", x)
+            print("output_x is", output_x)
+            print("are they equal", torch.tensor([129, 179, 116]) == torch.from_numpy(np.array([original_shapes[2], original_shapes[3], original_shapes[4]])))
             # Return it rounded to the first decimal point
-            return torch.round(output_x, decimals=1)
+            # return torch.round(output_x, decimals=1)
+            return output_x
         else:
             return x
 

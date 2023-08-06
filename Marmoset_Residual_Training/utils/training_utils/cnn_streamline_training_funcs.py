@@ -410,6 +410,8 @@ def _batch_loss(model, wmfod_cube, label, previous_predictions, criterion, train
                 
     # Find the loss between the output and the voxel value
     loss = criterion(predicted_output.float(), label.float())
+    
+    print("loss is", loss)
         
     # Get the batch size
     batch_size = wmfod_cube.size(0)
