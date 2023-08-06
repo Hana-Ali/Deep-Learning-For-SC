@@ -148,8 +148,8 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
             # Clip the gradient
             nn.utils.clip_grad_norm_(model.parameters(), max_norm=1000.0, norm_type=2)
 
-            # grads = torch.cat([p.grad.flatten() for p in model.parameters()]).cpu().detach()
-            # print("Gradient norm", torch.norm(grads).item())
+            grads = torch.cat([p.grad.flatten() for p in model.parameters()]).cpu().detach()
+            print("Gradient norm", torch.norm(grads).item())
 
             # Zero the parameter gradients
             optimizer.zero_grad()
@@ -407,9 +407,9 @@ def _batch_loss(model, wmfod_cube, label, previous_predictions, criterion, train
         
     # Compute the output
     predicted_output = model(wmfod_cube, previous_predictions, original_shape)
-            
+                
     # Find the loss between the output and the voxel value
-    loss = criterion(predicted_output, label)
+    loss = criterion(predicted_output.float(), label.float())
         
     # Get the batch size
     batch_size = wmfod_cube.size(0)

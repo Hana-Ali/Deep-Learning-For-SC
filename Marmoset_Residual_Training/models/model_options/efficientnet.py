@@ -199,7 +199,7 @@ class EfficientNet3D(nn.Module):
         self.task = task
         
         # Define the combination MLP
-        self.combination_mlp = TwoInputMLP(previous_predictions_size=self.previous_predictions_size, cnn_flattened_size=1280, 
+        self.combination_mlp = TwoInputMLP(previous_predictions_size=self.previous_predictions_size, cnn_flattened_size=3, 
                                            neurons=self.neurons, output_size=self.output_size, task=self.task)
         
         # Define the final activation depending on the task
@@ -253,7 +253,7 @@ class EfficientNet3D(nn.Module):
             x = self._avg_pooling(x)
             x = x.view(bs, -1)
             x = self._dropout(x)
-            # x = self._fc(x)
+            x = self._fc(x)
 
         # Pass the previous predictions through the combination MLP
         x = self.combination_mlp(previous_predictions, x)
@@ -261,23 +261,18 @@ class EfficientNet3D(nn.Module):
         # Apply the final activation
         x = self.final_activation(x)
         
-        print("x before multiplication is", x)
-        print("shape of final x is", x.shape)
-
         # The output is different, depending on if the task is regression of angles or classification
         if self.task == "regression_angles":
             return torch.round(x * 360, 1)
         elif self.task == "regression_coords":
-            # Multiply each coordinate by its max possible value (since we sigmoid it)
-            x[:, 0] = x[:, 0] * original_shapes.shape[2]
-            x[:, 1] = x[:, 1] * original_shapes.shape[3]
-            x[:, 2] = x[:, 2] * original_shapes.shape[4]
-            print("original_shapes.shape[2]", original_shapes.shape[2])
-            print("original_shapes.shape[3]", original_shapes.shape[3])
-            print("original_shapes.shape[3]", original_shapes.shape[4])
-            print("x after multiplication is", x)
+            # Create new output of the same size as x
+            output_x = x.clone()
+            # Create tensor with the shapes we want to multiply by
+            shapes_tensor = torch.from_numpy(np.array([original_shapes[2], original_shapes[3], original_shapes[4]])).cuda()
+            # Multiply the two together
+            output_x = torch.mul(output_x, shapes_tensor)
             # Return it rounded to the first decimal point
-            return torch.round(x, decimals=1)
+            return torch.round(output_x, decimals=1)
         else:
             return x
 
