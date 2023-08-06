@@ -86,7 +86,7 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
             return EfficientNet3D.from_name("efficientnet-b0", 
                                             override_params={'num_classes': output_size}, 
                                             in_channels=input_nc, 
-                                            hidden_size=128, 
+                                            hidden_size=hidden_size, 
                                             task="classification")
 
         elif "baseline_mlp" in model_name.lower():
