@@ -298,10 +298,11 @@ def epoch_training(train_loader, val_loader, model, criterion, optimizer, epoch,
         prefix='Epoch [{}]'.format(epoch)
     )
 
+    # Define use_amp
+    use_amp = scaler is not None
+
     # Perform necessary operations based on train or val
     if train_or_val == "train":
-        # Define use_amp
-        use_amp = scaler is not None
         # Switch to train mode
         model.train()
     else:

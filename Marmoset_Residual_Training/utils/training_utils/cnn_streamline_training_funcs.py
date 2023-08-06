@@ -208,7 +208,7 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
 
 # Define the inner loop validation
 def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays_path, separate_hemisphere,
-                            kernel_size=16, n_gpus=None, distributed=False, coordinates=None, use_amp=False, 
+                            kernel_size=16, n_gpus=None, distributed=False, coordinates=None, use_amp=None, 
                             losses=None, batch_time=None, progress=None, input_type="trk", training_task="classification",
                             output_size=359):
     
