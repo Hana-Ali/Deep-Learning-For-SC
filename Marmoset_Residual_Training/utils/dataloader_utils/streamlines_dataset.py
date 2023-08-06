@@ -47,9 +47,9 @@ class StreamlineDataset(torch.utils.data.Dataset):
         trk_streamlines = [file for file in trk_files if "tracer" in file and "sharp" not in file]
 
         # Filter out the angle, direction, and direction tuple npy files (TARGETS)
-        angle_npy_files = [file for file in npy_files if "angle" in file]
-        direction_npy_files = [file for file in npy_files if "direction" in file]
-        direction_tuple_npy_files = [file for file in npy_files if "direction_tuple" in file]
+        angle_npy_files = [file for file in npy_files if "angle" in file and "tracer" in file and "sharp" not in file]
+        direction_npy_files = [file for file in npy_files if "direction" in file and "tracer" in file and "sharp" not in file]
+        direction_tuple_npy_files = [file for file in npy_files if "direction_tuple" in file and "tracer" in file and "sharp" not in file]
 
         # Filter the angles as tck or trk
         angle_npy_tck_files = [file for file in angle_npy_files if "tck" in file]
@@ -179,20 +179,17 @@ class StreamlineDataset(torch.utils.data.Dataset):
         # Return the image
         return image
     
-    # Functon to choose a random number of streamlines from the path
-    def choose_random_streamlines_range(self, streamline_path):
-
-        # Read the streamline
-        streamlines = nib.streamlines.load(streamline_path).streamlines
+    # Functon to choose a random number from the array provided
+    def choose_random_streamlines_range(self, provided_array):
 
         # Create range of length of streamlines
-        streamlines_range = np.arange(len(streamlines))
+        random_range = np.arange(len(provided_array))
 
         # Randomly sample self.num_streamlines indices from the range
-        streamlines_range = np.random.choice(streamlines_range, self.num_streamlines)
+        random_range = np.random.choice(random_range, self.num_streamlines)
 
         # Return the range
-        return streamlines_range
+        return random_range
 
     # Function to read a streamline
     def read_streamline(self, streamline_path):
@@ -201,7 +198,7 @@ class StreamlineDataset(torch.utils.data.Dataset):
         streamlines = nib.streamlines.load(streamline_path).streamlines
 
         # Get a random range of streamlines
-        streamlines_range = self.choose_random_streamlines_range(streamline_path)
+        streamlines_range = self.choose_random_streamlines_range(streamlines)
 
         # Get the streamlines from the range
         streamlines = streamlines[streamlines_range]
@@ -219,7 +216,7 @@ class StreamlineDataset(torch.utils.data.Dataset):
         npy = np.load(npy_path, allow_pickle=True)
 
         # Get a random range of streamlines
-        streamlines_range = self.choose_random_streamlines_range(npy_path)
+        streamlines_range = self.choose_random_streamlines_range(npy)
 
         # Get the npy files that correspond to the streamlines range
         npy = npy[streamlines_range]

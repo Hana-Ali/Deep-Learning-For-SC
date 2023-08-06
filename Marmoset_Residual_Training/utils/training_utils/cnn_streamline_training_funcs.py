@@ -46,9 +46,6 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
 
         # Get the batch size
         batch_size = brain_hemisphere.shape[0]
-
-        # Create a numpy array of the same size as the streamlines
-        predicted_streamlines_array = []
         
         # Store the previous two predictions, to use as input for the next prediction
         previous_prediction_1 = torch.randn((batch_size, output_size))
@@ -62,10 +59,17 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
         node_idx = 2
         node_coord_idx = 3
 
+        # Create predictions array of the same size as what we'd expect (batch size x number of streamlines x number of nodes x output_size)
+        # Note that it's either num_nodes - 1 or not, depending on if we're predicting nodes, or predicting directions/angles
+        if training_task != "regression_coords":
+            predictions_array = np.zeros((batch_size, streamlines.shape[streamline_idx], streamlines.shape[node_idx] - 1, output_size))
+        else:
+            predictions_array = np.zeros((batch_size, streamlines.shape[streamline_idx], streamlines.shape[node_idx], output_size))
+
         # For every streamline
         for streamline in range(streamlines.shape[streamline_idx]):
 
-            # Define the list of the streamline nodes
+            # List to store the predicted nodes
             predicted_nodes_array = []
 
             # For every point in the streamline
@@ -110,8 +114,8 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                 
                 print("predicted_label.shape", predicted_label.shape)
 
-                # Append the node to the list
-                predicted_nodes_array.append(predicted_label)
+                # Add the predicted label to the predictions array
+                predictions_array[:, streamline, point] = predicted_label
 
                 # If the size of the predicted nodes array is greater than or equal to 2, then use the last 2 as predictions
                 if len(predicted_nodes_array) >= 2:
@@ -164,9 +168,6 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                 # Delete the output
                 del predicted_label
 
-            # Append the predicted nodes array to the predicted streamlines array
-            predicted_streamlines_array.append(predicted_nodes_array)
-
             # Measure the elapsed time for every streamline done
             batch_time.update(time.time() - end)
             end = time.time()
@@ -182,23 +183,21 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                                       folder_name, "epoch_{}".format(epoch))
     check_output_folders(predictions_folder, "predictions folder", wipe=False)
     
-    # For each item in the batch
-    for batch in range(streamlines.shape[batch_idx]):
-        
-        # Print the shape
-        print("Shape of predicted_streamlines_array", np.array(predicted_streamlines_array).shape)
+    
+    # Print the shape
+    print("Shape of predicted_streamlines_array", predictions_array.shape)
 
-        # Define the filenames
-        prediction_filename = os.path.join(predictions_folder, "tracer_streamlines_predicted_{batch}.{extension}".format(batch=batch, extension=input_type))
-        groundtruth_filename = os.path.join(predictions_folder, "tracer_streamlines_{batch}.{extension}".format(batch=batch, extension=input_type))
+    # Define the filenames
+    prediction_filename = os.path.join(predictions_folder, "tracer_streamlines_predicted.{extension}".format(extension=input_type))
+    groundtruth_filename = os.path.join(predictions_folder, "tracer_streamlines.{extension}".format(extension=input_type))
 
-        # Turn the predicted streamlines array into a Tractogram with nibabel
-        predicted_streamlines_array = nib.streamlines.Tractogram(predicted_streamlines_array[batch], affine_to_rasmm=np.eye(4))
-        true_streamlines_array = nib.streamlines.Tractogram(streamlines[batch], affine_to_rasmm=np.eye(4))
-        
-        # Save the predicted and ground truth streamlines
-        nib.streamlines.save(predicted_streamlines_array[batch], prediction_filename)
-        nib.streamlines.save(true_streamlines_array[batch], groundtruth_filename)
+    # Turn the predicted streamlines array into a Tractogram with nibabel
+    predicted_streamlines_array = nib.streamlines.Tractogram(predictions_array, affine_to_rasmm=np.eye(4))
+    true_streamlines_array = nib.streamlines.Tractogram(streamlines, affine_to_rasmm=np.eye(4))
+    
+    # Save the predicted and ground truth streamlines
+    nib.streamlines.save(predicted_streamlines_array, prediction_filename)
+    nib.streamlines.save(true_streamlines_array, groundtruth_filename)
 
 # Define the inner loop validation
 def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays_path, separate_hemisphere,
