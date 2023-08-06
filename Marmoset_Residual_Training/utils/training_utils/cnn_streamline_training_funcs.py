@@ -219,60 +219,75 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
         end = time.time()
         
         # For each batch
-        for i, (wmfod, streamlines) in enumerate(val_loader):
-
+        for i, (wmfod, streamlines, labels) in enumerate(val_loader):
             
             # Get the brain hemisphere
             brain_hemisphere = get_hemisphere(coordinates, separate_hemisphere, wmfod, kernel_size)
-            
+
             # Get the batch size
             batch_size = brain_hemisphere.shape[0]
-                    
-            # Create a numpy array of the same size as the streamlines
-            predicted_streamlines_array = []
-
+            
             # Store the previous two predictions, to use as input for the next prediction
-            previous_prediction_1 = torch.randn((batch_size, 1, output_size))
-            previous_prediction_2 = torch.randn((batch_size, 1, output_size))
-            # Concatenate the previous predictions together along dimension 2
-            previous_predictions = torch.cat((previous_prediction_1, previous_prediction_2), dim=2)
-                        
-            # For every streamline
-            for streamline in range(len(streamlines)):
+            previous_prediction_1 = torch.randn((batch_size, output_size))
+            previous_prediction_2 = torch.randn((batch_size, output_size))
+            # Concatenate the previous predictions together along dimension 1
+            previous_predictions = torch.cat((previous_prediction_1, previous_prediction_2), dim=1)
 
-                # Define the list of the streamline nodes
+            # Define the indices of the streamlines
+            batch_idx = 0
+            streamline_idx = 1
+            node_idx = 2
+            node_coord_idx = 3
+
+            # Create predictions array of the same size as what we'd expect (batch size x number of streamlines x number of nodes x output_size)
+            # Note that it's either num_nodes - 1 or not, depending on if we're predicting nodes, or predicting directions/angles
+            if training_task != "regression_coords":
+                predictions_array = np.zeros((batch_size, streamlines.shape[streamline_idx], streamlines.shape[node_idx] - 1, output_size))
+            else:
+                predictions_array = np.zeros((batch_size, streamlines.shape[streamline_idx], streamlines.shape[node_idx], output_size))
+
+            # For every streamline
+            for streamline in range(streamlines.shape[streamline_idx]):
+
+                # List to store the predicted nodes
                 predicted_nodes_array = []
 
                 # For every point in the streamline
-                for point in range(len(streamlines[streamline])):
+                for point in range(streamlines.shape[node_idx] - 1):
 
-                    # Get a point from the streamline
-                    streamline_node = streamlines[streamline][point]
+                    # Get the current point from the streamline of all batches
+                    streamline_node = streamlines[:, streamline, point]
 
                     # Get the x, y, z coordinate into a list
-                    curr_coord = [streamline_node[0], streamline_node[1], streamline_node[2]]
+                    curr_coord = [streamline_node[:, 0], streamline_node[:, 1], streamline_node[:, 2]]
 
+                    # Get the current label from all batches
+                    streamline_label = labels[:, streamline, point]
+        
                     # Get the cube in the wmfod that corresponds to this coordinate
                     wmfod_cube = grab_cube_around_voxel(image=brain_hemisphere, voxel_coordinates=curr_coord, kernel_size=kernel_size)
 
                     # Turn the cube into a tensor
                     wmfod_cube = torch.from_numpy(wmfod_cube).float()
+                    
+                    # print("Cube shape is", wmfod_cube.shape)
 
                     # Get model output
-                    (predicted_node, loss, batch_size) = batch_loss(model, wmfod_cube, streamline_node, previous_predictions, criterion, 
-                                                                    distributed=distributed, n_gpus=n_gpus, use_amp=use_amp,
-                                                                    training_task=training_task)
+                    (predicted_label, loss, batch_size) = batch_loss(model, wmfod_cube, streamline_label, previous_predictions, criterion, 
+                                                                    distributed=distributed, n_gpus=n_gpus, use_amp=use_amp)
 
-                        
-                    # Get the node as a numpy array
-                    predicted_node = predicted_node.cpu().detach().numpy()
-
-                    # Append the node to the list
-                    predicted_nodes_array.append(predicted_node)
-                        
-                    # Change this to actually add to the predictions tensor if you want
-                    del predicted_residual
+                    # Get the prediction for this node as a numpy array
+                    predicted_label = predicted_label.cpu().detach().numpy()
                     
+                    # Add the predicted label to the predictions array
+                    predictions_array[:, streamline, point] = predicted_label
+
+                    # If the size of the predicted nodes array is greater than or equal to 2, then use the last 2 as predictions
+                    if len(predicted_nodes_array) >= 2:
+                        previous_prediction_1 = torch.from_numpy(predicted_nodes_array[-1])
+                        previous_prediction_2 = torch.from_numpy(predicted_nodes_array[-2])
+                        previous_predictions = torch.cat((previous_prediction_1, previous_prediction_2), dim=1)
+
                     # Empty cache
                     if n_gpus and not distributed:
                         torch.cuda.empty_cache()
@@ -283,6 +298,9 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
                     # Delete the loss
                     del loss
 
+                    # Delete the predicted label
+                    del predicted_label
+
                 # Append the predicted nodes array to the predicted streamlines array
                 predicted_streamlines_array.append(predicted_nodes_array)
 
@@ -292,26 +310,55 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
 
                 # Print out the progress after every streamline is done
                 progress.display(i)
-                
-            print("Saving...")
 
-            # Make folder for the predictions
-            folder_name = "val_sep" if separate_hemisphere else "val"
-            predictions_folder = os.path.join(streamline_arrays_path, str(model.__class__.__name__), 
-                                            folder_name, "epoch_{}".format(epoch))
-            check_output_folders(predictions_folder, "predictions folder", wipe=False)
+        print("Saving...")
+
+        # Make folder for the predictions
+        folder_name = "val_sep" if separate_hemisphere else "val"
+        predictions_folder = os.path.join(streamline_arrays_path, str(model.__class__.__name__), 
+                                        folder_name, "epoch_{}".format(epoch), "{}".format(training_task))
+        check_output_folders(predictions_folder, "predictions folder", wipe=False)
+        
+        # Print the shape
+        print("Shape of predicted_streamlines_array", predictions_array.shape)
+
+        # Define the extension depending on the task (the output is either a npy file or a trk/tck file)
+        if training_task == "classification" or training_task == "regression_angles":
+            extension = "npy"
+        elif training_task == "regression_coords":
+            extension = "{ext}".format(ext=input_type)
+        else:
+            raise ValueError("Invalid training task")
+            
+        # Since we're doing batch, we want to save each batch by batch
+        for batch in range(streamlines.shape[batch_idx]):
+            
+            print("Saving batch {}".format(batch))
+            
+            # Define the folder for this batch
+            batch_folder = os.path.join(predictions_folder, "batch_{}".format(batch))
+            check_output_folders(batch_folder, "batch_folder", wipe=False)
 
             # Define the filenames
-            prediction_filename = os.path.join(predictions_folder, "tracer_streamlines_predicted.{extension}".format(input_type))
-            groundtruth_filename = os.path.join(predictions_folder, "tracer_streamlines.{extension}".format(input_type))
+            prediction_filename = os.path.join(batch_folder, "tracer_streamlines_predicted.{extension}".format(extension=extension))
+            groundtruth_filename = os.path.join(batch_folder, "tracer_streamlines.{extension}".format(extension=input_type))
 
-            # Turn the predicted streamlines array into a Tractogram with nibabel
-            predicted_streamlines_array = nib.streamlines.Tractogram(predicted_streamlines_array, affine_to_rasmm=np.eye(4))
-            true_streamlines_array = nib.streamlines.Tractogram(streamlines, affine_to_rasmm=np.eye(4))
-
-            # Save the predicted and ground truth streamlines
-            nib.streamlines.save(predicted_streamlines_array, prediction_filename)
+            # Turn the predicted streamlines array into a Tractogram with nibabel and save it - note that streamlines is now a torch TENSOR,
+            # where the first element is a batch index. Thus, we need to take that into consideration and save batch by batch
+            true_streamlines_array = nib.streamlines.Tractogram(streamlines[batch], affine_to_rasmm=np.eye(4))
             nib.streamlines.save(true_streamlines_array, groundtruth_filename)
+
+            # Turn the predicted streamlines array into a Tractogram with nibabel if we're predicting coordinates
+            if training_task == "regression_coords":
+                # Turn the predicted streamlines array into a Tractogram with nibabel and save it
+                predicted_streamlines_array = nib.streamlines.Tractogram(predictions_array[batch], affine_to_rasmm=np.eye(4))    
+                nib.streamlines.save(predicted_streamlines_array, prediction_filename)
+
+            # Else, save the predicted stuff as a numpy array
+            else:
+                np.save(prediction_filename, predictions_array[batch])
+
+
         
 # Define the function to get model output
 def batch_loss(model, wmfod_cube, label, previous_predictions, criterion, distributed=False, n_gpus=None, use_amp=False,
