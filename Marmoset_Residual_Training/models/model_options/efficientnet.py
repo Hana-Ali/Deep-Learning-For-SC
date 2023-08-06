@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch
 from torch import nn
 from torch.nn import functional as F
+import numpy as np
 
 from ..model_builders.efficientnet_utils import (
                                                 round_filters,
@@ -125,7 +126,8 @@ class EfficientNet3D(nn.Module):
 
     """
 
-    def __init__(self, blocks_args=None, global_params=None, in_channels=3, num_nodes=1, num_coordinates=3, prev_output_size=32, combination=True, cube_size=15):
+    def __init__(self, blocks_args=None, global_params=None, in_channels=3, cnn_flattened_size=45*6*6*6,
+                 hidden_size=1000, task="classification"):
         super().__init__()
         assert isinstance(blocks_args, list), 'blocks_args should be a list'
         assert len(blocks_args) > 0, 'block args must be greater than 0'
@@ -184,25 +186,30 @@ class EfficientNet3D(nn.Module):
         ###################################### MY OWN ADDITIONS ##########################################
         ##################################################################################################
 
-        # Define the number of input channels
-        self.in_channels = in_channels
+        #  Define the output size (different depending on task)
+        self.output_size = self._global_params.num_classes
 
-        # Define the number of coordinates / node
-        self.num_coordinates = num_coordinates
+        # Define the shape of the flattened output of the CNN
+        self.cnn_flattened_size = cnn_flattened_size
 
         # Define the number of neurons
-        self.neurons = 64
+        self.neurons = hidden_size
 
-        # Define whether we want to use the previous predictions (combine or not)
-        self.combination = combination
-
-        # Define the output size of the previous predictions MLP
-        self.previous_predictions_size = self.num_coordinates * 2
-
+        # Define the input size of the previous predictions MLP - will always be output * 2
+        self.previous_predictions_size = self.output_size * 2
+        
+        # Define the task
+        self.task = task
+        
         # Define the combination MLP
-        self.combination_mlp = TwoInputMLP(previous_predictions_size=self.previous_predictions_size, efficientnet_output_size=self._global_params.num_classes, 
-                                           neurons=self.neurons, output_size=self._global_params.num_classes,)
-
+        self.combination_mlp = TwoInputMLP(previous_predictions_size=self.previous_predictions_size, cnn_flattened_size=1280, 
+                                           neurons=self.neurons, output_size=self.output_size, task=self.task)
+        
+        # Define the final activation depending on the task
+        if self.task == "classification":
+            self.final_activation = nn.Softmax(dim=1)
+        elif self.task == "regression_angles":
+            self.final_activation = nn.Sigmoid()
 
     def set_swish(self, memory_efficient=True):
         """Sets swish function as memory efficient (for training) or standard (for export)"""
@@ -241,35 +248,33 @@ class EfficientNet3D(nn.Module):
         # print("Extract features shape", x.shape)
         # Resize to original shape
         x = x.view(bs, -1, x.shape[2], x.shape[3], x.shape[4])
-        # print("View shape", x.shape)
         # Convolve to get it to have in_channels as the outchannels
-        # print("Conv shape", x.shape[1] // in_channels)
         x = nn.Conv3d(x.shape[1], x.shape[1] // in_channels, kernel_size=1, stride=1, padding=0).cuda()(x)
-        # print("Conv shape", x.shape)
 
         if self._global_params.include_top:
             # Pooling and final linear layer
             x = self._avg_pooling(x)
-            # print("Avg pool shape", x.shape)
             x = x.view(bs, -1)
-            # print("View shape", x.shape)
             x = self._dropout(x)
-            # print("Dropout shape", x.shape)
-            x = self._fc(x)
-            # print("FC shape", x.shape)
+            # x = self._fc(x)
 
-        # If we want to use the previous predictions
-        if self.combination:
-            # Pass the previous predictions through the combination MLP
-            x = self.combination_mlp(previous_predictions, x)
+        # Pass the previous predictions through the combination MLP
+        x = self.combination_mlp(previous_predictions, x)
 
-        return x
+        # Apply the final activation
+        x = self.final_activation(x)
+
+        # The output is different, depending on if the task is regression of angles or classification
+        if self.task == "regression_angles":
+            return np.round(x * 360, 1)
+        else:
+            return x
 
     @classmethod
-    def from_name(cls, model_name, override_params=None, in_channels=3):
+    def from_name(cls, model_name, override_params=None, in_channels=3, cnn_flattened_size=45*6*6*6, hidden_size=128, task="classification"):
         cls._check_model_name_is_valid(model_name)
         blocks_args, global_params = get_model_params(model_name, override_params)
-        return cls(blocks_args, global_params, in_channels)
+        return cls(blocks_args, global_params, in_channels, cnn_flattened_size, hidden_size, task)
 
     @classmethod
     def get_image_size(cls, model_name):
