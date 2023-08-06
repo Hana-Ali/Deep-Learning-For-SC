@@ -19,30 +19,35 @@ else:
     main_data_path = "D:\\Brain-MINDS\\model_data"
     main_logs_path = "D:\\Brain-MINDS\\predicted_streamlines"
 
-streamline_arrays_path = os.path.join(main_logs_path, "efficientnet")
-training_log_path = os.path.join(main_logs_path, "training_logs", "conv_attn.csv")
-model_filename = os.path.join(main_logs_path, "models", "conv_attn_model.h5")
+streamline_arrays_path = os.path.join(main_logs_path, "streamline_predictions", "efficientnet")
+training_log_folder = os.path.join(main_logs_path, "training_logs")
+model_folder = os.path.join(main_logs_path, "models", "efficientnet")
 
 check_output_folders(streamline_arrays_path, "streamline arrays", wipe=False)
+check_output_folders(training_log_folder, "training_log_folder", wipe=False)
+check_output_folders(model_folder, "model_folder", wipe=False)
+
+training_log_path = os.path.join(training_log_folder, "efficientnet.csv")
+model_filename = os.path.join(model_folder, "efficientnet.h5")
 
 # Create the configs dictionary
 configs = {
 
     ####### Model #######
     "model_name" : "efficientnet", # Model name
-    "input_nc" : 1, # Number of input channels
-    "num_nodes" : 1, # Number of nodes"    
-    "num_coordinates" : 3, # Number of coordinates
+    "input_nc" : 1,
     "combination" : True, # Combination
+    "task" : "classification", # Task
+    "hidden_size" : 32, # number of neurons
 
     ####### Training #######
     "n_epochs" : 50, # Number of epochs
-    "loss" : "mse_loss", # Loss function
+    "loss" : "cross_entropy_loss", # Loss function
     "optimizer" : "Adam", # Optimizer
-    "evaluation_metric" : "MSE_loss", # Evaluation metric
+    "evaluation_metric" : "cross_entropy_loss", # Evaluation metric
     "shuffle_dataset" : True,
     "separate_hemisphere" : False,
-    "cube_size" : 16,
+    "cube_size" : 3, # cube size
     "save_best" : True, # Save best model
 
     ####### Data #######
@@ -50,7 +55,7 @@ configs = {
     "training_log_path" : training_log_path, # Training log path
     "model_filename" : model_filename, # Model filename
     "streamline_arrays_path" : streamline_arrays_path, # Path to the streamlines array
-    "batch_size" : 1, # Batch size
+    "batch_size" : 8, # Batch size
     "validation_batch_size" : 8, # Validation batch size
     "num_streamlines" : 10, # Number of streamlines to consider from each site
     

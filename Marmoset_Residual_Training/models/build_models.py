@@ -69,13 +69,25 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
 
             # Assert that none of the parameters are none
             assert input_nc is not None
-            assert num_nodes is not None
-            assert combination is not None
+            assert cube_size is not None
+            assert task is not None
+
+            # Ensure that the output size matches the task
+            if task == "classification":
+                assert output_size == 27
+            elif task == "regression_angles":
+                assert output_size == 3
+            elif task == "regression_coords":
+                assert output_size == 3
+            else:
+                raise ValueError("Task {} not found".format(task))
 
             # Return the EfficientNet
             return EfficientNet3D.from_name("efficientnet-b0", 
-                                            override_params={'num_classes': num_coordinates}, 
-                                            in_channels=input_nc)
+                                            override_params={'num_classes': output_size}, 
+                                            in_channels=input_nc, 
+                                            hidden_size=128, 
+                                            task="classification")
 
         elif "baseline_mlp" in model_name.lower():
 

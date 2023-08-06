@@ -126,7 +126,7 @@ class EfficientNet3D(nn.Module):
 
     """
 
-    def __init__(self, blocks_args=None, global_params=None, in_channels=3, cnn_flattened_size=45*6*6*6,
+    def __init__(self, blocks_args=None, global_params=None, in_channels=3,
                  hidden_size=1000, task="classification"):
         super().__init__()
         assert isinstance(blocks_args, list), 'blocks_args should be a list'
@@ -271,10 +271,10 @@ class EfficientNet3D(nn.Module):
             return x
 
     @classmethod
-    def from_name(cls, model_name, override_params=None, in_channels=3, cnn_flattened_size=45*6*6*6, hidden_size=128, task="classification"):
+    def from_name(cls, model_name, override_params=None, in_channels=3, hidden_size=128, task="classification"):
         cls._check_model_name_is_valid(model_name)
         blocks_args, global_params = get_model_params(model_name, override_params)
-        return cls(blocks_args, global_params, in_channels, cnn_flattened_size, hidden_size, task)
+        return cls(blocks_args, global_params, in_channels, hidden_size, task)
 
     @classmethod
     def get_image_size(cls, model_name):

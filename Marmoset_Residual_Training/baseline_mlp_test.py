@@ -43,7 +43,7 @@ configs = {
 
     ####### Training #######
     "n_epochs" : 50, # Number of epochs
-    "loss" : "mse_loss", # Loss function
+    "loss" : "cross_entropy_loss", # Loss function
     "optimizer" : "Adam", # Optimizer
     "evaluation_metric" : "cross_entropy_loss", # Evaluation metric
     "shuffle_dataset" : True,
