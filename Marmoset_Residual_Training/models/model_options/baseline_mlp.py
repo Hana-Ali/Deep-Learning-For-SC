@@ -41,7 +41,7 @@ class Baseline_MLP(nn.Module):
             self.final_activation = nn.Sigmoid()
 
     # Forward pass
-    def forward(self, x, previous_predictions):
+    def forward(self, x, previous_predictions, original_shapes):
 
         # Pass through the combination MLP
         x = self.combination_mlp(previous_predictions, x)
@@ -49,14 +49,19 @@ class Baseline_MLP(nn.Module):
         # print("Shape of x right before activation", x.shape)
         # print("x right before activation", x)
         
-        # Pass through the final activation
+        # Apply the final activation
         x = self.final_activation(x)
-        
-        # print("x after activation", x)
-        # print("Summing up each row, we get", x.cpu().detach().numpy().sum(axis=1))
-                
+
         # The output is different, depending on if the task is regression of angles or classification
         if self.task == "regression_angles":
-            return np.round(x * 360, 1)
+            return torch.round(x * 360, 1)
+        elif self.task == "regression_coords":
+            # Create tensor with the shapes we want to multiply by
+            shapes_tensor = torch.tensor([original_shapes[2], original_shapes[3], original_shapes[4]]).cuda()
+            # Multiply the two together
+            output_x = x * shapes_tensor
+            # Return it rounded to the first decimal point
+            # return torch.round(output_x, decimals=1)
+            return output_x
         else:
             return x

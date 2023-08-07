@@ -42,12 +42,12 @@ def weights_init_normal(m):
 
 def weights_init_xavier(m):
     classname = m.__class__.__name__
-    #print(classname)
-    if classname.find('Conv') != -1:
+    # print(classname)
+    if isinstance(m, nn.Conv3d):
         init.xavier_normal_(m.weight.data, gain=1)
-    elif classname.find('Linear') != -1:
+    elif isinstance(m, nn.Linear):
         init.xavier_normal_(m.weight.data, gain=1)
-    elif classname.find('BatchNorm') != -1:
+    elif isinstance(m, nn.BatchNorm3d):
         init.normal_(m.weight.data, 1.0, 0.02)
         init.constant_(m.bias.data, 0.0)
 

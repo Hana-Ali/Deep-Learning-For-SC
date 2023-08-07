@@ -11,7 +11,6 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
               num_rnn_hidden_neurons=1000, num_nodes=1, num_coordinates=3, prev_output_size=32,
               combination=True, task="classification", flattened_mlp_size=45*5*5*5, output_size=1,
               hidden_size=32):
-    
     try:
         if "resnet" in model_name.lower() and "streamlines" not in model_name.lower():
             

@@ -61,7 +61,7 @@ configs = {
     "num_streamlines" : 10, # Number of streamlines to consider from each site
     
     ####### Parameters #######
-    "initial_learning_rate" : 1e-04, # Initial learning rate
+    "initial_learning_rate" : 0.001, # Initial learning rate
     "early_stopping_patience": None, # Early stopping patience
     "decay_patience": None, # Learning rate decay patience
     "decay_factor": None, # Learning rate decay factor
