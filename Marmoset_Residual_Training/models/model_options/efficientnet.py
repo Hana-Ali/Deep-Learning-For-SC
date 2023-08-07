@@ -33,7 +33,7 @@ class MBConvBlock3D(nn.Module):
         has_se (bool): Whether the block contains a Squeeze and Excitation layer.
     """
 
-    def __init__(self, block_args, global_params):
+    def __init__(self, block_args, global_params, batch_size):
         super().__init__()
         self._block_args = block_args
         self._bn_mom = 1 - global_params.batch_norm_momentum
@@ -49,7 +49,10 @@ class MBConvBlock3D(nn.Module):
         oup = self._block_args.input_filters * self._block_args.expand_ratio  # number of output channels
         if self._block_args.expand_ratio != 1:
             self._expand_conv = Conv3d(in_channels=inp, out_channels=oup, kernel_size=1, bias=False)
-            self._bn0 = nn.BatchNorm3d(num_features=oup, momentum=self._bn_mom, eps=self._bn_eps)
+            if batch_size > 1:
+                self._bn0 = nn.BatchNorm3d(num_features=oup, momentum=self._bn_mom, eps=self._bn_eps)
+            else:
+                self._bn0 = nn.InstanceNorm3d(num_features=oup, momentum=self._bn_mom, eps=self._bn_eps)
 
         # Depthwise convolution phase
         k = self._block_args.kernel_size
@@ -57,7 +60,10 @@ class MBConvBlock3D(nn.Module):
         self._depthwise_conv = Conv3d(
             in_channels=oup, out_channels=oup, groups=oup,  # groups makes it depthwise
             kernel_size=k, stride=s, bias=False)
-        self._bn1 = nn.BatchNorm3d(num_features=oup, momentum=self._bn_mom, eps=self._bn_eps)
+        if batch_size > 1:
+            self._bn1 = nn.BatchNorm3d(num_features=oup, momentum=self._bn_mom, eps=self._bn_eps)
+        else:
+            self._bn1 = nn.InstanceNorm3d(num_features=oup, momentum=self._bn_mom, eps=self._bn_eps)
 
         # Squeeze and Excitation layer, if desired
         if self.has_se:
@@ -68,7 +74,10 @@ class MBConvBlock3D(nn.Module):
         # Output phase
         final_oup = self._block_args.output_filters
         self._project_conv = Conv3d(in_channels=oup, out_channels=final_oup, kernel_size=1, bias=False)
-        self._bn2 = nn.BatchNorm3d(num_features=final_oup, momentum=self._bn_mom, eps=self._bn_eps)
+        if batch_size > 1:
+            self._bn2 = nn.BatchNorm3d(num_features=final_oup, momentum=self._bn_mom, eps=self._bn_eps)
+        else:
+            self._bn2 = nn.InstanceNorm3d(num_features=final_oup, momentum=self._bn_mom, eps=self._bn_eps)
         self._swish = MemoryEfficientSwish()
 
     def forward(self, inputs, drop_connect_rate=None):
@@ -127,7 +136,7 @@ class EfficientNet3D(nn.Module):
     """
 
     def __init__(self, blocks_args=None, global_params=None, in_channels=3,
-                 hidden_size=1000, task="classification"):
+                 hidden_size=1000, task="classification", batch_size=32):
         super().__init__()
         assert isinstance(blocks_args, list), 'blocks_args should be a list'
         assert len(blocks_args) > 0, 'block args must be greater than 0'
@@ -144,7 +153,10 @@ class EfficientNet3D(nn.Module):
         # Stem
         out_channels = round_filters(32, self._global_params)  # number of output channels
         self._conv_stem = Conv3d(in_channels, out_channels, kernel_size=3, stride=2, bias=False)
-        self._bn0 = nn.BatchNorm3d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
+        if batch_size > 1:
+            self._bn0 = nn.BatchNorm3d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
+        else:
+            self._bn0 = nn.InstanceNorm3d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
 
         # Build blocks
         self._blocks = nn.ModuleList([])
@@ -160,11 +172,11 @@ class EfficientNet3D(nn.Module):
             )
 
             # The first block needs to take care of stride and filter size increase.
-            self._blocks.append(MBConvBlock3D(block_args, self._global_params))
+            self._blocks.append(MBConvBlock3D(block_args, self._global_params, batch_size))
             if block_args.num_repeat > 1:
                 block_args = block_args._replace(input_filters=block_args.output_filters, stride=1)
             for _ in range(block_args.num_repeat - 1):
-                self._blocks.append(MBConvBlock3D(block_args, self._global_params))
+                self._blocks.append(MBConvBlock3D(block_args, self._global_params, batch_size))
 
         #     print("Num repeat", block_args.num_repeat)
 
@@ -174,7 +186,10 @@ class EfficientNet3D(nn.Module):
         in_channels = block_args.output_filters  # output of final block
         out_channels = round_filters(1280, self._global_params)
         self._conv_head = Conv3d(in_channels, out_channels, kernel_size=1, bias=False)
-        self._bn1 = nn.BatchNorm3d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
+        if batch_size > 1:
+            self._bn1 = nn.BatchNorm3d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
+        else:
+            self._bn1 = nn.InstanceNorm3d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
 
         # Final linear layer
         self._avg_pooling = nn.AdaptiveAvgPool3d(1)
@@ -282,10 +297,11 @@ class EfficientNet3D(nn.Module):
             return x
 
     @classmethod
-    def from_name(cls, model_name, override_params=None, in_channels=3, hidden_size=128, task="classification"):
+    def from_name(cls, model_name, override_params=None, in_channels=3, hidden_size=128, 
+                  task="classification", batch_size=32):
         cls._check_model_name_is_valid(model_name)
         blocks_args, global_params = get_model_params(model_name, override_params)
-        return cls(blocks_args, global_params, in_channels, hidden_size, task)
+        return cls(blocks_args, global_params, in_channels, hidden_size, task, batch_size)
 
     @classmethod
     def get_image_size(cls, model_name):

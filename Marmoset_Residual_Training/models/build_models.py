@@ -10,7 +10,7 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
               use_dropout=None, padding_type=None, voxel_wise=None, cube_size=15, num_rnn_layers=2,
               num_rnn_hidden_neurons=1000, num_nodes=1, num_coordinates=3, prev_output_size=32,
               combination=True, task="classification", flattened_mlp_size=45*5*5*5, output_size=1,
-              hidden_size=32):
+              hidden_size=32, batch_size=32):
     try:
         if "resnet" in model_name.lower() and "streamlines" not in model_name.lower():
             
@@ -106,7 +106,8 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
                                             override_params={'num_classes': output_size}, 
                                             in_channels=input_nc, 
                                             hidden_size=hidden_size, 
-                                            task=task)
+                                            task=task,
+                                            batch_size=batch_size)
 
         elif "baseline_mlp" in model_name.lower():
 
@@ -148,7 +149,7 @@ def build_or_load_model(model_name, model_filename, input_nc, output_nc=None, ng
                         use_dropout=False, padding_type="reflect", voxel_wise=False, cube_size=15, num_rnn_layers=2,
                         num_rnn_hidden_neurons=1000, num_nodes=1, num_coordinates=3, prev_output_size=32, combination=True,
                         n_gpus=0, bias=None, freeze_bias=False, strict=False, task="classification", 
-                        flattened_mlp_size=45*6*6*6, output_size=1, hidden_size=32):
+                        flattened_mlp_size=45*6*6*6, output_size=1, hidden_size=32, batch_size=32):
 
     # Get the model
     model = get_model(model_name=model_name, input_nc=input_nc, output_nc=output_nc,
@@ -157,7 +158,8 @@ def build_or_load_model(model_name, model_filename, input_nc, output_nc=None, ng
                       voxel_wise=voxel_wise, cube_size=cube_size, num_rnn_layers=num_rnn_layers,
                       num_rnn_hidden_neurons=num_rnn_hidden_neurons, num_nodes=num_nodes,
                       num_coordinates=num_coordinates, prev_output_size=prev_output_size,
-                      combination=combination, task=task, output_size=output_size, hidden_size=hidden_size)
+                      combination=combination, task=task, output_size=output_size, hidden_size=hidden_size,
+                      batch_size=batch_size)
 
     # If there's bias
     if bias is not None:
