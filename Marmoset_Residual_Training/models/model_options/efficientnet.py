@@ -52,7 +52,7 @@ class MBConvBlock3D(nn.Module):
             if batch_size > 1:
                 self._bn0 = nn.BatchNorm3d(num_features=oup, momentum=self._bn_mom, eps=self._bn_eps)
             else:
-                self._bn0 = nn.InstanceNorm3d(num_features=oup, momentum=self._bn_mom, eps=self._bn_eps)
+                self._bn0 = nn.GroupNorm(num_groups=oup, num_channels=oup, eps=self._bn_eps)
 
         # Depthwise convolution phase
         k = self._block_args.kernel_size
@@ -63,7 +63,7 @@ class MBConvBlock3D(nn.Module):
         if batch_size > 1:
             self._bn1 = nn.BatchNorm3d(num_features=oup, momentum=self._bn_mom, eps=self._bn_eps)
         else:
-            self._bn1 = nn.InstanceNorm3d(num_features=oup, momentum=self._bn_mom, eps=self._bn_eps)
+            self._bn1 = nn.GroupNorm(num_groups=oup, num_channels=oup, eps=self._bn_eps)
 
         # Squeeze and Excitation layer, if desired
         if self.has_se:
@@ -77,7 +77,7 @@ class MBConvBlock3D(nn.Module):
         if batch_size > 1:
             self._bn2 = nn.BatchNorm3d(num_features=final_oup, momentum=self._bn_mom, eps=self._bn_eps)
         else:
-            self._bn2 = nn.InstanceNorm3d(num_features=final_oup, momentum=self._bn_mom, eps=self._bn_eps)
+            self._bn2 = nn.GroupNorm(num_groups=final_oup, num_channels=final_oup, eps=self._bn_eps)
         self._swish = MemoryEfficientSwish()
 
     def forward(self, inputs, drop_connect_rate=None):
@@ -156,7 +156,7 @@ class EfficientNet3D(nn.Module):
         if batch_size > 1:
             self._bn0 = nn.BatchNorm3d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
         else:
-            self._bn0 = nn.InstanceNorm3d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
+            self._bn0 = nn.GroupNorm(num_groups=out_channels, num_channels=out_channels, eps=bn_eps)
 
         # Build blocks
         self._blocks = nn.ModuleList([])
@@ -189,7 +189,7 @@ class EfficientNet3D(nn.Module):
         if batch_size > 1:
             self._bn1 = nn.BatchNorm3d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
         else:
-            self._bn1 = nn.InstanceNorm3d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
+            self._bn1 = nn.GroupNorm(num_groups=out_channels, num_channels=out_channels, eps=bn_eps)
 
         # Final linear layer
         self._avg_pooling = nn.AdaptiveAvgPool3d(1)
