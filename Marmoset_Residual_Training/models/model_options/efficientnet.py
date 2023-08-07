@@ -308,10 +308,11 @@ class EfficientNet3D(nn.Module):
 
     @classmethod
     def from_name(cls, model_name, override_params=None, in_channels=3, hidden_size=128, 
-                  task="classification", batch_norm=True):
+                  task="classification", batch_norm=True, depthwise_conv=False):
         cls._check_model_name_is_valid(model_name)
         blocks_args, global_params = get_model_params(model_name, override_params)
-        return cls(blocks_args, global_params, in_channels, hidden_size, task, batch_norm=batch_norm)
+        return cls(blocks_args, global_params, in_channels, hidden_size, task, batch_norm=batch_norm, 
+                   depthwise_conv=depthwise_conv)
 
     @classmethod
     def get_image_size(cls, model_name):
