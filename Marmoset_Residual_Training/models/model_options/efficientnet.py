@@ -278,13 +278,18 @@ class EfficientNet3D(nn.Module):
         
         # Convolve to get it to have in_channels as the outchannels
         x = nn.Conv3d(x.shape[1], x.shape[1] // in_channels, kernel_size=1, stride=1, padding=0).cuda()(x)
+        print("Conv3d shape", x.shape)
 
         if self._global_params.include_top:
             # Pooling and final linear layer
             x = self._avg_pooling(x)
+            print("Avg pooling shape", x.shape)
             x = x.view(bs, -1)
+            print("View shape", x.shape)
             x = self._dropout(x)
+            print("Dropout shape", x.shape)
             x = self._fc(x)
+            print("FC shape", x.shape)
 
         # Pass the previous predictions through the combination MLP
         x = self.combination_mlp(previous_predictions, x)
