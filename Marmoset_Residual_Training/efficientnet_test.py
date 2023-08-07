@@ -39,6 +39,7 @@ configs = {
     "combination" : True, # Combination
     "task" : "classification", # Task
     "hidden_size" : 32, # number of neurons
+    "depthwise_conv" : False, # Depthwise convolution
 
     ####### Training #######
     "n_epochs" : 50, # Number of epochs

@@ -136,7 +136,8 @@ class EfficientNet3D(nn.Module):
     """
 
     def __init__(self, blocks_args=None, global_params=None, in_channels=3,
-                 hidden_size=1000, task="classification", batch_norm=True):
+                 hidden_size=1000, task="classification", batch_norm=True,
+                 depthwise_conv=False):
         super().__init__()
         assert isinstance(blocks_args, list), 'blocks_args should be a list'
         assert len(blocks_args) > 0, 'block args must be greater than 0'
@@ -201,6 +202,9 @@ class EfficientNet3D(nn.Module):
         ###################################### MY OWN ADDITIONS ##########################################
         ##################################################################################################
 
+        # Defining depthwise or not
+        self.depthwise_conv = depthwise_conv
+
         #  Define the output size (different depending on task)
         self.output_size = self._global_params.num_classes
 
@@ -259,13 +263,19 @@ class EfficientNet3D(nn.Module):
         """ Calls extract_features to extract features, applies final linear layer, and returns logits. """
         bs = inputs.size(0)
         in_channels = inputs.size(1)
-        # Change shape so we do everything channel-wise
-        reshaped_inputs = inputs.view(-1, 1, inputs.shape[2], inputs.shape[3], inputs.shape[4])
+
+        # If we want to personally do it as a depthwise convolution
+        if self.depthwise_conv:
+            inputs = inputs.view(-1, 1, inputs.shape[2], inputs.shape[3], inputs.shape[4])
+
         # Convolution layers
-        x = self.extract_features(reshaped_inputs)
+        x = self.extract_features(inputs)
         # print("Extract features shape", x.shape)
-        # Resize to original shape
-        x = x.view(bs, -1, x.shape[2], x.shape[3], x.shape[4])
+
+        # If we did it as a depthwise convolution, we need to reshape it back
+        if self.depthwise_conv:
+            x = x.view(bs, -1, x.shape[2], x.shape[3], x.shape[4])
+        
         # Convolve to get it to have in_channels as the outchannels
         x = nn.Conv3d(x.shape[1], x.shape[1] // in_channels, kernel_size=1, stride=1, padding=0).cuda()(x)
 
@@ -273,7 +283,7 @@ class EfficientNet3D(nn.Module):
             # Pooling and final linear layer
             x = self._avg_pooling(x)
             x = x.view(bs, -1)
-            # x = self._dropout(x)
+            x = self._dropout(x)
             x = self._fc(x)
 
         # Pass the previous predictions through the combination MLP
