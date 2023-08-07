@@ -37,14 +37,14 @@ configs = {
     "model_name" : "efficientnet", # Model name
     "input_nc" : 1,
     "combination" : True, # Combination
-    "task" : "regression_coords", # Task
+    "task" : "classification", # Task
     "hidden_size" : 32, # number of neurons
 
     ####### Training #######
     "n_epochs" : 50, # Number of epochs
-    "loss" : "MSE_loss", # Loss function
+    "loss" : "negative_log_likelihood_loss", # Loss function
     "optimizer" : "Adam", # Optimizer
-    "evaluation_metric" : "MSE_loss", # Evaluation metric
+    "evaluation_metric" : "negative_log_likelihood_loss", # Evaluation metric
     "shuffle_dataset" : True,
     "separate_hemisphere" : False,
     "cube_size" : 3, # cube size

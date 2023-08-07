@@ -155,12 +155,12 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                 # Delete the output
                 del predicted_label
 
-            # Measure the elapsed time for every streamline done
-            batch_time.update(time.time() - end)
-            end = time.time()
+                # Measure the elapsed time for every streamline done
+                batch_time.update(time.time() - end)
+                end = time.time()
 
-            # Print out the progress after every streamline is done
-            progress.display(i)
+                # Print out the progress after every streamline is done
+                progress.display(i)
 
     print("Saving...")
 
