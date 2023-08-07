@@ -5,6 +5,8 @@ import time
 import nibabel as nib
 import torch.nn as nn
 
+torch.autograd.set_detect_anomaly(True) # For debugging
+
 # Define the inner loop for streamline training
 def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, streamline_arrays_path, separate_hemisphere,
                         kernel_size=3, n_gpus=None, distributed=False, print_gpu_memory=True, scaler=None, 
@@ -413,6 +415,9 @@ def _batch_loss(model, wmfod_cube, label, previous_predictions, criterion, train
             
     # Get the batch size
     batch_size = wmfod_cube.size(0)
+
+    print("Output is", predicted_output)
+    print("Loss is", loss.item())
             
     # Return the loss
     return predicted_output, loss, batch_size
