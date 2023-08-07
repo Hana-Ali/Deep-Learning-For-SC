@@ -134,6 +134,7 @@ class RSSGL(CVModule):
         feat_list = []
         for op in self.feature_ops:
             x = op(x)
+            print(x.shape)
 
             if isinstance(op, nn.Identity):
                 feat_list.append(x)
@@ -143,15 +144,19 @@ class RSSGL(CVModule):
         out_feat_list = [self.fuse_3x3convs[0](inner_feat_list[0])]  # (batch_size, 128, 78, 44)
         for i in range(len(inner_feat_list) - 1):
             inner = self.top_down(out_feat_list[i], inner_feat_list[i + 1])
+            print(inner.shape)
 
             out = self.fuse_3x3convs[i + 1](inner)
+            print(out.shape)
 
             out_feat_list.append(out)
         final_feat = out_feat_list[-1]  # (batch_size, 103, 624, 352) This is the final feature space!!!
+        print(final_feat.shape)
         #mat_path = './feature.mat'
         #mat = final_feat.cpu().detach().numpy()
         #io.savemat(mat_path, {'name': mat})
         logit = self.cls_pred_conv(final_feat)  # (batch_size, 9, 624, 352)
+        print(logit.shape)
         if self.training:
             loss_dict = {'cls_loss': self.loss(logit, y, train_inds, final_feat)}
             return loss_dict
