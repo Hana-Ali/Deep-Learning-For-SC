@@ -91,30 +91,30 @@ class MBConvBlock3D(nn.Module):
         x = inputs
         if self._block_args.expand_ratio != 1:
             x = self._swish(self._bn0(self._expand_conv(inputs)))
-            # print("Swish after expand x shape", x.shape)
+            print("Swish after expand x shape", x.shape)
         x = self._swish(self._bn1(self._depthwise_conv(x)))
-        # print("Swish after depthwise x shape", x.shape)
+        print("Swish after depthwise x shape", x.shape)
 
         # Squeeze and Excitation
         if self.has_se:
             x_squeezed = F.adaptive_avg_pool3d(x, 1)
-            # print("Squeeze shape", x.shape)
+            print("Squeeze shape", x.shape)
             x_squeezed = self._se_expand(self._swish(self._se_reduce(x_squeezed)))
-            # print("Excite shape", x.shape)
+            print("Excite shape", x.shape)
             x = torch.sigmoid(x_squeezed) * x
-            # print("Sigmoid and x shape", x.shape)
+            print("Sigmoid and x shape", x.shape)
 
         x = self._bn2(self._project_conv(x))
-        # print("Project conv shape", x.shape)
+        print("Project conv shape", x.shape)
 
         # Skip connection and drop connect
         input_filters, output_filters = self._block_args.input_filters, self._block_args.output_filters
         if self.id_skip and self._block_args.stride == 1 and input_filters == output_filters:
             if drop_connect_rate:
                 x = drop_connect(x, p=drop_connect_rate, training=self.training)
-                # print("Drop connect shape", x.shape)
+                print("Drop connect shape", x.shape)
             x = x + inputs  # skip connection
-            # print("Skip connect shape", x.shape)
+            print("Skip connect shape", x.shape)
         return x
 
     def set_swish(self, memory_efficient=True):
@@ -143,8 +143,6 @@ class EfficientNet3D(nn.Module):
         assert len(blocks_args) > 0, 'block args must be greater than 0'
         self._global_params = global_params
         self._blocks_args = blocks_args
-
-        print("Batch norm", batch_norm)
 
         # Get static or dynamic convolution depending on image size
         Conv3d = get_same_padding_conv3d(image_size=global_params.image_size)
@@ -272,7 +270,7 @@ class EfficientNet3D(nn.Module):
 
         # Convolution layers
         x = self.extract_features(inputs)
-        # print("Extract features shape", x.shape)
+        print("Extract features shape", x.shape)
 
         # If we did it as a depthwise convolution, we need to reshape it back
         if self.depthwise_conv:
