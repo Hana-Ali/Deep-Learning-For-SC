@@ -275,10 +275,9 @@ class EfficientNet3D(nn.Module):
         # If we did it as a depthwise convolution, we need to reshape it back
         if self.depthwise_conv:
             x = x.view(bs, -1, x.shape[2], x.shape[3], x.shape[4])
-        
-        # Convolve to get it to have in_channels as the outchannels
-        x = nn.Conv3d(x.shape[1], x.shape[1] // in_channels, kernel_size=1, stride=1, padding=0).cuda()(x)
-        print("Conv3d shape", x.shape)
+            # Convolve to get it to have in_channels as the outchannels
+            x = nn.Conv3d(x.shape[1], x.shape[1] // in_channels, kernel_size=1, stride=1, padding=0).cuda()(x)
+            print("Conv3d shape", x.shape)
 
         if self._global_params.include_top:
             # Pooling and final linear layer
