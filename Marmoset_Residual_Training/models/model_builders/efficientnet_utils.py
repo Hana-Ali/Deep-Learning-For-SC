@@ -36,15 +36,15 @@ BlockArgs.__new__.__defaults__ = (None,) * len(BlockArgs._fields)
 class SwishImplementation(torch.autograd.Function):
     @staticmethod
     def forward(ctx, i):
-        result = i * torch.sigmoid(i)
+        result = i * torch.relu(i)
         ctx.save_for_backward(i)
         return result
 
     @staticmethod
     def backward(ctx, grad_output):
         i = ctx.saved_variables[0]
-        sigmoid_i = torch.sigmoid(i)
-        return grad_output * (sigmoid_i * (1 + i * (1 - sigmoid_i)))
+        relu_i = torch.relu(i)
+        return grad_output * (relu_i * (1 + i * (1 - relu_i)))
 
 
 class MemoryEfficientSwish(nn.Module):
@@ -53,7 +53,7 @@ class MemoryEfficientSwish(nn.Module):
 
 class Swish(nn.Module):
     def forward(self, x):
-        return x * torch.sigmoid(x)
+        return x * torch.relu(x)
 
 
 def round_filters(filters, global_params):
