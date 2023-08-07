@@ -10,6 +10,8 @@ import bisect
 import scipy.io as io
 from simplecv import dp_train as train
 
+# https://ieeexplore.ieee.org/document/9772689
+
 
 args = train.parser.parse_args()
 config_path = args.config_path

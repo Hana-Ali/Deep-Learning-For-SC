@@ -35,6 +35,26 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
                                  padding_type=padding_type,
                                  voxel_wise=voxel_wise)
         
+        elif "resnet_streamlines" in model_name.lower():
+
+            # Assert that none of the parameters are None
+            assert output_size is not None
+            assert task is not None
+
+            # Ensure that the output size matches the task
+            if task == "classification":
+                assert output_size == 27
+            elif task == "regression_angles":
+                assert output_size == 3
+            elif task == "regression_coords":
+                assert output_size == 3
+            else:
+                raise ValueError("Task {} not found".format(task))
+
+            # Return the ResNet encoder
+            return ResnetEncoder_Streamlines(num_classes=output_size, 
+                                             task=task)
+        
         elif "attention_unet" in model_name.lower():
             
             # Assert that none of the parameters are None

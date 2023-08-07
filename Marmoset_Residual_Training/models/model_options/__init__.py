@@ -5,3 +5,4 @@ from .efficientnet import *
 from .conv_attention import *
 from .baseline_mlp import *
 from .baseline_rf import *
+from .resnet_streamlines import *
