@@ -144,6 +144,8 @@ class EfficientNet3D(nn.Module):
         self._global_params = global_params
         self._blocks_args = blocks_args
 
+        print("Batch norm", batch_norm)
+
         # Get static or dynamic convolution depending on image size
         Conv3d = get_same_padding_conv3d(image_size=global_params.image_size)
 
