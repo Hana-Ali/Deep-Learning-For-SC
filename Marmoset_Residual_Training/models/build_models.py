@@ -13,7 +13,7 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
               hidden_size=32):
     
     try:
-        if "resnet" in model_name.lower():
+        if "resnet" in model_name.lower() and "streamlines" not in model_name.lower():
             
             # Assert that none of the parameters are None
             assert input_nc is not None
