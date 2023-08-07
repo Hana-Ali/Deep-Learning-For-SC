@@ -135,7 +135,9 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
                                 output_size=output_size,
                                 task=task)
             
-        return init_weights(model, init_type="xavier")
+        init_weights(model, init_type="xavier")
+
+        return model
 
 
 
