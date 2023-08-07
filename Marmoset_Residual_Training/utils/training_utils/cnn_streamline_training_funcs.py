@@ -415,9 +415,6 @@ def _batch_loss(model, wmfod_cube, label, previous_predictions, criterion, train
             
     # Get the batch size
     batch_size = wmfod_cube.size(0)
-
-    print("Output is", predicted_output)
-    print("Loss is", loss.item())
             
     # Return the loss
     return predicted_output, loss, batch_size
