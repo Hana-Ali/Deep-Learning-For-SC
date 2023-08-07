@@ -1,5 +1,5 @@
 import torch
-from torch.nn.functional import l1_loss, mse_loss, cross_entropy
+from torch.nn.functional import l1_loss, mse_loss, cross_entropy, nll_loss
 
 # Define the L1 loss
 def L1_loss(output, target):
@@ -12,6 +12,10 @@ def MSE_loss(output, target):
 # Define the classification loss (cross entropy)
 def cross_entropy_loss(output, target):
     return cross_entropy(output, target)
+
+# Define the classification loss (negative log likelihood)
+def negative_log_likelihood_loss(output, target):
+    return nll_loss(output, target)
 
 # Define the weighted loss
 def weighted_loss(output, target, weights, criterion, weighted_dimension=1):
