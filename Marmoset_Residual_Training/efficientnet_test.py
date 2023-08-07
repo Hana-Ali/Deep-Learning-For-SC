@@ -37,14 +37,14 @@ configs = {
     "model_name" : "efficientnet", # Model name
     "input_nc" : 1,
     "combination" : True, # Combination
-    "task" : "regression_coords", # Task
+    "task" : "classification", # Task
     "hidden_size" : 32, # number of neurons
 
     ####### Training #######
     "n_epochs" : 50, # Number of epochs
-    "loss" : "MSE_loss", # Loss function
+    "loss" : "cross_entropy_loss", # Loss function
     "optimizer" : "Adam", # Optimizer
-    "evaluation_metric" : "MSE_loss", # Evaluation metric
+    "evaluation_metric" : "cross_entropy_loss", # Evaluation metric
     "shuffle_dataset" : True,
     "separate_hemisphere" : False,
     "cube_size" : 3, # cube size
@@ -60,11 +60,11 @@ configs = {
     "num_streamlines" : 10, # Number of streamlines to consider from each site
     
     ####### Parameters #######
-    "initial_learning_rate" : 1e-04, # Initial learning rate
-    "early_stopping_patience": 100, # Early stopping patience
-    "decay_patience": 50, # Learning rate decay patience
-    "decay_factor": 0.5, # Learning rate decay factor
-    "min_learning_rate": 1e-08, # Minimum learning rate
+    "initial_learning_rate" : 0.1, # Initial learning rate
+    "early_stopping_patience": None, # Early stopping patience
+    "decay_patience": None, # Learning rate decay patience
+    "decay_factor": None, # Learning rate decay factor
+    "min_learning_rate": 0.1, # Minimum learning rate
     "save_last_n_models": 10, # Save last n models
 
     ####### Misc #######

@@ -198,8 +198,14 @@ class EfficientNet3D(nn.Module):
         # Define the task
         self.task = task
         
+        # The flattened size depends on the task
+        if self.task == "classification":
+            cnn_flattened_size = 27
+        elif self.task == "regression_coords" or self.task == "regression_angles":
+            cnn_flattened_size = 3
+        
         # Define the combination MLP
-        self.combination_mlp = TwoInputMLP(previous_predictions_size=self.previous_predictions_size, cnn_flattened_size=3, 
+        self.combination_mlp = TwoInputMLP(previous_predictions_size=self.previous_predictions_size, cnn_flattened_size=cnn_flattened_size, 
                                            neurons=self.neurons, output_size=self.output_size, task=self.task)
         
         # Define the final activation depending on the task
@@ -252,7 +258,7 @@ class EfficientNet3D(nn.Module):
             # Pooling and final linear layer
             x = self._avg_pooling(x)
             x = x.view(bs, -1)
-            x = self._dropout(x)
+            # x = self._dropout(x)
             x = self._fc(x)
 
         # Pass the previous predictions through the combination MLP

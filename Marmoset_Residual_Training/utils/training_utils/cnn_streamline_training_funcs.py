@@ -72,7 +72,7 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
 #         for streamline in range(streamlines.shape[streamline_idx]):
 
     # Repeat like a billion times
-    for i in range(0, 300):
+    for i in range(0, 10000):
         
         # List to store the predicted nodes
         predicted_nodes_array = []
@@ -409,7 +409,7 @@ def _batch_loss(model, wmfod_cube, label, previous_predictions, criterion, train
     predicted_output = model(wmfod_cube, previous_predictions, original_shape)
                 
     # Find the loss between the output and the voxel value
-    loss = criterion(predicted_output.float(), label.float())
+    loss = criterion(predicted_output, label)
             
     # Get the batch size
     batch_size = wmfod_cube.size(0)
