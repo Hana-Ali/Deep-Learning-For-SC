@@ -26,7 +26,7 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
             assert voxel_wise is not None
 
             # Return the ResNet encoder
-            return ResnetEncoder(input_nc=input_nc, 
+            model = ResnetEncoder(input_nc=input_nc, 
                                  output_nc=output_nc,
                                  ngf=ngf,
                                  n_blocks=num_blocks,
@@ -52,7 +52,7 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
                 raise ValueError("Task {} not found".format(task))
 
             # Return the ResNet encoder
-            return ResnetEncoder_Streamlines(num_classes=output_size, 
+            model = ResnetEncoder_Streamlines(num_classes=output_size, 
                                              task=task)
         
         elif "attention_unet" in model_name.lower():
@@ -63,7 +63,7 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
             assert voxel_wise is not None
 
             # Return the Attention U-Net
-            return Attention_UNet(in_channels=input_nc, 
+            model = Attention_UNet(in_channels=input_nc, 
                                   n_classes=output_nc,
                                   voxel_wise=voxel_wise,
                                   cube_size=cube_size)
@@ -76,7 +76,7 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
             assert combination is not None
 
             # Return the CNN Attention
-            return CNN_Attention(in_channels=input_nc,
+            model = CNN_Attention(in_channels=input_nc,
                                  num_rnn_layers=num_rnn_layers,
                                  num_rnn_hidden_neurons=num_rnn_hidden_neurons,
                                  cube_size=cube_size, 
@@ -103,7 +103,7 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
                 raise ValueError("Task {} not found".format(task))
 
             # Return the EfficientNet
-            return EfficientNet3D.from_name("efficientnet-b0", 
+            model = EfficientNet3D.from_name("efficientnet-b0", 
                                             override_params={'num_classes': output_size}, 
                                             in_channels=input_nc, 
                                             hidden_size=hidden_size, 
@@ -130,10 +130,13 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
                 raise ValueError("Task {} not found".format(task))
 
             # Return the Baseline MLP
-            return Baseline_MLP(cnn_flattened_size=flattened_mlp_size,
+            model = Baseline_MLP(cnn_flattened_size=flattened_mlp_size,
                                 hidden_size=hidden_size,
                                 output_size=output_size,
                                 task=task)
+            
+        return init_weights(model, init_type="xavier")
+
 
 
     except AttributeError:
