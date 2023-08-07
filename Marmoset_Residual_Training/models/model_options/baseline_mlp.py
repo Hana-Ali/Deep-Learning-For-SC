@@ -36,7 +36,7 @@ class Baseline_MLP(nn.Module):
         
         # Define the final activation depending on the task
         if task == "classification":
-            self.final_activation = nn.Softmax(dim=1)
+            self.final_activation = nn.LogSoftmax(dim=1)
         elif task == "regression_angles":
             self.final_activation = nn.Sigmoid()
 
