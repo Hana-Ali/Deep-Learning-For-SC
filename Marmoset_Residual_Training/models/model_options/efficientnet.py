@@ -153,7 +153,7 @@ class EfficientNet3D(nn.Module):
 
         # Stem
         out_channels = round_filters(32, self._global_params)  # number of output channels
-        self._conv_stem = Conv3d(in_channels, out_channels, kernel_size=3, stride=2, bias=False)
+        self._conv_stem = Conv3d(in_channels, out_channels, kernel_size=3, stride=1, bias=False)
         if batch_norm:
             self._bn0 = nn.BatchNorm3d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
         else:
