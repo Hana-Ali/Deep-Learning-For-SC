@@ -91,30 +91,30 @@ class MBConvBlock3D(nn.Module):
         x = inputs
         if self._block_args.expand_ratio != 1:
             x = self._swish(self._bn0(self._expand_conv(inputs)))
-            print("Swish after expand x shape", x.shape)
+            # print("Swish after expand x shape", x.shape)
         x = self._swish(self._bn1(self._depthwise_conv(x)))
-        print("Swish after depthwise x shape", x.shape)
+        # print("Swish after depthwise x shape", x.shape)
 
         # Squeeze and Excitation
         if self.has_se:
             x_squeezed = F.adaptive_avg_pool3d(x, 1)
-            print("Squeeze shape", x.shape)
+            # print("Squeeze shape", x.shape)
             x_squeezed = self._se_expand(self._swish(self._se_reduce(x_squeezed)))
-            print("Excite shape", x.shape)
+            # print("Excite shape", x.shape)
             x = torch.sigmoid(x_squeezed) * x
-            print("Sigmoid and x shape", x.shape)
+            # print("Sigmoid and x shape", x.shape)
 
         x = self._bn2(self._project_conv(x))
-        print("Project conv shape", x.shape)
+        # print("Project conv shape", x.shape)
 
         # Skip connection and drop connect
         input_filters, output_filters = self._block_args.input_filters, self._block_args.output_filters
         if self.id_skip and self._block_args.stride == 1 and input_filters == output_filters:
             if drop_connect_rate:
                 x = drop_connect(x, p=drop_connect_rate, training=self.training)
-                print("Drop connect shape", x.shape)
+                # print("Drop connect shape", x.shape)
             x = x + inputs  # skip connection
-            print("Skip connect shape", x.shape)
+            # print("Skip connect shape", x.shape)
         return x
 
     def set_swish(self, memory_efficient=True):
@@ -270,25 +270,25 @@ class EfficientNet3D(nn.Module):
 
         # Convolution layers
         x = self.extract_features(inputs)
-        print("Extract features shape", x.shape)
+        # print("Extract features shape", x.shape)
 
         # If we did it as a depthwise convolution, we need to reshape it back
         if self.depthwise_conv:
             x = x.view(bs, -1, x.shape[2], x.shape[3], x.shape[4])
             # Convolve to get it to have in_channels as the outchannels
             x = nn.Conv3d(x.shape[1], x.shape[1] // in_channels, kernel_size=1, stride=1, padding=0).cuda()(x)
-            print("Conv3d shape", x.shape)
+            # print("Conv3d shape", x.shape)
 
         if self._global_params.include_top:
             # Pooling and final linear layer
             x = self._avg_pooling(x)
-            print("Avg pooling shape", x.shape)
+            # print("Avg pooling shape", x.shape)
             x = x.view(bs, -1)
-            print("View shape", x.shape)
+            # print("View shape", x.shape)
             x = self._dropout(x)
-            print("Dropout shape", x.shape)
+            # print("Dropout shape", x.shape)
             x = self._fc(x)
-            print("FC shape", x.shape)
+            # print("FC shape", x.shape)
 
         # Pass the previous predictions through the combination MLP
         x = self.combination_mlp(previous_predictions, x)
