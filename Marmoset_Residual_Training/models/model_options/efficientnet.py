@@ -92,7 +92,7 @@ class MBConvBlock3D(nn.Module):
             # print("Squeeze shape", x.shape)
             x_squeezed = self._se_expand(self._swish(self._se_reduce(x_squeezed)))
             # print("Excite shape", x.shape)
-            x = F.relu(x_squeezed) * x
+            x = torch.sigmoid(x_squeezed) * x
             # print("Sigmoid and x shape", x.shape)
 
         x = self._bn2(self._project_conv(x))
