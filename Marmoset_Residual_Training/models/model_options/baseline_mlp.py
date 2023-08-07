@@ -35,9 +35,9 @@ class Baseline_MLP(nn.Module):
                                            neurons=self.neurons, output_size=self.output_size, task=self.task)
         
         # Define the final activation depending on the task
-        if task == "classification":
+        if self.task == "classification":
             self.final_activation = nn.LogSoftmax(dim=1)
-        elif task == "regression_angles":
+        elif self.task == "regression_angles" or self.task == "regression_coords":
             self.final_activation = nn.Sigmoid()
 
     # Forward pass
