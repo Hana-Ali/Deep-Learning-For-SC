@@ -249,7 +249,7 @@ class StreamlineDataset(torch.utils.data.Dataset):
         wmfod_image_array = self.read_image(wmfod_image_path)
 
         # Read the streamline
-        float_streamlines_list = self.read_streamline(streamline_path)
+        float_streamlines_list = np.array(self.read_streamline(streamline_path))
 
         # Round the streamlines to the nearest integer
         streamline_list = np.round(float_streamlines_list).astype(int)

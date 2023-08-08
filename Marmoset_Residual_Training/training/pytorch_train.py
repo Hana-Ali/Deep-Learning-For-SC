@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import warnings
 import numpy as np
+import torch_optimizer as optim
 
 import sys
 sys.path.append("..")
@@ -108,18 +109,30 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
         
     print("Criterion is: ", criterion)
     
-    # Define the optimizer
-    optimizer_kwargs = dict()
+    # Define the optimizer IF WE'RE NOT USING THE LIBRARY
+    if in_config("library_opt", config, None) != None:
+        # Using MADGRAD
+        optimizer = optim.MADGRAD(
+        model.parameters(),
+        lr=config["initial_learning_rate"],
+        momentum=0.9,
+        weight_decay=config["decay_factor"] if in_config("decay_factor", config, None) != None else 0,
+        eps=1e-6,
+        )
+    else:
+        # Optimizer kwargs dictionary
+        optimizer_kwargs = dict()
 
-    # If initial learning rate in config
-    if "initial_learning_rate" in config:
-        optimizer_kwargs["learning_rate"] = config["initial_learning_rate"]
+        # If initial learning rate in config
+        if "initial_learning_rate" in config:
+            optimizer_kwargs["learning_rate"] = config["initial_learning_rate"]
 
-    # Build the optimizer
-    optimizer = build_optimizer(optimizer_name=config["optimizer"],
-                                model_parameters=model.parameters(),
-                                **optimizer_kwargs)
+        # Build the optimizer
+        optimizer = build_optimizer(optimizer_name=config["optimizer"],
+                                    model_parameters=model.parameters(),
+                                    **optimizer_kwargs)
     
+    print("Optimizer is", optimizer)
     # Get default collate
     from torch.utils.data.dataloader import default_collate
     collate_fn = default_collate
