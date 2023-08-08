@@ -110,7 +110,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
     
     # If given a task, then get a specific criterion
     if in_config("contrastive", config, None):
-        criterion = MaxMarginContrastiveLoss
+        criterion = MaxMarginContrastiveLoss()
     else:
         if in_config("task", config, None) == "classification":
             criterion = negative_log_likelihood_loss
