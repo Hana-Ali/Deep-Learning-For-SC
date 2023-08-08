@@ -163,9 +163,9 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
     train_set, val_set, test_set = torch.utils.data.random_split(dataset, lengths, generator=seed)
 
     # Create the list of labels
-    train_labels = [sample[1] for sample in train_set]
-    val_labels = [sample[1] for sample in val_set]
-    test_labels = [sample[1] for sample in test_set]
+    train_labels = [sample[2] for sample in train_set]
+    val_labels = [sample[2] for sample in val_set]
+    test_labels = [sample[2] for sample in test_set]
 
     print("Train labels", train_labels)
     print("Val labels", val_labels)
