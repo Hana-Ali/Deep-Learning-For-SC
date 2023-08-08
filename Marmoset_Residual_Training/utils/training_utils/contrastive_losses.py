@@ -111,12 +111,18 @@ class MaxMarginContrastiveLoss(nn.Module):
         # Remove the diagonal elements (self-pairs)
         positive_mask.fill_diagonal_(0)
 
-        # Find the minimum positive distance and the maximum negative distance for each sample
-        pos_dists = distances[positive_mask].view(batch_size, -1).min(dim=1).values
-        neg_dists = distances[negative_mask].view(batch_size, -1).max(dim=1).values
+        # Initialize positive and negative distances
+        pos_dists = torch.zeros(batch_size)
+        neg_dists = torch.zeros(batch_size)
+
+        # Iterate over each sample and find min positive and max negative distances
+        for i in range(batch_size):
+            pos_dists[i] = distances[i][positive_mask[i]].min()
+            neg_dists[i] = distances[i][negative_mask[i]].max()
 
         # Compute max-margin loss
         loss = torch.clamp(pos_dists - neg_dists + self.margin, min=0.0).mean()
 
         return loss
+
 
