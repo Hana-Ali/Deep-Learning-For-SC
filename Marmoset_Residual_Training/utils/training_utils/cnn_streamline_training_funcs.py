@@ -623,13 +623,6 @@ def _batch_loss(model, wmfod_cube, label, previous_predictions, criterion, train
 
     # Get the batch size
     batch_size = label.size(0)
-
-    # Contrastive loss stuff
-    if contrastive:
-        print("Shape of predicted output is", predicted_output.shape)
-        f1, f2 = torch.split(predicted_output, [batch_size, batch_size], dim=0)
-        predicted_output = torch.cat([f1.unsqueeze(1), f2.unsqueeze(1)], dim=1)
-        print("Predicted output shape is", predicted_output.shape)
                 
     # Find the loss between the output and the label depending on task
     if training_task == "classification":

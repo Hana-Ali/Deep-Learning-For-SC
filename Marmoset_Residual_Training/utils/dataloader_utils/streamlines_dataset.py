@@ -262,13 +262,6 @@ class StreamlineDataset(torch.utils.data.Dataset):
             label_array = self.read_npy(label_path)
         else: # Set the label to be the coordinate floats
             label_array = float_streamlines_list
-
-        # Transform the wmfod image and the streamlines
-        if self.transforms:
-            wmfod_image_array = self.transforms(wmfod_image_array)
-            streamline_list = self.transforms(streamline_list)
-            label_array = self.transforms(label_array)
-
         
         # Define a dictionary to store the images
         sample = {
