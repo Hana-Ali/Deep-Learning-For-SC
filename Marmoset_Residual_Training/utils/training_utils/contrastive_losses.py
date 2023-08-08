@@ -99,30 +99,30 @@ class MaxMarginContrastiveLoss(nn.Module):
 
     def forward(self, embeddings, labels):
         batch_size = embeddings.size(0)
-        
+
         # Compute pairwise distances
         distances = torch.cdist(embeddings, embeddings, p=2)
-        
+
         # Create masks for positive and negative samples
         labels_matrix = labels.view(-1, 1)
         positive_mask = labels_matrix == labels_matrix.t()
         negative_mask = labels_matrix != labels_matrix.t()
-        
+
         # Remove the diagonal elements (self-pairs)
         positive_mask.fill_diagonal_(0)
 
-        # Initialize positive and negative distances
-        pos_dists = torch.zeros(batch_size)
-        neg_dists = torch.zeros(batch_size)
+        pos_dists = torch.zeros(batch_size).to(embeddings.device)
+        neg_dists = torch.zeros(batch_size).to(embeddings.device)
 
-        # Iterate over each sample and find min positive and max negative distances
         for i in range(batch_size):
-            pos_dists[i] = distances[i][positive_mask[i]].min()
-            neg_dists[i] = distances[i][negative_mask[i]].max()
+            pos_distances_i = distances[i][positive_mask[i]]
+            neg_distances_i = distances[i][negative_mask[i]]
+
+            pos_dists[i] = pos_distances_i.min() if pos_distances_i.numel() > 0 else float('inf')
+            neg_dists[i] = neg_distances_i.max() if neg_distances_i.numel() > 0 else float('-inf')
 
         # Compute max-margin loss
         loss = torch.clamp(pos_dists - neg_dists + self.margin, min=0.0).mean()
 
         return loss
-
 
