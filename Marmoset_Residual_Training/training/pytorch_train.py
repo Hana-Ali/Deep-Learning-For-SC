@@ -161,6 +161,15 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
     # Split the data
     seed = torch.Generator().manual_seed(42)
     train_set, val_set, test_set = torch.utils.data.random_split(dataset, lengths, generator=seed)
+
+    # Create the list of labels
+    train_labels = [sample[1] for sample in train_set]
+    val_labels = [sample[1] for sample in val_set]
+    test_labels = [sample[1] for sample in test_set]
+
+    # Define the sampler
+    train_sampler = PositivePairSampler(train_labels, config["batch_size"])
+    val_sampler = PositivePairSampler(val_labels, config["batch_size"])
         
     # Define the training loader
     train_loader = torch.utils.data.DataLoader(train_set,
@@ -169,7 +178,8 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
                                                 num_workers=n_workers,
                                                 collate_fn=collate_fn,
                                                 pin_memory=pin_memory,
-                                                prefetch_factor=prefetch_factor)
+                                                prefetch_factor=prefetch_factor,
+                                                sampler=train_sampler)
     
     # Define the validation loader
     val_loader = torch.utils.data.DataLoader(val_set,
@@ -178,7 +188,8 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
                                             num_workers=n_workers,
                                             collate_fn=collate_fn,
                                             pin_memory=pin_memory,
-                                            prefetch_factor=prefetch_factor)
+                                            prefetch_factor=prefetch_factor,
+                                            sampler=val_sampler)
     
     # Define the test loader
     test_loader = torch.utils.data.DataLoader(test_set,

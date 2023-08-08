@@ -114,3 +114,33 @@ def get_newest_checkpoint(checkpoint_dir):
 
     # Return the newest checkpoint
     return max(paths, key=os.path.getctime)
+
+import random
+
+class PositivePairSampler(torch.utils.data.Sampler):
+    def __init__(self, labels, batch_size):
+        self.labels = labels
+        self.batch_size = batch_size
+
+        # Grouping the indices by labels
+        self.label_to_indices = {}
+        for idx, label in enumerate(labels):
+            if label not in self.label_to_indices:
+                self.label_to_indices[label] = []
+            self.label_to_indices[label].append(idx)
+
+    def __iter__(self):
+        all_indices = list(range(len(self.labels)))
+        random.shuffle(all_indices)
+
+        # Iterating through batches
+        for batch_start in range(0, len(self.labels), self.batch_size):
+            positive_label = random.choice(list(self.label_to_indices.keys()))
+            positive_indices = random.sample(self.label_to_indices[positive_label], 2) if len(self.label_to_indices[positive_label]) > 1 else []
+
+            # Filling the rest of the batch with random indices
+            batch_indices = positive_indices + all_indices[batch_start:batch_start + self.batch_size - len(positive_indices)]
+            yield batch_indices
+
+    def __len__(self):
+        return (len(self.labels) + self.batch_size - 1) // self.batch_size
