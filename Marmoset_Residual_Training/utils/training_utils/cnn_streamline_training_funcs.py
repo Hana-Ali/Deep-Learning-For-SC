@@ -13,8 +13,7 @@ torch.autograd.set_detect_anomaly(True) # For debugging
 def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, streamline_arrays_path, separate_hemisphere,
                         kernel_size=3, n_gpus=None, distributed=False, print_gpu_memory=True, scaler=None, 
                         data_time=None, coordinates=None, use_amp=False, losses=None, batch_time=None,
-                        progress=None, input_type="trk", training_task="classification", output_size=1,
-                        contrastive=False):
+                        progress=None, input_type="trk", training_task="classification", output_size=1):
     
     # Initialize the end time
     end = time.time()
@@ -99,8 +98,7 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                 # Get model output
                 (predicted_label, loss, batch_size) = batch_loss(model, wmfod_cube, streamline_label, previous_predictions, criterion, 
                                                                  distributed=distributed, n_gpus=n_gpus, use_amp=use_amp, 
-                                                                 original_shape=brain_hemisphere.shape, training_task=training_task,
-                                                                 contrastive=contrastive)
+                                                                 original_shape=brain_hemisphere.shape, training_task=training_task)
                 
                 # If the task is classification, then we want to print out the actual node we're predicting, and the actual label
                 if training_task == "classification":
@@ -222,8 +220,7 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
 def overfitting_training_loop_nodes(train_loader, model, criterion, optimizer, epoch, streamline_arrays_path, separate_hemisphere,
                                     kernel_size=3, n_gpus=None, distributed=False, print_gpu_memory=True, scaler=None, 
                                     data_time=None, coordinates=None, use_amp=False, losses=None, batch_time=None,
-                                    progress=None, input_type="trk", training_task="classification", output_size=1,
-                                    contrastive=False):
+                                    progress=None, input_type="trk", training_task="classification", output_size=1):
     
     # Initialize the end time
     end = time.time()
@@ -298,8 +295,7 @@ def overfitting_training_loop_nodes(train_loader, model, criterion, optimizer, e
         # Get model output
         (predicted_label, loss, batch_size) = batch_loss(model, wmfod_cube, streamline_label, previous_predictions, criterion, 
                                                             distributed=distributed, n_gpus=n_gpus, use_amp=use_amp, 
-                                                            original_shape=brain_hemisphere.shape, training_task=training_task,
-                                                            contrastive=contrastive)
+                                                            original_shape=brain_hemisphere.shape, training_task=training_task)
         
         # If the task is classification, then we want to print out the actual node we're predicting, and the actual label
         if training_task == "classification":
@@ -426,7 +422,7 @@ def overfitting_training_loop_nodes(train_loader, model, criterion, optimizer, e
 def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays_path, separate_hemisphere,
                             kernel_size=16, n_gpus=None, distributed=False, coordinates=None, use_amp=None, 
                             losses=None, batch_time=None, progress=None, input_type="trk", training_task="classification",
-                            output_size=1, contrastive=False):
+                            output_size=1):
     
     # No gradients
     with torch.no_grad():
@@ -494,8 +490,7 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
                     # Get model output
                     (predicted_label, loss, batch_size) = batch_loss(model, wmfod_cube, streamline_label, previous_predictions, criterion, 
                                                                      distributed=distributed, n_gpus=n_gpus, use_amp=use_amp, 
-                                                                     original_shape=brain_hemisphere.shape, training_task=training_task,
-                                                                     contrastive=contrastive)
+                                                                     original_shape=brain_hemisphere.shape, training_task=training_task)
 
                     # Get the prediction for this node as a numpy array
                     predicted_label = predicted_label.cpu().detach().numpy()
@@ -580,7 +575,7 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
         
 # Define the function to get model output
 def batch_loss(model, wmfod_cube, label, previous_predictions, criterion, original_shape, distributed=False, n_gpus=None, use_amp=False,
-              training_task="classification", contrastive=False):
+              training_task="classification"):
     
     # If number of GPUs
     if n_gpus:
@@ -608,15 +603,12 @@ def batch_loss(model, wmfod_cube, label, previous_predictions, criterion, origin
     # Compute the output
     if use_amp:
         with torch.cuda.amp.autocast():
-            return _batch_loss(model, wmfod_cube, label, previous_predictions, criterion, training_task, original_shape,
-                               contrastive)
+            return _batch_loss(model, wmfod_cube, label, previous_predictions, criterion, training_task, original_shape)
     else:
-        return _batch_loss(model, wmfod_cube, label, previous_predictions, criterion, training_task, original_shape,
-                           contrastive)
+        return _batch_loss(model, wmfod_cube, label, previous_predictions, criterion, training_task, original_shape)
     
 # Define the batch loss
-def _batch_loss(model, wmfod_cube, label, previous_predictions, criterion, training_task, original_shape,
-                contrastive=False):
+def _batch_loss(model, wmfod_cube, label, previous_predictions, criterion, training_task, original_shape):
         
     # Compute the output
     predicted_output = model(wmfod_cube, previous_predictions, original_shape)

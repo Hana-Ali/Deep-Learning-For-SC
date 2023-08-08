@@ -9,6 +9,10 @@ from collections import OrderedDict
 import json
 import glob
 
+from torchvision import transforms
+
+from utils.dataloader_utils import *
+
 # Function to check if directory exists
 def check_directory(path):
     
@@ -110,19 +114,3 @@ def get_newest_checkpoint(checkpoint_dir):
 
     # Return the newest checkpoint
     return max(paths, key=os.path.getctime)
-
-# Function to glob files
-def glob_files(PATH_NAME, file_format):
-    INPUT_FILES = []
-    for file in glob.glob(os.path.join(PATH_NAME, os.path.join("**", "*.{}".format(file_format))), recursive=True):
-        INPUT_FILES.append(file)
-    return INPUT_FILES
-
-# Doubling the data
-class TwoCropTransform:
-    """Create two crops of the same image"""
-    def __init__(self, transform):
-        self.transform = transform
-
-    def __call__(self, x):
-        return [self.transform(x), self.transform(x)]

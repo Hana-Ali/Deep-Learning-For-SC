@@ -1,4 +1,3 @@
-from utils.utility_funcs import *
 import SimpleITK as sitk
 import numpy as np
 import torch
@@ -7,6 +6,8 @@ import nibabel as nib
 import itertools
 
 import torch.nn.functional as F
+
+import os
 
 # Set the seed
 np.random.seed(0)
@@ -531,3 +532,10 @@ def reconstruct_predicted_streamlines(streamlines):
 
     # Return the reconstructed streamlines
     return reconstructed_streamlines
+
+# Function to glob files
+def glob_files(PATH_NAME, file_format):
+    INPUT_FILES = []
+    for file in glob.glob(os.path.join(PATH_NAME, os.path.join("**", "*.{}".format(file_format))), recursive=True):
+        INPUT_FILES.append(file)
+    return INPUT_FILES
