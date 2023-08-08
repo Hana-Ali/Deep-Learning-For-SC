@@ -482,6 +482,10 @@ def find_next_node(direction, previous_node):
         # Append the next node to the list of next nodes
         next_nodes.append(next_node)
 
+    # Convert the next nodes to a numpy array of shape (batch_size, 3)
+    next_nodes = np.array(next_nodes)
+    next_nodes = np.reshape(next_nodes, (next_nodes.shape[0], 3))
+
     # Return the next nodes as a numpy array
     return next_nodes
 
