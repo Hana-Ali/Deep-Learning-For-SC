@@ -174,10 +174,12 @@ class ResnetEncoder_Streamlines(nn.Module):
         self.previous_predictions_size = self.output_size * 2
                 
         # The flattened size depends on the task
-        if self.task == "classification":
+        if self.task == "classification" and not contrastive:
             cnn_flattened_size = 27
-        elif self.task == "regression_coords" or self.task == "regression_angles":
+        elif self.task == "regression_coords" or self.task == "regression_angles" and not contrastive:
             cnn_flattened_size = 3
+        elif contrastive:
+            cnn_flattened_size = 256
         
         # Define the combination MLP
         self.combination_mlp = TwoInputMLP(previous_predictions_size=self.previous_predictions_size, cnn_flattened_size=cnn_flattened_size, 
