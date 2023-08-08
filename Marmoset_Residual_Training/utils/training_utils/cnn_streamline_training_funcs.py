@@ -4,6 +4,7 @@ import os
 import time
 import nibabel as nib
 import torch.nn as nn
+import torch.nn.functional as F
 
 torch.autograd.set_detect_anomaly(True) # For debugging
 
@@ -606,7 +607,10 @@ def _batch_loss(model, wmfod_cube, label, previous_predictions, criterion, train
     batch_size = wmfod_cube.size(0)
 
     print("Loss is", loss.item())
-    print("Predicted output is", predicted_output)
+    if training_task == "classification":
+        print("Predicted output is", F.softmax(predicted_output))
+    else:
+        print("Predicted output is", predicted_output)
     print("Label is", label)
             
     # Return the loss
