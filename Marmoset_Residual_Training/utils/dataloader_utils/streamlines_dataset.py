@@ -271,8 +271,8 @@ class StreamlineDataset(torch.utils.data.Dataset):
                  }
         
         # Transform the sample if a transform is provided
-        if self.transform:
-            sample = self.transform(sample)
+        if self.transforms:
+            sample = self.transforms(sample)
          
         # Return the nps. This is the final output to feed the network
         return sample["wmfod"], sample["streamlines"], sample["labels"]
