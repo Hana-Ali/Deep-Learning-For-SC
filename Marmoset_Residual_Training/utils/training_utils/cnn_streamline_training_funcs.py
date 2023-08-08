@@ -5,6 +5,7 @@ import time
 import nibabel as nib
 import torch.nn as nn
 import torch.nn.functional as F
+from utils.dataloader_utils import find_next_node
 
 torch.autograd.set_detect_anomaly(True) # For debugging
 
@@ -98,6 +99,16 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                 (predicted_label, loss, batch_size) = batch_loss(model, wmfod_cube, streamline_label, previous_predictions, criterion, 
                                                                  distributed=distributed, n_gpus=n_gpus, use_amp=use_amp, 
                                                                  original_shape=brain_hemisphere.shape, training_task=training_task)
+                
+                # If the task is classification, then we want to print out the actual node we're predicting, and the actual label
+                if training_task == "classification":
+                    if point > 0:
+                        predicted_node = find_next_node(predicted_label.cpu().detach().numpy(), streamlines[:, streamline, point - 1])
+                        print("Previous node is", streamlines[:, streamline, point - 1])
+                        print("Predicted node is", predicted_node)
+                        print("Actual node is", streamlines[:, streamline, point])
+                    else:
+                        pass
 
                 # Get the prediction for this node as a numpy array
                 predicted_label = predicted_label.cpu().detach().numpy()
@@ -290,6 +301,16 @@ def overfitting_training_loop_nodes(train_loader, model, criterion, optimizer, e
         (predicted_label, loss, batch_size) = batch_loss(model, wmfod_cube, streamline_label, previous_predictions, criterion, 
                                                             distributed=distributed, n_gpus=n_gpus, use_amp=use_amp, 
                                                             original_shape=brain_hemisphere.shape, training_task=training_task)
+        
+        # If the task is classification, then we want to print out the actual node we're predicting, and the actual label
+        if training_task == "classification":
+            if point > 0:
+                predicted_node = find_next_node(predicted_label.cpu().detach().numpy(), streamlines[:, streamline, point - 1])
+                print("Previous node is", streamlines[:, streamline, point - 1])
+                print("Predicted node is", predicted_node)
+                print("Actual node is", streamlines[:, streamline, point])
+            else:
+                pass
 
         # Get the prediction for this node as a numpy array
         predicted_label = predicted_label.cpu().detach().numpy()
