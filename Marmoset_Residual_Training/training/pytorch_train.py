@@ -10,6 +10,7 @@ sys.path.append("..")
 from utils import *
 from models import *
 from utils.training_utils import loss_funcs
+from utils.training_utils import contrastive_losses
 
     
 # Function to do streamline training
@@ -96,12 +97,15 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
     model.train()
     
     # If given a task, then get a specific criterion
-    if in_config("task", config, None) == "classification":
-        criterion = negative_log_likelihood_loss
-    elif in_config("task", config, None) == "regression_angles" or in_config("task", config, None) == "regression_coords":
-        criterion = MSE_loss
-    else: # If no task is given, then we need to load one according to the evaluation metric
-        criterion = load_criterion(config['evaluation_metric'], n_gpus=n_gpus)
+    if in_config("contrastive", config, None):
+        criterion = SupConLoss
+    else:
+        if in_config("task", config, None) == "classification":
+            criterion = negative_log_likelihood_loss
+        elif in_config("task", config, None) == "regression_angles" or in_config("task", config, None) == "regression_coords":
+            criterion = MSE_loss
+        else: # If no task is given, then we need to load one according to the evaluation metric
+            criterion = load_criterion(config['evaluation_metric'], n_gpus=n_gpus)
 
     # If weighted loss
     if "weights" in config and config["weights"] is not None:
@@ -238,7 +242,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
                                     print_gpu_memory=False, scaler=scaler, train_or_val="train", training_type=config["training_type"],
                                     streamline_arrays_path=in_config("streamline_arrays_path", config, False), input_type=in_config("tck_type", config, False),
                                     training_task=in_config("task", config, "classification"), output_size=output_size, 
-                                    overfitting=in_config("overfitting", config, False))
+                                    overfitting=in_config("overfitting", config, False), contrastive=in_config("contrastive", config, False))
                                        
         try:
             train_loader.dataset.on_epoch_end()
@@ -257,7 +261,8 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
                                         cube_size=cube_size, n_gpus=n_gpus, voxel_wise=voxel_wise, distributed=False,
                                         print_gpu_memory=False, scaler=scaler, train_or_val="val", training_type=config["training_type"],
                                         streamline_arrays_path=in_config("streamline_arrays_path", config, False), input_type=in_config("tck_type", config, False),
-                                        training_task=in_config("task", config, "classification"), output_size=output_size)
+                                        training_task=in_config("task", config, "classification"), output_size=output_size,
+                                        overfitting=in_config("overfitting", config, False), contrastive=in_config("contrastive", config, False))
         else:
             val_loss = None
         
@@ -307,7 +312,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
 def epoch_training(train_loader, val_loader, model, criterion, optimizer, epoch, residual_arrays_path, separate_hemisphere, 
                    streamline_arrays_path, input_type, cube_size=16, n_gpus=None, voxel_wise=False, distributed=False, 
                    print_gpu_memory=False, scaler=None, train_or_val="train", training_type="residual", training_task="classification",
-                   output_size=1, overfitting=False):
+                   output_size=1, overfitting=False, contrastive=False):
     
     # Define the meters
     batch_time = AverageMeter("Time", ":6.3f")
@@ -354,13 +359,13 @@ def epoch_training(train_loader, val_loader, model, criterion, optimizer, epoch,
                                                 kernel_size=kernel_size, n_gpus=n_gpus, distributed=distributed, print_gpu_memory=print_gpu_memory, 
                                                 scaler=scaler, data_time=data_time, coordinates=coordinates, use_amp=use_amp, losses=losses, 
                                                 batch_time=batch_time, progress=progress, input_type=input_type, training_task=training_task,
-                                                output_size=output_size)
+                                                output_size=output_size, contrastive=contrastive)
             else:
                 training_loop_nodes(train_loader, model, criterion, optimizer, epoch, streamline_arrays_path, separate_hemisphere,
                                     kernel_size=kernel_size, n_gpus=n_gpus, distributed=distributed, print_gpu_memory=print_gpu_memory, 
                                     scaler=scaler, data_time=data_time, coordinates=coordinates, use_amp=use_amp, losses=losses, 
                                     batch_time=batch_time, progress=progress, input_type=input_type, training_task=training_task,
-                                    output_size=output_size)
+                                    output_size=output_size, contrastive=contrastive)
         else:
             raise ValueError("Training type {} not found".format(training_type))
         
@@ -374,7 +379,7 @@ def epoch_training(train_loader, val_loader, model, criterion, optimizer, epoch,
             validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays_path, separate_hemisphere,
                                     kernel_size=kernel_size, n_gpus=n_gpus, distributed=distributed, coordinates=coordinates, 
                                     use_amp=use_amp, losses=losses, batch_time=batch_time, progress=progress, input_type=input_type,
-                                    training_task=training_task, output_size=output_size)
+                                    training_task=training_task, output_size=output_size, contrastive=contrastive)
         else:
             raise ValueError("Training type {} not found".format(training_type))
             

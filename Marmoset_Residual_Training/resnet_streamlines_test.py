@@ -41,6 +41,7 @@ configs = {
     "hidden_size" : 32, # number of neurons
     "depthwise_conv" : True, # Depthwise convolution
     "library_opt" : True, # Use stuff from torch_optim
+    "contrastive" : True, # Contrastive
 
     ####### Training #######
     "n_epochs" : 50, # Number of epochs

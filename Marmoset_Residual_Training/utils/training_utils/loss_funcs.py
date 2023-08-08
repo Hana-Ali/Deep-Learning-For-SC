@@ -1,5 +1,6 @@
 import torch
 from torch.nn.functional import l1_loss, mse_loss, cross_entropy, nll_loss
+import torch.nn as nn
 
 # Define the L1 loss
 def L1_loss(output, target):
