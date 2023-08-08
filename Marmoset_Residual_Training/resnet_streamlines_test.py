@@ -39,16 +39,19 @@ configs = {
     "combination" : True, # Combination
     "task" : "classification", # Task
     "hidden_size" : 32, # number of neurons
+    "depthwise_conv" : True, # Depthwise convolution
+    "library_opt" : True, # Use stuff from torch_optim
 
     ####### Training #######
     "n_epochs" : 50, # Number of epochs
-    "loss" : "cross_entropy_loss", # Loss function
+    "loss" : "negative_log_likelihood_loss", # Loss function
     "optimizer" : "Adam", # Optimizer
-    "evaluation_metric" : "cross_entropy_loss", # Evaluation metric
+    "evaluation_metric" : "negative_log_likelihood_loss", # Evaluation metric
     "shuffle_dataset" : True,
     "separate_hemisphere" : False,
     "cube_size" : 3, # cube size
     "save_best" : True, # Save best model
+    "overfitting" : False, # Overfitting
 
     ####### Data #######
     "main_data_path" : main_data_path, # Data path
@@ -60,7 +63,7 @@ configs = {
     "num_streamlines" : 10, # Number of streamlines to consider from each site
     
     ####### Parameters #######
-    "initial_learning_rate" : 0.1, # Initial learning rate
+    "initial_learning_rate" : 0.05, # Initial learning rate
     "early_stopping_patience": None, # Early stopping patience
     "decay_patience": None, # Learning rate decay patience
     "decay_factor": None, # Learning rate decay factor

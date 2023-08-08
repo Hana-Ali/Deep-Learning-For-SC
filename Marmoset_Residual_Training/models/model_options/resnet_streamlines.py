@@ -182,7 +182,7 @@ class ResnetEncoder_Streamlines(nn.Module):
         
         # Define the final activation depending on the task
         if self.task == "classification":
-            self.final_activation = nn.Softmax(dim=1)
+            self.final_activation = nn.LogSoftmax(dim=1)
         elif self.task == "regression_angles" or self.task == "regression_coords":
             self.final_activation = nn.Sigmoid()
 
