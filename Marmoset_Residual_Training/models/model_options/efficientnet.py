@@ -137,7 +137,7 @@ class EfficientNet3D(nn.Module):
 
     def __init__(self, blocks_args=None, global_params=None, in_channels=3,
                  hidden_size=1000, task="classification", batch_norm=True,
-                 depthwise_conv=False):
+                 depthwise_conv=False, contrastive=False):
         super().__init__()
         assert isinstance(blocks_args, list), 'blocks_args should be a list'
         assert len(blocks_args) > 0, 'block args must be greater than 0'
@@ -228,10 +228,12 @@ class EfficientNet3D(nn.Module):
                                            neurons=self.neurons, output_size=self.output_size, task=self.task, batch_norm=batch_norm)
         
         # Define the final activation depending on the task
-        if self.task == "classification":
+        if self.task == "classification" and not contrastive:
             self.final_activation = nn.LogSoftmax(dim=1)
-        elif self.task == "regression_angles" or self.task == "regression_coords":
+        elif (self.task == "regression_angles" or self.task == "regression_coords") and (not contrastive):
             self.final_activation = nn.Sigmoid()
+        elif contrastive:
+            self.final_activation = None
 
     def set_swish(self, memory_efficient=True):
         """Sets swish function as memory efficient (for training) or standard (for export)"""
@@ -293,8 +295,9 @@ class EfficientNet3D(nn.Module):
         # Pass the previous predictions through the combination MLP
         x = self.combination_mlp(previous_predictions, x)
 
-        # Apply the final activation
-        x = self.final_activation(x)
+        # Apply the final activation if it isn't none
+        if self.final_activation is not None:
+            x = self.final_activation(x)
         
         # The output is different, depending on if the task is regression of angles or classification
         if self.task == "regression_angles":
@@ -312,11 +315,11 @@ class EfficientNet3D(nn.Module):
 
     @classmethod
     def from_name(cls, model_name, override_params=None, in_channels=3, hidden_size=128, 
-                  task="classification", batch_norm=True, depthwise_conv=False):
+                  task="classification", batch_norm=True, depthwise_conv=False, contrastive=False):
         cls._check_model_name_is_valid(model_name)
         blocks_args, global_params = get_model_params(model_name, override_params)
         return cls(blocks_args, global_params, in_channels, hidden_size, task, batch_norm=batch_norm, 
-                   depthwise_conv=depthwise_conv)
+                   depthwise_conv=depthwise_conv, contrastive=contrastive)
 
     @classmethod
     def get_image_size(cls, model_name):

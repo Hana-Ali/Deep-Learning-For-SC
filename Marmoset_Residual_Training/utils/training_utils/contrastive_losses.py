@@ -126,3 +126,45 @@ class MaxMarginContrastiveLoss(nn.Module):
 
         return loss
 
+import torch
+import torch.nn as nn
+
+class ContrastiveLossWithPosNegPairs(nn.Module):
+    def __init__(self, margin=1.0):
+        super(ContrastiveLossWithPosNegPairs, self).__init__()
+        self.margin = margin
+
+    def forward(self, embeddings, labels):
+        batch_size = embeddings.size(0)
+
+        # Compute pairwise distances
+        distances = torch.cdist(embeddings, embeddings, p=2)
+
+        # Compute masks for positive and negative pairs
+        labels_matrix = labels.view(-1, 1)
+        positive_mask = labels_matrix == labels_matrix.t()
+        negative_mask = labels_matrix != labels_matrix.t()
+
+        # Remove the diagonal elements (self-pairs)
+        positive_mask.fill_diagonal_(0)
+
+        # Initialize loss
+        loss = 0
+
+        # Iterate through the batch and find the first example that has both positive and negative pairs
+        for i in range(batch_size):
+            pos_indices = positive_mask[i].nonzero(as_tuple=True)[0]
+            neg_indices = negative_mask[i].nonzero(as_tuple=True)[0]
+
+            # Check if there is at least one positive and one negative sample
+            if len(pos_indices) > 0 and len(neg_indices) > 0:
+                # Select the closest positive and the furthest negative sample
+                pos_dist = distances[i, pos_indices].min()
+                neg_dist = distances[i, neg_indices].max()
+
+                # Compute the contrastive loss for this example
+                loss = torch.clamp(pos_dist - neg_dist + self.margin, min=0.0)
+                break
+
+        return loss
+

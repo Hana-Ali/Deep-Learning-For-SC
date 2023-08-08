@@ -82,8 +82,8 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
                                     prev_output_size=in_config("prev_output_size", config, False), combination=config["combination"],
                                     n_gpus=n_gpus, bias=bias, freeze_bias=in_config("freeze_bias", config, False),
                                     strict=False, task=in_config("task", config, "classification"), output_size=output_size,
-                                    hidden_size=in_config("hidden_size", config, 32), batch_norm=True if config["batch_size"] > 1 else False,
-                                    depthwise_conv=in_config("depthwise_conv", config, False))
+                                    hidden_size=in_config("hidden_size", config, 128), batch_norm=True if config["batch_size"] > 1 else False,
+                                    depthwise_conv=in_config("depthwise_conv", config, False), contrastive=in_config("contrastive", config, False))
         # Build the dataset
         dataset = StreamlineDataset(main_data_path, num_streamlines=config["num_streamlines"], transforms=None, train=True, tck_type=config["tck_type"], 
                                     task=in_config("task", config, "classification"))
@@ -110,7 +110,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
     
     # If given a task, then get a specific criterion
     if in_config("contrastive", config, None):
-        criterion = MaxMarginContrastiveLoss()
+        criterion = ContrastiveLossWithPosNegPairs()
     else:
         if in_config("task", config, None) == "classification":
             criterion = negative_log_likelihood_loss
@@ -162,18 +162,6 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
     seed = torch.Generator().manual_seed(42)
     train_set, val_set, test_set = torch.utils.data.random_split(dataset, lengths, generator=seed)
 
-    # Create the list of labels
-    train_labels = [sample[2] for sample in train_set]
-    val_labels = [sample[2] for sample in val_set]
-    test_labels = [sample[2] for sample in test_set]
-
-    print("Train labels.shape", np.array(train_labels).shape)
-    print("Val labels.shape", np.array(val_labels).shape)
-
-    # Define the sampler
-    train_sampler = PositivePairSampler(train_labels, config["batch_size"])
-    val_sampler = PositivePairSampler(val_labels, config["batch_size"])
-        
     # Define the training loader
     train_loader = torch.utils.data.DataLoader(train_set,
                                                 batch_size=config["batch_size"],
@@ -181,8 +169,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
                                                 num_workers=n_workers,
                                                 collate_fn=collate_fn,
                                                 pin_memory=pin_memory,
-                                                prefetch_factor=prefetch_factor,
-                                                sampler=train_sampler)
+                                                prefetch_factor=prefetch_factor)    
     
     # Define the validation loader
     val_loader = torch.utils.data.DataLoader(val_set,
@@ -191,9 +178,8 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
                                             num_workers=n_workers,
                                             collate_fn=collate_fn,
                                             pin_memory=pin_memory,
-                                            prefetch_factor=prefetch_factor,
-                                            sampler=val_sampler)
-    
+                                            prefetch_factor=prefetch_factor)
+        
     # Define the test loader
     test_loader = torch.utils.data.DataLoader(test_set,
                                                 batch_size=config["batch_size"],

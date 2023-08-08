@@ -100,6 +100,10 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                                                                  distributed=distributed, n_gpus=n_gpus, use_amp=use_amp, 
                                                                  original_shape=brain_hemisphere.shape, training_task=training_task)
                 
+                # If the loss is 0, that means we didn't find a valid pair, so we skip this point
+                if loss == 0:
+                    continue
+                
                 # If the task is classification, then we want to print out the actual node we're predicting, and the actual label
                 if training_task == "classification":
                     if point > 0:
@@ -297,6 +301,10 @@ def overfitting_training_loop_nodes(train_loader, model, criterion, optimizer, e
                                                             distributed=distributed, n_gpus=n_gpus, use_amp=use_amp, 
                                                             original_shape=brain_hemisphere.shape, training_task=training_task)
         
+        # If the loss is 0, that means we didn't find a valid pair, so we skip this point
+        if loss == 0:
+            continue
+        
         # If the task is classification, then we want to print out the actual node we're predicting, and the actual label
         if training_task == "classification":
             if point > 0:
@@ -491,6 +499,10 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
                     (predicted_label, loss, batch_size) = batch_loss(model, wmfod_cube, streamline_label, previous_predictions, criterion, 
                                                                      distributed=distributed, n_gpus=n_gpus, use_amp=use_amp, 
                                                                      original_shape=brain_hemisphere.shape, training_task=training_task)
+                    
+                    # If the loss is 0, that means we didn't find a valid pair, so we skip this point
+                    if loss == 0:
+                        continue
 
                     # Get the prediction for this node as a numpy array
                     predicted_label = predicted_label.cpu().detach().numpy()

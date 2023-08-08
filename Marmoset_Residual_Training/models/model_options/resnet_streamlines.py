@@ -96,7 +96,8 @@ class ResnetEncoder_Streamlines(nn.Module):
     
     # Constructor 
     def __init__(self, input_nc=1, output_nc=1, ngf=64, n_blocks=6, norm_layer=nn.BatchNorm3d, use_dropout=False, 
-                 padding_type='reflect', num_linear_neurons=[45, 128, 64], task="classification", num_classes=27):
+                 padding_type='reflect', num_linear_neurons=[45, 128, 64], task="classification", num_classes=27,
+                 hidden_size=128, contrastive=False):
         """
         Parameters:
             input_nc (int) -- the number of channels in input images
@@ -141,12 +142,14 @@ class ResnetEncoder_Streamlines(nn.Module):
         self.adaptive_pooling = nn.AdaptiveAvgPool3d((1, 1, 1))
 
         # Assert that the number of classes matches the task
-        if self.task == "classification":
+        if self.task == "classification" and not contrastive:
             assert self.num_classes == 27, "Number of classes must be 27 for classification task"
-        elif self.task == "regression_angles":
+        elif self.task == "regression_angles" and not contrastive:
             assert self.num_classes == 3, "Number of classes must be 3 for regression angles task"
-        elif self.task == "regression_coords":
+        elif self.task == "regression_coords" and not contrastive:
             assert self.num_classes == 3, "Number of classes must be 3 for regression coordinates task"
+        elif contrastive:
+            assert self.num_classes == 256, "Number of classes must be 256 for contrastive task"
         else:
             raise NotImplementedError("Task {} is not implemented".format(self.task))
 
@@ -165,7 +168,7 @@ class ResnetEncoder_Streamlines(nn.Module):
         self.output_size = self.num_classes
 
         # Define the number of neurons
-        self.neurons = 128
+        self.neurons = hidden_size
 
         # Define the input size of the previous predictions MLP - will always be output * 2
         self.previous_predictions_size = self.output_size * 2
@@ -181,10 +184,12 @@ class ResnetEncoder_Streamlines(nn.Module):
                                            neurons=self.neurons, output_size=self.output_size, task=self.task)
         
         # Define the final activation depending on the task
-        if self.task == "classification":
+        if self.task == "classification" and not contrastive:
             self.final_activation = nn.LogSoftmax(dim=1)
-        elif self.task == "regression_angles" or self.task == "regression_coords":
+        elif (self.task == "regression_angles" or self.task == "regression_coords") and (not contrastive):
             self.final_activation = nn.Sigmoid()
+        elif contrastive:
+            self.final_activation = None
 
 
     # Define the model
@@ -288,8 +293,9 @@ class ResnetEncoder_Streamlines(nn.Module):
         # Pass the previous predictions through the combination MLP
         x = self.combination_mlp(previous_predictions, x)
 
-        # Apply the final activation
-        x = self.final_activation(x)
+        # Apply the final activation if it is not none
+        if self.final_activation is not None:
+            x = self.final_activation(x)
 
         # The output is different, depending on if the task is regression of angles or classification
         if self.task == "regression_angles":
