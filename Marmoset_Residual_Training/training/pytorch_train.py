@@ -167,6 +167,9 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
     val_labels = [sample[1] for sample in val_set]
     test_labels = [sample[1] for sample in test_set]
 
+    print("Train labels", train_labels)
+    print("Val labels", val_labels)
+
     # Define the sampler
     train_sampler = PositivePairSampler(train_labels, config["batch_size"])
     val_sampler = PositivePairSampler(val_labels, config["batch_size"])
