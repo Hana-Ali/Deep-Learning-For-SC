@@ -125,6 +125,7 @@ class PositivePairSampler(torch.utils.data.Sampler):
         # Grouping the indices by labels
         self.label_to_indices = {}
         for idx, label in enumerate(labels):
+            print("Label: ", label)
             if label not in self.label_to_indices:
                 self.label_to_indices[label] = []
             self.label_to_indices[label].append(idx)
