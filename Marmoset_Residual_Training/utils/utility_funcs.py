@@ -117,3 +117,12 @@ def glob_files(PATH_NAME, file_format):
     for file in glob.glob(os.path.join(PATH_NAME, os.path.join("**", "*.{}".format(file_format))), recursive=True):
         INPUT_FILES.append(file)
     return INPUT_FILES
+
+# Doubling the data
+class TwoCropTransform:
+    """Create two crops of the same image"""
+    def __init__(self, transform):
+        self.transform = transform
+
+    def __call__(self, x):
+        return [self.transform(x), self.transform(x)]

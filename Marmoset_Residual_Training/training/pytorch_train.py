@@ -4,6 +4,8 @@ import warnings
 import numpy as np
 import torch_optimizer as optim
 
+from torchvision import transforms
+
 import sys
 sys.path.append("..")
 
@@ -61,6 +63,17 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
     elif in_config("task", config, None) == "regression_coords":
         output_size = 3 # Predicting coordinates
         
+    # Define the transforms
+    train_transform = transforms.Compose([
+        transforms.RandomResizedCrop(size=30, scale=(0.2, 1.)),
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomApply([
+            transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)
+        ], p=0.8),
+        transforms.RandomGrayscale(p=0.2),
+        transforms.ToTensor(),
+    ])
+        
     # Build or load the model depending on streamline or dwi training, and build dataset differently
     if config["training_type"] == "streamline":
         # Build the model
@@ -73,7 +86,8 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
                                     hidden_size=in_config("hidden_size", config, 32), batch_norm=True if config["batch_size"] > 1 else False,
                                     depthwise_conv=in_config("depthwise_conv", config, False))
         # Build the dataset
-        dataset = StreamlineDataset(main_data_path, num_streamlines=config["num_streamlines"], transforms=None, train=True, tck_type=config["tck_type"],
+        dataset = StreamlineDataset(main_data_path, num_streamlines=config["num_streamlines"], transforms=TwoCropTransform(train_transform), 
+                                    train=True, tck_type=config["tck_type"],
                                     task=in_config("task", config, "classification"))
     elif config["training_type"] == "residual":
         # Build the model
