@@ -1,5 +1,5 @@
 {
-    "batch_size": 8,
+    "batch_size": 32,
     "combination": true,
     "contrastive": true,
     "cube_size": 3,
@@ -31,5 +31,5 @@
     "tck_type": "trk",
     "training_log_path": "/notebooks/predicted_streamlines/training_logs/resnet_streamlines.csv",
     "training_type": "streamline",
-    "validation_batch_size": 8
+    "validation_batch_size": 32
 }
