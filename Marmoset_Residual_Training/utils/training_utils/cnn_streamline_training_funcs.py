@@ -627,7 +627,7 @@ def _batch_loss(model, wmfod_cube, label, previous_predictions, criterion, train
     # Get the batch size
     batch_size = wmfod_cube.size(0)
 
-    print("Loss is", loss.item())
+    # print("Loss is", loss.item())
     # if training_task == "classification":
     #     print("Predicted output is", F.softmax(predicted_output))
     # else:
