@@ -62,7 +62,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
     elif in_config("task", config, None) == "regression_coords" and not in_config("contrastive", config, None):
         output_size = 3 # Predicting coordinates
     elif in_config("contrastive", config, None):
-        output_size = 256
+        output_size = 256 # Predicting contrastive loss
         
     # Define the transforms
     train_transform = transforms.Compose([

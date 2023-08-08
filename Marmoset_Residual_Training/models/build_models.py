@@ -41,18 +41,16 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
             assert task is not None
 
             # Ensure that the output size matches the task
-            if task == "classification":
+            if task == "classification" and not contrastive:
                 assert output_size == 27
-            elif task == "regression_angles":
+            elif task == "regression_angles" and not contrastive:
                 assert output_size == 3
-            elif task == "regression_coords":
+            elif task == "regression_coords" and not contrastive:
                 assert output_size == 3
+            elif contrastive:
+                assert output_size == 256
             else:
                 raise ValueError("Task {} not found".format(task))
-            
-            # If contrastive, make the output feature vector of size 256
-            if contrastive:
-                output_size = 256
 
             # Return the ResNet encoder
             model = ResnetEncoder_Streamlines(num_classes=output_size, 
@@ -96,22 +94,20 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
             assert task is not None
 
             # Ensure that the output size matches the task
-            if task == "classification":
+            if task == "classification" and not contrastive:
                 assert output_size == 27
-            elif task == "regression_angles":
+            elif task == "regression_angles" and not contrastive:
                 assert output_size == 3
-            elif task == "regression_coords":
+            elif task == "regression_coords" and not contrastive:
                 assert output_size == 3
+            elif contrastive:
+                assert output_size == 256
             else:
                 raise ValueError("Task {} not found".format(task))
             
             # Assert that if we do depthwise conv, the input_nc is 1
             if depthwise_conv:
                 assert input_nc == 1
-    
-            # If contrastive, make the output feature vector of size 256
-            if contrastive:
-                output_size = 256
 
             # Return the EfficientNet
             model = EfficientNet3D.from_name("efficientnet-b0", 
@@ -134,12 +130,14 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
             flattened_mlp_size = input_nc * ((cube_size * 2) ** 3)
 
             # Ensure that the output size matches the task
-            if task == "classification":
+            if task == "classification" and not contrastive:
                 assert output_size == 27
-            elif task == "regression_angles":
+            elif task == "regression_angles" and not contrastive:
                 assert output_size == 3
-            elif task == "regression_coords":
+            elif task == "regression_coords" and not contrastive:
                 assert output_size == 3
+            elif contrastive:
+                assert output_size == 256
             else:
                 raise ValueError("Task {} not found".format(task))
 
