@@ -55,12 +55,14 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
     verbose = config["verbose"] if "verbose" in config else 1
 
     # Define the output size depending on the task
-    if in_config("task", config, None) == "classification":
+    if in_config("task", config, None) == "classification" and not in_config("contrastive", config, None):
         output_size = 27 # Predicting directions, there are 27 bins
-    elif in_config("task", config, None) == "regression_angles":
+    elif in_config("task", config, None) == "regression_angles" and not in_config("contrastive", config, None):
         output_size = 3 # Predicting angles
-    elif in_config("task", config, None) == "regression_coords":
+    elif in_config("task", config, None) == "regression_coords" and not in_config("contrastive", config, None):
         output_size = 3 # Predicting coordinates
+    elif in_config("contrastive", config, None):
+        output_size = 256
         
     # Define the transforms
     train_transform = transforms.Compose([
