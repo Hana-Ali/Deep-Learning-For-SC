@@ -451,7 +451,7 @@ def find_next_node(direction, previous_node):
     direction = torch.argmax(direction, dim=1)
 
     # Convert the direction to a numpy array
-    direction = direction.numpy()
+    direction = direction.cpu().detach().numpy()
 
     print("Direction after softmax and argmax: {}".format(direction))
 

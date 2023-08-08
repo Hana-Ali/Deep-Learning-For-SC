@@ -103,7 +103,7 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                 # If the task is classification, then we want to print out the actual node we're predicting, and the actual label
                 if training_task == "classification":
                     if point > 0:
-                        predicted_node = find_next_node(predicted_label.cpu().detach().numpy(), streamlines[:, streamline, point - 1])
+                        predicted_node = find_next_node(predicted_label, streamlines[:, streamline, point - 1])
                         print("Previous node is", streamlines[:, streamline, point - 1])
                         print("Predicted node is", predicted_node)
                         print("Actual node is", streamlines[:, streamline, point])
