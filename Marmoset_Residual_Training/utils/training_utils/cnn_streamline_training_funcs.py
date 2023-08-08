@@ -105,9 +105,9 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                     continue
                 
                 # If the task is classification, then we want to print out the actual node we're predicting, and the actual label
-                if training_task == "classification":
-                    if point > 0:
-                        predicted_node = find_next_node(predicted_label, streamlines[:, streamline, point - 1])
+                # if training_task == "classification":
+                #     if point > 0:
+                #         predicted_node = find_next_node(predicted_label, streamlines[:, streamline, point - 1])
 
                 # Get the prediction for this node as a numpy array
                 predicted_label = predicted_label.cpu().detach().numpy()
@@ -306,14 +306,14 @@ def overfitting_training_loop_nodes(train_loader, model, criterion, optimizer, e
             continue
         
         # If the task is classification, then we want to print out the actual node we're predicting, and the actual label
-        if training_task == "classification":
-            if point > 0:
-                predicted_node = find_next_node(predicted_label.cpu().detach().numpy(), streamlines[:, streamline, point - 1])
-                print("Previous node is", streamlines[:, streamline, point - 1])
-                print("Predicted node is", predicted_node)
-                print("Actual node is", streamlines[:, streamline, point])
-            else:
-                pass
+        # if training_task == "classification":
+        #     if point > 0:
+        #         predicted_node = find_next_node(predicted_label.cpu().detach().numpy(), streamlines[:, streamline, point - 1])
+        #         print("Previous node is", streamlines[:, streamline, point - 1])
+        #         print("Predicted node is", predicted_node)
+        #         print("Actual node is", streamlines[:, streamline, point])
+        #     else:
+        #         pass
 
         # Get the prediction for this node as a numpy array
         predicted_label = predicted_label.cpu().detach().numpy()
