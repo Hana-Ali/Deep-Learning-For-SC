@@ -454,8 +454,6 @@ def find_next_node(direction, previous_node):
     direction = direction.cpu().detach().numpy()
     previous_node = previous_node.cpu().detach().numpy()
 
-    print("Direction after softmax and argmax: {}".format(direction))
-
     # Create a list to hold the next nodes
     next_nodes = []
 
@@ -473,10 +471,6 @@ def find_next_node(direction, previous_node):
             direction_tuple = direction[idx]
 
         # Get the next node
-        print("Previous node: {}".format(previous_node[idx]))
-        print("Direction tuple: {}".format(direction_tuple))
-        print("Shape of previous node: {}".format(previous_node[idx].shape))
-        print("Shape of direction tuple: {}".format(np.array(direction_tuple).shape))
         next_node = previous_node[idx] + np.array(direction_tuple)
 
         # Append the next node to the list of next nodes
@@ -485,7 +479,7 @@ def find_next_node(direction, previous_node):
     # Convert the next nodes to a numpy array of shape (batch_size, 3)
     next_nodes = np.array(next_nodes)
     next_nodes = np.reshape(next_nodes, (next_nodes.shape[0], 3))
-
+    
     # Return the next nodes as a numpy array
     return next_nodes
 
