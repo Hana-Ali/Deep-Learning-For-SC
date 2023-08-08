@@ -104,9 +104,9 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                 if training_task == "classification":
                     if point > 0:
                         predicted_node = find_next_node(predicted_label, streamlines[:, streamline, point - 1])
-                        print("Previous node is", streamlines[:, streamline, point - 1])
-                        print("Predicted node is", predicted_node)
-                        print("Actual node is", streamlines[:, streamline, point])
+                        # print("Previous node is", streamlines[:, streamline, point - 1])
+                        # print("Predicted node is", predicted_node)
+                        # print("Actual node is", streamlines[:, streamline, point])
                     else:
                         pass
 
@@ -628,11 +628,11 @@ def _batch_loss(model, wmfod_cube, label, previous_predictions, criterion, train
     batch_size = wmfod_cube.size(0)
 
     print("Loss is", loss.item())
-    if training_task == "classification":
-        print("Predicted output is", F.softmax(predicted_output))
-    else:
-        print("Predicted output is", predicted_output)
-    print("Label is", label)
+    # if training_task == "classification":
+    #     print("Predicted output is", F.softmax(predicted_output))
+    # else:
+    #     print("Predicted output is", predicted_output)
+    # print("Label is", label)
             
     # Return the loss
     return predicted_output, loss, batch_size

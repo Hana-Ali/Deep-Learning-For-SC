@@ -443,10 +443,13 @@ def map_points_to_directions(points):
 
 # Function to, given a direction and previous node, find what the corresponding next node should be
 def find_next_node(direction, previous_node):
-
+    
+    # Get the bins
+    bins = define_bins()
+    
     # Apply softmax to the direction
-    direction = F.softmax(direction)
-
+    direction = F.softmax(direction, dim=1)
+    
     # Get the index of the maximum value along each row
     direction = torch.argmax(direction, dim=1)
 
@@ -461,7 +464,7 @@ def find_next_node(direction, previous_node):
     for idx in range(len(direction)):
 
         # If the direction is a single value, then we need to get which tuple it corresponds to
-        if type(direction[idx]) == int:
+        if type(direction[idx]) == np.int64:
             # Get the bins
             bins = define_bins()
             # Get the direction tuple
@@ -469,6 +472,10 @@ def find_next_node(direction, previous_node):
         # If it's already a tuple, then we can just use it
         else:
             direction_tuple = direction[idx]
+            
+        # print("Previous node is", previous_node[idx])
+        # print("Direction is", direction[idx])
+        # print("Direction tuple is", direction_tuple)
 
         # Get the next node
         next_node = previous_node[idx] + np.array(direction_tuple)
