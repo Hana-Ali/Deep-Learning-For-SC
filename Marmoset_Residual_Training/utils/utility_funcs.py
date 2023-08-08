@@ -117,33 +117,41 @@ def get_newest_checkpoint(checkpoint_dir):
 
 import random
 
-class PositivePairSampler(torch.utils.data.Sampler):
+from torch.utils.data import Sampler
+import numpy as np
+
+class PositivePairSampler(Sampler):
     def __init__(self, labels, batch_size):
         self.labels = labels
         self.batch_size = batch_size
 
-        # Grouping the indices by labels
+        # Check for consistency in input
+        if labels.shape != (39, 10, 39):
+            raise ValueError("Labels shape must be [39, 10, 39]")
+
+        # Create a dictionary to hold indices for each unique label
         self.label_to_indices = {}
-        print("Length of labels: ", len(labels))
-        print("Length of each label in labels: ", len(labels[0]))
-        for idx, label in enumerate(labels):
-            print("Label: ", label)
+        for i in range(labels.shape[0]):
+            label = tuple(labels[i, -1])
             if label not in self.label_to_indices:
                 self.label_to_indices[label] = []
-            self.label_to_indices[label].append(idx)
+            self.label_to_indices[label].append(i)
+
+        # Create batches ensuring at least one positive pair
+        self.batches = []
+        for label, indices in self.label_to_indices.items():
+            np.random.shuffle(indices)
+            for i in range(0, len(indices), self.batch_size - 1):
+                batch = indices[i:i + self.batch_size - 1]
+                # Add one more positive sample if the batch size allows
+                if len(batch) < self.batch_size:
+                    batch.append(batch[0])
+                self.batches.append(batch)
 
     def __iter__(self):
-        all_indices = list(range(len(self.labels)))
-        random.shuffle(all_indices)
-
-        # Iterating through batches
-        for batch_start in range(0, len(self.labels), self.batch_size):
-            positive_label = random.choice(list(self.label_to_indices.keys()))
-            positive_indices = random.sample(self.label_to_indices[positive_label], 2) if len(self.label_to_indices[positive_label]) > 1 else []
-
-            # Filling the rest of the batch with random indices
-            batch_indices = positive_indices + all_indices[batch_start:batch_start + self.batch_size - len(positive_indices)]
-            yield batch_indices
+        np.random.shuffle(self.batches)
+        for batch in self.batches:
+            yield batch
 
     def __len__(self):
-        return (len(self.labels) + self.batch_size - 1) // self.batch_size
+        return len(self.batches)
