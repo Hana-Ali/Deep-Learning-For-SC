@@ -450,31 +450,40 @@ def find_next_node(direction, previous_node):
     # Get the index of the maximum value along each row
     direction = torch.argmax(direction, dim=1)
 
-    # Convert the direction to a numpy array
+    # Convert the direction and previous node to a numpy array
     direction = direction.cpu().detach().numpy()
+    previous_node = previous_node.cpu().detach().numpy()
 
     print("Direction after softmax and argmax: {}".format(direction))
 
+    # Create a list to hold the next nodes
+    next_nodes = []
 
-    # If the direction is a single value, then we need to get which tuple it corresponds to
-    if type(direction) == int:
-        # Get the bins
-        bins = define_bins()
-        # Get the direction tuple
-        direction_tuple = list(bins.keys())[list(bins.values()).index(direction)]
-    # If it's already a tuple, then we can just use it
-    else:
-        direction_tuple = direction
+    # For each item in direction (as it's for each batch)
+    for idx in range(len(direction)):
 
-    # Get the next node
-    print("Previous node: {}".format(previous_node))
-    print("Direction tuple: {}".format(direction_tuple))
-    print("Shape of previous node: {}".format(previous_node.shape))
-    print("Shape of direction tuple: {}".format(np.array(direction_tuple).shape))
-    next_node = previous_node + np.array(direction_tuple)
+        # If the direction is a single value, then we need to get which tuple it corresponds to
+        if type(direction[idx]) == int:
+            # Get the bins
+            bins = define_bins()
+            # Get the direction tuple
+            direction_tuple = list(bins.keys())[list(bins.values()).index(direction[idx])]
+        # If it's already a tuple, then we can just use it
+        else:
+            direction_tuple = direction[idx]
 
-    # Return the next node
-    return next_node
+        # Get the next node
+        print("Previous node: {}".format(previous_node[idx]))
+        print("Direction tuple: {}".format(direction_tuple))
+        print("Shape of previous node: {}".format(previous_node[idx].shape))
+        print("Shape of direction tuple: {}".format(np.array(direction_tuple).shape))
+        next_node = previous_node[idx] + np.array(direction_tuple)
+
+        # Append the next node to the list of next nodes
+        next_nodes.append(next_node)
+
+    # Return the next nodes as a numpy array
+    return next_nodes
 
 # Function to get the next node for a given a list of directions
 def reconstruct_predicted_streamline(directions):
