@@ -6,6 +6,8 @@ import glob
 import nibabel as nib
 import itertools
 
+import torch.nn.functional as F
+
 # Set the seed
 np.random.seed(0)
 
@@ -441,6 +443,18 @@ def map_points_to_directions(points):
 
 # Function to, given a direction and previous node, find what the corresponding next node should be
 def find_next_node(direction, previous_node):
+
+    # Apply softmax to the direction
+    direction = F.softmax(direction)
+
+    # Get the index of the maximum value along each row
+    direction = torch.argmax(direction, dim=1)
+
+    # Convert the direction to a numpy array
+    direction = direction.numpy()
+
+    print("Direction after softmax and argmax: {}".format(direction))
+
 
     # If the direction is a single value, then we need to get which tuple it corresponds to
     if type(direction) == int:
