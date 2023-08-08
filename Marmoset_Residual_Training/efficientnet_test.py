@@ -50,6 +50,7 @@ configs = {
     "separate_hemisphere" : False,
     "cube_size" : 3, # cube size
     "save_best" : True, # Save best model
+    "overfitting" : True, # Overfitting
 
     ####### Data #######
     "main_data_path" : main_data_path, # Data path

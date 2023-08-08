@@ -215,8 +215,8 @@ class StreamlineDataset(torch.utils.data.Dataset):
         # Get the streamlines from the range
         streamlines = streamlines[streamlines_range]
 
-        # Round the streamlines
-        streamlines = np.round(streamlines).astype(int)
+        # # Round the streamlines
+        # streamlines = np.round(streamlines).astype(int)
 
         # Return the streamline list of lists of coordinates
         return streamlines
@@ -249,14 +249,17 @@ class StreamlineDataset(torch.utils.data.Dataset):
         wmfod_image_array = self.read_image(wmfod_image_path)
 
         # Read the streamline
-        streamline_list = self.read_streamline(streamline_path)
+        float_streamlines_list = self.read_streamline(streamline_path)
+
+        # Round the streamlines to the nearest integer
+        streamline_list = np.round(float_streamlines_list).astype(int)
 
         # Choose and read label if the task is correct
         if self.task != "regression_coords":
             label_path = self.labels[index]
             label_array = self.read_npy(label_path)
-        else:
-            label_array = []
+        else: # Set the label to be the coordinate floats
+            label_array = float_streamlines_list
         
         # Define a dictionary to store the images
         sample = {
