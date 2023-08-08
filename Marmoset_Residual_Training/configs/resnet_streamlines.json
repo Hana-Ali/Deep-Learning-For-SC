@@ -1,6 +1,7 @@
 {
     "batch_size": 8,
     "combination": true,
+    "contrastive": true,
     "cube_size": 3,
     "decay_factor": null,
     "decay_patience": null,
