@@ -18,7 +18,7 @@
     "model_filename": "/notebooks/predicted_streamlines/models/resnet_streamlines/resnet_streamlines.h5",
     "model_name": "resnet_streamlines",
     "n_epochs": 50,
-    "num_streamlines": 50,
+    "num_streamlines": 1000,
     "optimizer": "Adam",
     "overfitting": false,
     "save_best": true,

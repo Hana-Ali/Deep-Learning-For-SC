@@ -7,6 +7,8 @@ import itertools
 
 import torch.nn.functional as F
 
+import PIL
+
 import os
 
 # Set the seed
@@ -170,17 +172,7 @@ class StreamlineDataset(torch.utils.data.Dataset):
 
         # Get the data from the image
         image_data = np.transpose(sitk.GetArrayFromImage(image), axes=(0, 3, 2, 1))
-
-         # Print the image size
-        print("Image shape is {}".format(image_data.shape))
-
-        # Apply the transforms
-        if self.transforms:
-            image_data = self.transforms(image_data)
-        
-        # Print the image size
-        print("Image shape after transforms is {}".format(image_data.shape))
-                
+                        
         # Return the image data
         return image_data
     
