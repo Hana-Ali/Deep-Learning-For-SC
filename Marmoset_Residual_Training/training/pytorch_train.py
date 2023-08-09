@@ -87,7 +87,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
                                     hidden_size=in_config("hidden_size", config, 128), batch_norm=True if config["batch_size"] > 1 else False,
                                     depthwise_conv=in_config("depthwise_conv", config, False), contrastive=in_config("contrastive", config, False))
         # Build the dataset
-        dataset = StreamlineDataset(main_data_path, num_streamlines=config["num_streamlines"], transforms=None, train=True, tck_type=config["tck_type"], 
+        dataset = StreamlineDataset(main_data_path, num_streamlines=config["num_streamlines"], transforms=TwoCropTransform(train_transform), train=True, tck_type=config["tck_type"], 
                                     task=in_config("task", config, "classification"))
     elif config["training_type"] == "residual":
         # Build the model
