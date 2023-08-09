@@ -176,7 +176,7 @@ class StreamlineDataset(torch.utils.data.Dataset):
 
         # Apply the transforms
         if self.transforms:
-            image_data = self.transforms(torch.from_numpy(image_data))
+            image_data = self.transforms(image_data)
         
         # Print the image size
         print("Image shape after transforms is {}".format(image_data.shape))
