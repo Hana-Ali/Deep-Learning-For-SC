@@ -22,11 +22,11 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
     # For each batch
     for i, (wmfod, streamlines, labels) in enumerate(train_loader):
         
-        print("Trial {}".format(i))
-        print("Shape of wmfods is: {}".format(wmfod.shape))
-        print("Shape of streamlines is: {}".format(streamlines.shape))
-        print("Shape of labels is: {}".format(labels.shape))
-        print("output_size is: {}".format(output_size))
+        # print("Trial {}".format(i))
+        # print("Shape of wmfods is: {}".format(wmfod.shape))
+        # print("Shape of streamlines is: {}".format(streamlines.shape))
+        # print("Shape of labels is: {}".format(labels.shape))
+        # print("output_size is: {}".format(output_size))
 
         # Measure the data loading time
         data_time.update(time.time() - end)
