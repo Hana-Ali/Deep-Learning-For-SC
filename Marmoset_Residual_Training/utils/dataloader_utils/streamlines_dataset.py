@@ -168,18 +168,18 @@ class StreamlineDataset(torch.utils.data.Dataset):
             output = self.normalize_image(image[:,:,:,item])
             image[:,:,:,item] = sitk.Cast(output, sitk.sitkFloat32)
 
-        # Print the image size
-        print("Image size is {}".format(image.GetSize()))
+        # Get the data from the image
+        image_data = np.transpose(sitk.GetArrayFromImage(image), axes=(0, 3, 2, 1))
+
+         # Print the image size
+        print("Image shape is {}".format(image_data.shape))
 
         # Apply the transforms
         if self.transforms:
-            image = self.transforms(image)
+            image_data = self.transforms(torch.from_numpy(image_data))
         
         # Print the image size
-        print("Image size after transforms is {}".format(image.GetSize()))
-
-        # Get the data from the image
-        image_data = np.transpose(sitk.GetArrayFromImage(image), axes=(0, 3, 2, 1))
+        print("Image shape after transforms is {}".format(image_data.shape))
                 
         # Return the image data
         return image_data
