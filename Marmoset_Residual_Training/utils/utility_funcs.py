@@ -115,11 +115,13 @@ def get_newest_checkpoint(checkpoint_dir):
     # Return the newest checkpoint
     return max(paths, key=os.path.getctime)
 
-# Function to do two crop transforms
+# Function to duplicate the data
 class TwoCropTransform:
     """Create two crops of the same image"""
-    def __init__(self, transform):
-        self.transform = transform
+    def __init__(self):
+        self.transform = transforms.Compose([
+            transforms.ToTensor()
+        ])
 
     def __call__(self, x):
         return [self.transform(x), self.transform(x)]
