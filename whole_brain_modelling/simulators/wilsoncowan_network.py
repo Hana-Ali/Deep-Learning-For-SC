@@ -43,8 +43,42 @@ for t in range(T):
     E, I = update(E, I, past_E, SC)
     time_series_E[:, t] = E
 
-# Converting to BOLD signal using the Hilbert transform
-BOLD_signal = np.abs(hilbert(time_series_E))
+# # Converting to BOLD signal using the Hilbert transform
+# BOLD_signal = np.abs(hilbert(time_series_E))
+
+def balloon_windkessel(S, dt):
+    num_regions, simulation_time = S.shape
+    BOLD = np.zeros_like(S)
+    k1 = 7
+    k2 = 2
+    k3 = 2
+    alpha = 0.32
+    tau_s = 0.8
+    tau_f = 0.4
+    tau_o = 0.4
+    E = 0.4
+
+    s = np.zeros((num_regions, simulation_time))
+    f = np.zeros_like(s)
+    v = np.zeros_like(s)
+    q = np.zeros_like(s)
+    
+    for t in range(1, simulation_time):
+        s[:, t] = s[:, t-1] + dt * (S[:, t] - (k1 + 1) * s[:, t-1] + k1 * f[:, t-1])
+        f[:, t] = f[:, t-1] + dt * s[:, t-1]
+        v[:, t] = v[:, t-1] + dt * (alpha * (S[:, t] - f[:, t]) - 1/tau_s * v[:, t-1])
+        q[:, t] = q[:, t-1] + dt * (alpha * (S[:, t] - E * f[:, t]) - 1/tau_f * q[:, t-1])
+        BOLD[:, t] = v[:, t] - q[:, t]
+        
+    return BOLD
+
+BOLD_signal = balloon_windkessel(time_series_E, dt)
+
+print(BOLD_signal.shape)
+print(BOLD_signal)
+
+# plot the bold signal
+plt.plot(BOLD_signal[0, :])
 
 # Computing the functional connectivity matrix
 FC = np.zeros((X, X))
