@@ -1,7 +1,7 @@
 {
     "batch_size": 32,
     "combination": true,
-    "contrastive": "supcon",
+    "contrastive": "npair",
     "cube_size": 3,
     "decay_factor": 0.5,
     "decay_patience": 20,
@@ -18,7 +18,7 @@
     "model_filename": "/notebooks/predicted_streamlines/models/resnet_streamlines/resnet_streamlines.h5",
     "model_name": "resnet_streamlines",
     "n_epochs": 50,
-    "num_streamlines": 1000,
+    "num_streamlines": 70,
     "optimizer": "Adam",
     "overfitting": false,
     "save_best": true,
