@@ -119,9 +119,7 @@ def get_newest_checkpoint(checkpoint_dir):
 class TwoCropTransform:
     """Create two crops of the same image"""
     def __init__(self):
-        self.transform = transforms.Compose([
-            transforms.ToTensor()
-        ])
+        self.transform = None
 
     def __call__(self, x):
-        return [self.transform(x), self.transform(x)]
+        return [x, x]
