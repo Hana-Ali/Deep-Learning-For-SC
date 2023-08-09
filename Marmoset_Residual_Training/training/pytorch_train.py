@@ -4,8 +4,6 @@ import warnings
 import numpy as np
 import torch_optimizer as optim
 
-from torchvision import transforms
-
 import sys
 sys.path.append("..")
 
@@ -104,7 +102,9 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
         if config["contrastive"] == "max_margin":
             criterion = ContrastiveLossWithPosNegPairs()
         elif config["contrastive"] == "npair":
-            criterion = NPair()
+            criterion = MultiClassNPairLoss()
+        else:
+            raise ValueError("Contrastive loss {} not found".format(config["contrastive"]))
     else:
         if in_config("task", config, None) == "classification":
             criterion = negative_log_likelihood_loss
