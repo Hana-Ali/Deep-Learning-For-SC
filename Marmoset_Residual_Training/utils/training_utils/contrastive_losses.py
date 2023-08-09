@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 # Define the contrastive loss
 class SupConLoss(nn.Module):
@@ -126,6 +127,37 @@ class MaxMarginContrastiveLoss(nn.Module):
 
         return loss
 
+# class MultiClassNPairLoss(nn.Module):
+#     def __init__(self):
+#         super(MultiClassNPairLoss, self).__init__()
+
+#     def forward(self, embeddings, labels):
+#         batch_size = embeddings.size(0)
+        
+#         # Compute the pairwise cosine similarity
+#         similarity_matrix = torch.matmul(embeddings, embeddings.t())
+        
+#         # Create masks for positive samples
+#         labels_matrix = labels.view(-1, 1)
+#         positive_mask = labels_matrix == labels_matrix.t()
+#         positive_mask.fill_diagonal_(0) # Remove the diagonal elements
+        
+#         # Initialize loss
+#         loss = 0
+        
+#         # Iterate through each example to find ones with positive pairs
+#         for i in range(batch_size):
+#             if positive_mask[i].sum() > 0: # If there is at least one positive pair
+#                 positive_similarity = similarity_matrix[i, positive_mask[i]].max()
+#                 negative_similarity = similarity_matrix[i, ~positive_mask[i]]
+#                 log_denominator = torch.logsumexp(torch.cat([positive_similarity.view(1), negative_similarity]), dim=0)
+#                 loss -= positive_similarity - log_denominator
+
+#         # Normalize by the number of examples with positive pairs
+#         loss = loss / max(positive_mask.sum(dim=1).sum().item(), 1)
+#         return loss
+
+
 class MultiClassNPairLoss(nn.Module):
     def __init__(self):
         super(MultiClassNPairLoss, self).__init__()
@@ -133,8 +165,11 @@ class MultiClassNPairLoss(nn.Module):
     def forward(self, embeddings, labels):
         batch_size = embeddings.size(0)
         
+        # Normalize the embeddings so that the dot product becomes cosine similarity
+        embeddings_normalized = F.normalize(embeddings, p=2, dim=1)
+        
         # Compute the pairwise cosine similarity
-        similarity_matrix = torch.matmul(embeddings, embeddings.t())
+        similarity_matrix = torch.matmul(embeddings_normalized, embeddings_normalized.t())
         
         # Create masks for positive samples
         labels_matrix = labels.view(-1, 1)
@@ -147,14 +182,15 @@ class MultiClassNPairLoss(nn.Module):
         # Iterate through each example to find ones with positive pairs
         for i in range(batch_size):
             if positive_mask[i].sum() > 0: # If there is at least one positive pair
-                positive_similarity = similarity_matrix[i, positive_mask[i]]
+                positive_similarity = similarity_matrix[i, positive_mask[i]].max()
                 negative_similarity = similarity_matrix[i, ~positive_mask[i]]
-                log_sum_exp_negatives = torch.logsumexp(negative_similarity, dim=0)
-                loss += torch.logsumexp(positive_similarity - log_sum_exp_negatives, dim=0)
+                log_denominator = torch.logsumexp(torch.cat([positive_similarity.view(1), negative_similarity]), dim=0)
+                loss -= positive_similarity - log_denominator
 
         # Normalize by the number of examples with positive pairs
         loss = loss / max(positive_mask.sum(dim=1).sum().item(), 1)
         return loss
+
 
 class ContrastiveLossWithPosNegPairs(nn.Module):
     def __init__(self, margin=1.0):
