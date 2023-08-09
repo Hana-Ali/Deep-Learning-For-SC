@@ -66,12 +66,11 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
         
     # Define the transforms
     train_transform = transforms.Compose([
-        transforms.RandomResizedCrop(size=30, scale=(0.2, 1.)),
+        transforms.RandomResizedCrop(size=60, scale=(0.2, 1.)),
         transforms.RandomHorizontalFlip(),
         transforms.RandomApply([
             transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)
         ], p=0.8),
-        transforms.RandomGrayscale(p=0.2),
         transforms.ToTensor(),
     ])
         
