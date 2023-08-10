@@ -50,7 +50,7 @@ configs = {
     "evaluation_metric" : "negative_log_likelihood_loss", # Evaluation metric
     "shuffle_dataset" : True,
     "separate_hemisphere" : False,
-    "cube_size" : 3, # cube size
+    "cube_size" : 5, # cube size
     "save_best" : True, # Save best model
     "overfitting" : False, # Overfitting
 

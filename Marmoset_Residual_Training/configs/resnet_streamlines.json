@@ -2,7 +2,7 @@
     "batch_size": 32,
     "combination": true,
     "contrastive": "npair",
-    "cube_size": 3,
+    "cube_size": 5,
     "decay_factor": 0.5,
     "decay_patience": 20,
     "depthwise_conv": true,

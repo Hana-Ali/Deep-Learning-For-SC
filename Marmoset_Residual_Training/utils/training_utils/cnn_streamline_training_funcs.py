@@ -91,7 +91,7 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                 # Get the cube in the wmfod that corresponds to this coordinate
                 wmfod_cube = grab_cube_around_voxel(image=brain_hemisphere, voxel_coordinates=curr_coord, kernel_size=kernel_size)
 
-                print("Shape of wmfod cube is: {}".format(wmfod_cube.shape))
+                # print("Shape of wmfod cube is: {}".format(wmfod_cube.shape))
 
                 # Turn the cube into a tensor
                 wmfod_cube = torch.from_numpy(wmfod_cube).float()
