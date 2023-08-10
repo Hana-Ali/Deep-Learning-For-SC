@@ -164,7 +164,7 @@ class ResnetEncoder_Streamlines(nn.Module):
         self.final_linear = nn.Sequential(*linear_layer)
 
         # Define the final convolution
-        self.final_convolution = nn.Conv3d(self.output_nc, self.num_classes, kernel_size=3, stride=1, padding=1)
+        self.final_convolution = nn.Conv3d(45, self.num_classes, kernel_size=3, stride=1, padding=1)
         
         ##################################################################################################
         ###################################### MY OWN ADDITIONS ##########################################
@@ -295,7 +295,6 @@ class ResnetEncoder_Streamlines(nn.Module):
         # If self.previous is not true, then we just do the final convolution
         if not self.previous:
             print("Shape before final convolution: {}".format(x.shape))
-            print("output_nc is {}".format(self.output_nc))
             # Do the final convolution to get the right number of classes
             x = self.final_convolution(x)
             print("Shape after final convolution: {}".format(x.shape))
