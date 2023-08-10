@@ -1,7 +1,7 @@
 {
     "batch_size": 8,
     "combination": true,
-    "cube_size": 3,
+    "cube_size": 5,
     "decay_factor": null,
     "decay_patience": null,
     "depthwise_conv": true,
