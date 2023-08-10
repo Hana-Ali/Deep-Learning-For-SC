@@ -19,9 +19,9 @@ else:
     main_data_path = "/mnt/d/Brain-MINDS/model_data_w_resize"
     main_logs_path = "/mnt/d/Brain-MINDS/predicted_streamlines"
 
-streamline_arrays_path = os.path.join(main_logs_path, "streamline_predictions", "baseline_mlp")
-training_log_folder = os.path.join(main_logs_path, "training_logs")
-model_folder = os.path.join(main_logs_path, "models", "baseline_mlp")
+streamline_arrays_path = os.path.join(main_logs_path, "streamline_predictions", "baseline_mlp_contrastive")
+training_log_folder = os.path.join(main_logs_path, "training_logs_contrastive")
+model_folder = os.path.join(main_logs_path, "models", "baseline_mlp_contrastive")
 
 check_output_folders(streamline_arrays_path, "streamline arrays", wipe=False)
 check_output_folders(training_log_folder, "training_log_folder", wipe=False)
@@ -38,30 +38,34 @@ configs = {
     "model_name" : "baseline_mlp", # Model name
     "input_nc" : 45,
     "combination" : True, # Combination
-    "task" : "regression_coords", # Task
+    "task" : "classification", # Task
     "hidden_size" : 32, # number of neurons
+    "depthwise_conv" : True, # Depthwise convolution
+    "library_opt" : True, # Use stuff from torch_optim
+    "contrastive" : "npair", # Contrastive
 
     ####### Training #######
     "n_epochs" : 50, # Number of epochs
-    "loss" : "MSE_loss", # Loss function
+    "loss" : "negative_log_likelihood_loss", # Loss function
     "optimizer" : "Adam", # Optimizer
-    "evaluation_metric" : "MSE_loss", # Evaluation metric
+    "evaluation_metric" : "negative_log_likelihood_loss", # Evaluation metric
     "shuffle_dataset" : True,
     "separate_hemisphere" : False,
-    "cube_size" : 3, # cube size
+    "cube_size" : 5, # cube size
     "save_best" : True, # Save best model
+    "overfitting" : False, # Overfitting
 
     ####### Data #######
     "main_data_path" : main_data_path, # Data path
     "training_log_path" : training_log_path, # Training log path
     "model_filename" : model_filename, # Model filename
     "streamline_arrays_path" : streamline_arrays_path, # Path to the streamlines array
-    "batch_size" : 8, # Batch size
-    "validation_batch_size" : 8, # Validation batch size
-    "num_streamlines" : 10, # Number of streamlines to consider from each site
+    "batch_size" : 32, # Batch size
+    "validation_batch_size" : 32, # Validation batch size
+    "num_streamlines" : 70, # Number of streamlines to consider from each site
     
     ####### Parameters #######
-    "initial_learning_rate" : 0.001, # Initial learning rate
+    "initial_learning_rate" : 0.1, # Initial learning rate
     "early_stopping_patience": None, # Early stopping patience
     "decay_patience": None, # Learning rate decay patience
     "decay_factor": None, # Learning rate decay factor

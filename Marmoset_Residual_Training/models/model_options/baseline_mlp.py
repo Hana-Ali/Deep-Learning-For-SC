@@ -9,19 +9,24 @@ from ..model_builders.twoinput_mlp import TwoInputMLP
 class Baseline_MLP(nn.Module):
 
     # Constructor
-    def __init__(self, cnn_flattened_size, hidden_size, output_size, task="classification"):
+    def __init__(self, cnn_flattened_size, hidden_size, output_size, task="classification", contrastive=False):
 
         # Inherit from parent
         super(Baseline_MLP, self).__init__()
+        
+        # Define the task
+        self.task = task
 
         # Define the output size (different depending on task)
         self.output_size = output_size
 
-        # Define the shape of the flattened output of the CNN
-        self.cnn_flattened_size = cnn_flattened_size
-
         # Define the number of neurons
         self.neurons = hidden_size
+        
+        # Define the flattened size
+        self.cnn_flattened_size = cnn_flattened_size
+        
+        # print("cnn flattened size in baseline mlp is", cnn_flattened_size)
 
         # Define the input size of the previous predictions MLP - will always be output * 2
         self.previous_predictions_size = self.output_size * 2
@@ -29,19 +34,23 @@ class Baseline_MLP(nn.Module):
         # Define the task
         self.task = task
         
-        # Inherit the layers from the TwoInputMLP
+        # The flattened size and final activation depends on the task
+        if self.task == "classification" and not contrastive:
+            self.final_activation = nn.LogSoftmax(dim=1)
+        elif self.task == "regression_coords" or self.task == "regression_angles" and not contrastive:
+            self.final_activation = nn.Sigmoid()
+        elif contrastive:
+            self.final_activation = None
+        
         # Define the combination MLP
         self.combination_mlp = TwoInputMLP(previous_predictions_size=self.previous_predictions_size, cnn_flattened_size=self.cnn_flattened_size, 
                                            neurons=self.neurons, output_size=self.output_size, task=self.task)
-        
-        # Define the final activation depending on the task
-        if self.task == "classification":
-            self.final_activation = nn.LogSoftmax(dim=1)
-        elif self.task == "regression_angles" or self.task == "regression_coords":
-            self.final_activation = nn.Sigmoid()
 
     # Forward pass
     def forward(self, x, previous_predictions, original_shapes):
+        
+        # print("Shape of x", x.shape)
+        # print("Shape of previous predictions", previous_predictions.shape)
 
         # Pass through the combination MLP
         x = self.combination_mlp(previous_predictions, x)
@@ -50,7 +59,8 @@ class Baseline_MLP(nn.Module):
         # print("x right before activation", x)
         
         # Apply the final activation
-        x = self.final_activation(x)
+        if self.final_activation is not None:
+            x = self.final_activation(x)
 
         # The output is different, depending on if the task is regression of angles or classification
         if self.task == "regression_angles":

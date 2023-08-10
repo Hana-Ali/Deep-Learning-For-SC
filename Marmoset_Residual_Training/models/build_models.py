@@ -127,7 +127,7 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
             assert task is not None
             
             # Define the flattened mlp size
-            flattened_mlp_size = input_nc * ((cube_size * 2) ** 3)
+            flattened_mlp_size = input_nc * ((cube_size) ** 3)
 
             # Ensure that the output size matches the task
             if task == "classification" and not contrastive:
@@ -145,7 +145,8 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
             model = Baseline_MLP(cnn_flattened_size=flattened_mlp_size,
                                 hidden_size=hidden_size,
                                 output_size=output_size,
-                                task=task)
+                                task=task,
+                                contrastive=contrastive)
             
         init_weights(model, init_type="xavier")
 

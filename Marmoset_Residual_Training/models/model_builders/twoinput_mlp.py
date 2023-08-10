@@ -13,11 +13,11 @@ class TwoInputMLP(nn.Module):
         # Define attributes
         self.previous_predictions_size = previous_predictions_size
         self.cnn_flattened_size = cnn_flattened_size
-        self.neurons = neurons
+        self.neurons = 32
         self.output_size = output_size
 
         # print("Previous predictions size", self.previous_predictions_size)
-        # print("Efficientnet output size", self.efficientnet_output_size)
+        # print("cnn_flattened_sizesize", self.cnn_flattened_size)
         # print("Neurons", self.neurons)
         # print("Output size", self.output_size)
 
@@ -51,6 +51,9 @@ class TwoInputMLP(nn.Module):
         # Flatten the inputs along the second and third dimensions
         previous_predictions = previous_predictions.view(previous_predictions.size(0), -1)
         efficientnet_output = efficientnet_output.view(efficientnet_output.size(0), -1)
+        
+        # print("previous predictions size", previous_predictions.shape)
+        # print("efficientnet_output shape", efficientnet_output.shape)
 
         # Pass each input through their respective MLPs
         previous_predictions = self.prev_pred_FC(previous_predictions)
