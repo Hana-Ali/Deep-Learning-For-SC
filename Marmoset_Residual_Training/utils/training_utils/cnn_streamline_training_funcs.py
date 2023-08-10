@@ -11,7 +11,7 @@ torch.autograd.set_detect_anomaly(True) # For debugging
 
 # Define the inner loop for streamline training
 def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, streamline_arrays_path, separate_hemisphere,
-                        kernel_size=3, n_gpus=None, distributed=False, print_gpu_memory=True, scaler=None, 
+                        kernel_size=5, n_gpus=None, distributed=False, print_gpu_memory=True, scaler=None, 
                         data_time=None, coordinates=None, use_amp=False, losses=None, batch_time=None,
                         progress=None, input_type="trk", training_task="classification", output_size=1,
                         contrastive=False):

@@ -39,7 +39,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
     early_stopping_patience = config["early_stopping_patience"] if "early_stopping_patience" in config else None
     separate_hemisphere = config["separate_hemisphere"] if "separate_hemisphere" in config else True
     voxel_wise = config["voxel_wise"] if "voxel_wise" in config else False
-    cube_size = config["cube_size"] if "cube_size" in config else 15
+    cube_size = config["cube_size"] if "cube_size" in config else 5
 
     # Get general parameters
     n_gpus = config["n_gpus"] if "n_gpus" in config else 1
@@ -316,7 +316,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
 
 # Define the epoch training
 def epoch_training(train_loader, val_loader, model, criterion, optimizer, epoch, residual_arrays_path, separate_hemisphere, 
-                   streamline_arrays_path, input_type, cube_size=16, n_gpus=None, voxel_wise=False, distributed=False, 
+                   streamline_arrays_path, input_type, cube_size=5, n_gpus=None, voxel_wise=False, distributed=False, 
                    print_gpu_memory=False, scaler=None, train_or_val="train", training_type="residual", training_task="classification",
                    output_size=1, overfitting=False):
     
