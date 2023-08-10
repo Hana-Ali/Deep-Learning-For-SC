@@ -42,6 +42,7 @@ configs = {
     "depthwise_conv" : True, # Depthwise convolution
     "library_opt" : True, # Use stuff from torch_optim
     "contrastive" : "npair", # Contrastive
+    "previous" : False, # Whether or not to include previous predictions
 
     ####### Training #######
     "n_epochs" : 50, # Number of epochs
@@ -64,7 +65,7 @@ configs = {
     "num_streamlines" : 70, # Number of streamlines to consider from each site
     
     ####### Parameters #######
-    "initial_learning_rate" : 1e-6, # Initial learning rate
+    "initial_learning_rate" : 1e-3, # Initial learning rate
     "early_stopping_patience": None, # Early stopping patience
     "decay_patience": None, # Learning rate decay patience
     "decay_factor": None, # Learning rate decay factor

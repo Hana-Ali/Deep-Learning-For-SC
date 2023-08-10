@@ -97,7 +97,7 @@ class ResnetEncoder_Streamlines(nn.Module):
     # Constructor 
     def __init__(self, input_nc=1, output_nc=1, ngf=64, n_blocks=6, norm_layer=nn.BatchNorm3d, use_dropout=False, 
                  padding_type='reflect', num_linear_neurons=[45, 128, 64], task="classification", num_classes=27,
-                 hidden_size=128, contrastive=False):
+                 hidden_size=128, contrastive=False, previous=True):
         """
         Parameters:
             input_nc (int) -- the number of channels in input images
@@ -129,6 +129,9 @@ class ResnetEncoder_Streamlines(nn.Module):
         # Define the task
         self.task = task
 
+        # Define whether we append the previous or not
+        self.previous = previous
+
         # Whatever this is
         if type(norm_layer) == partial:
             self.use_bias = norm_layer.func == nn.InstanceNorm3d
@@ -159,6 +162,9 @@ class ResnetEncoder_Streamlines(nn.Module):
             linear_layer += [nn.Linear(self.num_linear_neurons[item], self.num_linear_neurons[item + 1]), nn.ReLU()]
         linear_layer += [nn.Linear(self.num_linear_neurons[-1], num_classes)]
         self.final_linear = nn.Sequential(*linear_layer)
+
+        # Define the final convolution
+        self.final_convolution = nn.Conv3d(self.output_nc, self.num_classes, kernel_size=3, stride=1, padding=1)
         
         ##################################################################################################
         ###################################### MY OWN ADDITIONS ##########################################
@@ -286,33 +292,42 @@ class ResnetEncoder_Streamlines(nn.Module):
         # Do the adaptive pooling
         x = self.adaptive_pooling(x)
 
-        # Flatten the output
-        x = x.view(batch_size, -1)
-
-        # Do the final linear layer
-        x = self.final_linear(x)
-
-        # Pass the previous predictions through the combination MLP
-        x = self.combination_mlp(previous_predictions, x)
-
-        # Apply the final activation if it is not none
-        if self.final_activation is not None:
-            x = self.final_activation(x)
-
-        # The output is different, depending on if the task is regression of angles or classification
-        if self.task == "regression_angles":
-            return torch.round(x * 360, 1)
-        elif self.task == "regression_coords":
-            # Create tensor with the shapes we want to multiply by
-            shapes_tensor = torch.tensor([original_shapes[2], original_shapes[3], original_shapes[4]]).cuda()
-            # Multiply the two together
-            output_x = x * shapes_tensor
-            # Return it rounded to the first decimal point
-            # return torch.round(output_x, decimals=1)
-            return output_x
-        else:
+        # If self.previous is not true, then we just do the final convolution
+        if not self.previous:
+            print("Shape before final convolution: {}".format(x.shape))
+            # Do the final convolution to get the right number of classes
+            x = self.final_convolution(x)
+            print("Shape after final convolution: {}".format(x.shape))
+            # Flatten so that it's an embedding of size [batch_size, num_classes] only
+            x = x.view(batch_size, -1)
+            print("Shape after flattening: {}".format(x.shape))
+            # Return the output
             return x
+        # If we do want to include the previous predictions, then we do the following
+        else:
+            # Flatten the output
+            x = x.view(batch_size, -1)
 
+            # Do the final linear layer
+            x = self.final_linear(x)
 
-        # Return the model
-        return x
+            # Pass the previous predictions through the combination MLP
+            x = self.combination_mlp(previous_predictions, x)
+
+            # Apply the final activation if it is not none
+            if self.final_activation is not None:
+                x = self.final_activation(x)
+
+            # The output is different, depending on if the task is regression of angles or classification
+            if self.task == "regression_angles":
+                return torch.round(x * 360, 1)
+            elif self.task == "regression_coords":
+                # Create tensor with the shapes we want to multiply by
+                shapes_tensor = torch.tensor([original_shapes[2], original_shapes[3], original_shapes[4]]).cuda()
+                # Multiply the two together
+                output_x = x * shapes_tensor
+                # Return it rounded to the first decimal point
+                # return torch.round(output_x, decimals=1)
+                return output_x
+            else:
+                return x

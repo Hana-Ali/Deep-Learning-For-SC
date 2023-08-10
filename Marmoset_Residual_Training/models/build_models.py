@@ -10,7 +10,7 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
               use_dropout=None, padding_type=None, voxel_wise=None, cube_size=15, num_rnn_layers=2,
               num_rnn_hidden_neurons=1000, num_nodes=1, num_coordinates=3, prev_output_size=32,
               combination=True, task="classification", flattened_mlp_size=45*5*5*5, output_size=1,
-              hidden_size=128, batch_norm=True, depthwise_conv=False, contrastive=False):
+              hidden_size=128, batch_norm=True, depthwise_conv=False, contrastive=False, previous=True):
     try:
         if "resnet" in model_name.lower() and "streamlines" not in model_name.lower():
             
@@ -54,7 +54,8 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
 
             # Return the ResNet encoder
             model = ResnetEncoder_Streamlines(num_classes=output_size, 
-                                              task=task, contrastive=contrastive)
+                                              task=task, contrastive=contrastive,
+                                              previous=previous)
         
         elif "attention_unet" in model_name.lower():
             
@@ -163,7 +164,7 @@ def build_or_load_model(model_name, model_filename, input_nc, output_nc=None, ng
                         num_rnn_hidden_neurons=1000, num_nodes=1, num_coordinates=3, prev_output_size=32, combination=True,
                         n_gpus=0, bias=None, freeze_bias=False, strict=False, task="classification", 
                         flattened_mlp_size=45*6*6*6, output_size=1, hidden_size=128, batch_norm=True,
-                        depthwise_conv=False, contrastive=False):
+                        depthwise_conv=False, contrastive=False, previous=True):
 
     # Get the model
     model = get_model(model_name=model_name, input_nc=input_nc, output_nc=output_nc,
@@ -173,7 +174,8 @@ def build_or_load_model(model_name, model_filename, input_nc, output_nc=None, ng
                       num_rnn_hidden_neurons=num_rnn_hidden_neurons, num_nodes=num_nodes,
                       num_coordinates=num_coordinates, prev_output_size=prev_output_size,
                       combination=combination, task=task, output_size=output_size, hidden_size=hidden_size,
-                      batch_norm=batch_norm, depthwise_conv=depthwise_conv, contrastive=contrastive)
+                      batch_norm=batch_norm, depthwise_conv=depthwise_conv, contrastive=contrastive,
+                      previous=previous)
 
     # If there's bias
     if bias is not None:
