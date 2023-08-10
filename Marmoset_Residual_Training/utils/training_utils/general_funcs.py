@@ -183,7 +183,8 @@ def grab_cube_around_voxel(image, voxel_coordinates, kernel_size):
     voxel_x, voxel_y, voxel_z = voxel_coordinates
     
     # Create the cube
-    cube_size = kernel_size * 2
+    # cube_size = kernel_size * 2
+    cube_size = kernel_size
     cube = np.zeros((image.shape[0], image.shape[1], cube_size, cube_size, cube_size))
     
     # Get the batch size
