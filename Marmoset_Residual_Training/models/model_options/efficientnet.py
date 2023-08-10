@@ -137,7 +137,7 @@ class EfficientNet3D(nn.Module):
 
     def __init__(self, blocks_args=None, global_params=None, in_channels=3,
                  hidden_size=1000, task="classification", batch_norm=True,
-                 depthwise_conv=False, contrastive=False):
+                 depthwise_conv=False, contrastive=False, previous=True):
         super().__init__()
         assert isinstance(blocks_args, list), 'blocks_args should be a list'
         assert len(blocks_args) > 0, 'block args must be greater than 0'
@@ -198,10 +198,6 @@ class EfficientNet3D(nn.Module):
         self._fc = nn.Linear(out_channels, self._global_params.num_classes)
         self._swish = MemoryEfficientSwish()
 
-        ##################################################################################################
-        ###################################### MY OWN ADDITIONS ##########################################
-        ##################################################################################################
-
         # Defining depthwise or not
         self.depthwise_conv = depthwise_conv
 
@@ -216,6 +212,9 @@ class EfficientNet3D(nn.Module):
         
         # Define the task
         self.task = task
+
+        # Define whether or not we use previous
+        self.previous = previous
         
         # The flattened size depends on the task
         if self.task == "classification" and not contrastive:
@@ -225,17 +224,25 @@ class EfficientNet3D(nn.Module):
         elif contrastive:
             cnn_flattened_size = 256
         
-        # Define the combination MLP
-        self.combination_mlp = TwoInputMLP(previous_predictions_size=self.previous_predictions_size, cnn_flattened_size=cnn_flattened_size, 
-                                           neurons=self.neurons, output_size=self.output_size, task=self.task, batch_norm=batch_norm)
-        
-        # Define the final activation depending on the task
-        if self.task == "classification" and not contrastive:
-            self.final_activation = nn.LogSoftmax(dim=1)
-        elif (self.task == "regression_angles" or self.task == "regression_coords") and (not contrastive):
-            self.final_activation = nn.Sigmoid()
-        elif contrastive:
-            self.final_activation = None
+        # The architecture is different depending on whether we want to include the previous predictions or not
+        if self.previous:
+
+            # Define the combination MLP
+            self.combination_mlp = TwoInputMLP(previous_predictions_size=self.previous_predictions_size, cnn_flattened_size=cnn_flattened_size, 
+                                            neurons=self.neurons, output_size=self.output_size, task=self.task)
+            
+            # Define the final activation depending on the task
+            if self.task == "classification" and not contrastive:
+                self.final_activation = nn.LogSoftmax(dim=1)
+            elif (self.task == "regression_angles" or self.task == "regression_coords") and (not contrastive):
+                self.final_activation = nn.Sigmoid()
+            elif contrastive:
+                self.final_activation = None
+
+        else:
+            # Define the final convolution
+            self.final_convolution = nn.Conv3d(45, self.num_classes, kernel_size=3, stride=1, padding=1)
+
 
     def set_swish(self, memory_efficient=True):
         """Sets swish function as memory efficient (for training) or standard (for export)"""
@@ -283,45 +290,57 @@ class EfficientNet3D(nn.Module):
             x = nn.Conv3d(x.shape[1], x.shape[1] // in_channels, kernel_size=1, stride=1, padding=0).cuda()(x)
             # print("Conv3d shape", x.shape)
 
-        if self._global_params.include_top:
-            # Pooling and final linear layer
-            x = self._avg_pooling(x)
-            # print("Avg pooling shape", x.shape)
-            x = x.view(bs, -1)
-            # print("View shape", x.shape)
-            x = self._dropout(x)
-            # print("Dropout shape", x.shape)
+        # if self._global_params.include_top:
+        # Pooling and final linear layer
+        x = self._avg_pooling(x)
+        print("Avg pooling shape", x.shape)
+        x = x.view(bs, -1)
+        print("View shape", x.shape)
+        x = self._dropout(x)
+        print("Dropout shape", x.shape)
+
+        # If we use previous
+        if self.previous:
+            # Pass the CNN output through the final linear layer
             x = self._fc(x)
-            # print("FC shape", x.shape)
 
-        # Pass the previous predictions through the combination MLP
-        x = self.combination_mlp(previous_predictions, x)
+            # Pass the previous predictions through the combination MLP
+            x = self.combination_mlp(previous_predictions, x)
 
-        # Apply the final activation if it isn't none
-        if self.final_activation is not None:
-            x = self.final_activation(x)
-        
-        # The output is different, depending on if the task is regression of angles or classification
-        if self.task == "regression_angles":
-            return torch.round(x * 360, 1)
-        elif self.task == "regression_coords":
-            # Create tensor with the shapes we want to multiply by
-            shapes_tensor = torch.tensor([original_shapes[2], original_shapes[3], original_shapes[4]]).cuda()
-            # Multiply the two together
-            output_x = x * shapes_tensor
-            # Return it rounded to the first decimal point
-            # return torch.round(output_x, decimals=1)
-            return output_x
+            # Apply the final activation if it isn't none
+            if self.final_activation is not None:
+                x = self.final_activation(x)
+            
+            # The output is different, depending on if the task is regression of angles or classification
+            if self.task == "regression_angles":
+                return torch.round(x * 360, 1)
+            elif self.task == "regression_coords":
+                # Create tensor with the shapes we want to multiply by
+                shapes_tensor = torch.tensor([original_shapes[2], original_shapes[3], original_shapes[4]]).cuda()
+                # Multiply the two together
+                output_x = x * shapes_tensor
+                # Return it rounded to the first decimal point
+                # return torch.round(output_x, decimals=1)
+                return output_x
+            else:
+                return x
+        # If we don't use previous
         else:
+            # Do the final convolution to get the right number of classes
+            x = self.final_convolution(x)
+            # Flatten so that it's an embedding of size [batch_size, num_classes] only
+            x = x.view(bs, -1)
+            # Return the output
             return x
 
     @classmethod
     def from_name(cls, model_name, override_params=None, in_channels=3, hidden_size=128, 
-                  task="classification", batch_norm=True, depthwise_conv=False, contrastive=False):
+                  task="classification", batch_norm=True, depthwise_conv=False, contrastive=False,
+                  previous=True):
         cls._check_model_name_is_valid(model_name)
         blocks_args, global_params = get_model_params(model_name, override_params)
         return cls(blocks_args, global_params, in_channels, hidden_size, task, batch_norm=batch_norm, 
-                   depthwise_conv=depthwise_conv, contrastive=contrastive)
+                   depthwise_conv=depthwise_conv, contrastive=contrastive, previous=previous)
 
     @classmethod
     def get_image_size(cls, model_name):

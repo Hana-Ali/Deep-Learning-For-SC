@@ -118,7 +118,8 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
                                             task=task,
                                             batch_norm=batch_norm,
                                             depthwise_conv=depthwise_conv,
-                                            contrastive=contrastive)
+                                            contrastive=contrastive,
+                                            previous=previous)
 
         elif "baseline_mlp" in model_name.lower():
 
