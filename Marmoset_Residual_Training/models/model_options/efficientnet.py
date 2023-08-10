@@ -241,7 +241,7 @@ class EfficientNet3D(nn.Module):
 
         else:
             # Define the final convolution
-            self.final_convolution = nn.Conv3d(45, self.num_classes, kernel_size=3, stride=1, padding=1)
+            self.final_convolution = nn.Conv3d(45, self.output_size, kernel_size=3, stride=1, padding=1)
 
 
     def set_swish(self, memory_efficient=True):
