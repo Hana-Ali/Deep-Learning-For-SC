@@ -19,9 +19,9 @@ else:
     main_data_path = "D:\\Brain-MINDS\\model_data"
     main_logs_path = "D:\\Brain-MINDS\\predicted_streamlines"
 
-streamline_arrays_path = os.path.join(main_logs_path, "streamline_predictions", "resnet_streamlines")
-training_log_folder = os.path.join(main_logs_path, "training_logs")
-model_folder = os.path.join(main_logs_path, "models", "resnet_streamlines")
+streamline_arrays_path = os.path.join(main_logs_path, "streamline_predictions", "resnet_streamlines_onlycnn")
+training_log_folder = os.path.join(main_logs_path, "training_logs_onlycnn")
+model_folder = os.path.join(main_logs_path, "models", "resnet_streamlines_onlycnn")
 
 check_output_folders(streamline_arrays_path, "streamline arrays", wipe=False)
 check_output_folders(training_log_folder, "training_log_folder", wipe=False)
@@ -42,6 +42,7 @@ configs = {
     "depthwise_conv" : True, # Depthwise convolution
     "library_opt" : True, # Use stuff from torch_optim
     "contrastive" : "npair", # Contrastive
+    "previous" : False, # Whether or not to include previous combo
 
     ####### Training #######
     "n_epochs" : 50, # Number of epochs
@@ -64,10 +65,10 @@ configs = {
     "num_streamlines" : 70, # Number of streamlines to consider from each site
     
     ####### Parameters #######
-    "initial_learning_rate" : 0.05, # Initial learning rate
-    "early_stopping_patience": 50, # Early stopping patience
-    "decay_patience": 20, # Learning rate decay patience
-    "decay_factor": 0.5, # Learning rate decay factor
+    "initial_learning_rate" : 1e-3, # Initial learning rate
+    "early_stopping_patience": None, # Early stopping patience
+    "decay_patience": None, # Learning rate decay patience
+    "decay_factor": None, # Learning rate decay factor
     "min_learning_rate": 1e-08, # Minimum learning rate
     "save_last_n_models": 10, # Save last n models
 

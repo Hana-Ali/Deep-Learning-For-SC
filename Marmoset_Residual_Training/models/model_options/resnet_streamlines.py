@@ -95,7 +95,7 @@ class ResnetBlock(nn.Module):
 class ResnetEncoder_Streamlines(nn.Module):
     
     # Constructor 
-    def __init__(self, input_nc=1, output_nc=1, ngf=64, n_blocks=6, norm_layer=nn.BatchNorm3d, use_dropout=False, 
+    def __init__(self, input_nc=1, output_nc=1, ngf=64, n_blocks=3, norm_layer=nn.BatchNorm3d, use_dropout=False, 
                  padding_type='reflect', num_linear_neurons=[45, 128, 64], task="classification", num_classes=27,
                  hidden_size=128, contrastive=False, previous=True):
         """
