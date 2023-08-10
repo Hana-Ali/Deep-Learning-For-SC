@@ -295,6 +295,7 @@ class ResnetEncoder_Streamlines(nn.Module):
         # If self.previous is not true, then we just do the final convolution
         if not self.previous:
             print("Shape before final convolution: {}".format(x.shape))
+            print("output_nc is {}".format(self.output_nc))
             # Do the final convolution to get the right number of classes
             x = self.final_convolution(x)
             print("Shape after final convolution: {}".format(x.shape))
