@@ -60,8 +60,8 @@ configs = {
     "training_log_path" : training_log_path, # Training log path
     "model_filename" : model_filename, # Model filename
     "streamline_arrays_path" : streamline_arrays_path, # Path to the streamlines array
-    "batch_size" : 32, # Batch size
-    "validation_batch_size" : 32, # Validation batch size
+    "batch_size" : 128, # Batch size
+    "validation_batch_size" : 128, # Validation batch size
     "num_streamlines" : 70, # Number of streamlines to consider from each site
     
     ####### Parameters #######

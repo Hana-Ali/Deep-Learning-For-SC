@@ -294,13 +294,14 @@ class EfficientNet3D(nn.Module):
         # Pooling and final linear layer
         x = self._avg_pooling(x)
         print("Avg pooling shape", x.shape)
-        x = x.view(bs, -1)
-        print("View shape", x.shape)
-        x = self._dropout(x)
-        print("Dropout shape", x.shape)
+        # x = x.view(bs, -1)
+        # print("View shape", x.shape)
+        # x = self._dropout(x)
+        # print("Dropout shape", x.shape)
 
         # If we use previous
         if self.previous:
+            
             # Pass the CNN output through the final linear layer
             x = self._fc(x)
 
@@ -326,6 +327,8 @@ class EfficientNet3D(nn.Module):
                 return x
         # If we don't use previous
         else:
+            # Make sure it has 45 channels
+            x = nn.Conv3d(x.shape[1] // in_channels, 45, kernel_size=1, stride=1, padding=0).cuda()(x)
             # Do the final convolution to get the right number of classes
             x = self.final_convolution(x)
             # Flatten so that it's an embedding of size [batch_size, num_classes] only
