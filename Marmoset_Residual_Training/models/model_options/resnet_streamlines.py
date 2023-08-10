@@ -155,21 +155,7 @@ class ResnetEncoder_Streamlines(nn.Module):
             assert self.num_classes == 256, "Number of classes must be 256 for contrastive task"
         else:
             raise NotImplementedError("Task {} is not implemented".format(self.task))
-
-        # Define the final linear layer
-        linear_layer = []
-        for item in range(len(self.num_linear_neurons) - 1):
-            linear_layer += [nn.Linear(self.num_linear_neurons[item], self.num_linear_neurons[item + 1]), nn.ReLU()]
-        linear_layer += [nn.Linear(self.num_linear_neurons[-1], num_classes)]
-        self.final_linear = nn.Sequential(*linear_layer)
-
-        # Define the final convolution
-        self.final_convolution = nn.Conv3d(45, self.num_classes, kernel_size=3, stride=1, padding=1)
         
-        ##################################################################################################
-        ###################################### MY OWN ADDITIONS ##########################################
-        ##################################################################################################
-
         #  Define the output size (different depending on task)
         self.output_size = self.num_classes
 
@@ -187,18 +173,32 @@ class ResnetEncoder_Streamlines(nn.Module):
         elif contrastive:
             cnn_flattened_size = 256
         
-        # Define the combination MLP
-        self.combination_mlp = TwoInputMLP(previous_predictions_size=self.previous_predictions_size, cnn_flattened_size=cnn_flattened_size, 
-                                           neurons=self.neurons, output_size=self.output_size, task=self.task)
-        
-        # Define the final activation depending on the task
-        if self.task == "classification" and not contrastive:
-            self.final_activation = nn.LogSoftmax(dim=1)
-        elif (self.task == "regression_angles" or self.task == "regression_coords") and (not contrastive):
-            self.final_activation = nn.Sigmoid()
-        elif contrastive:
-            self.final_activation = None
+        # The architecture is different depending on whether we want to include the previous predictions or not
+        if self.previous:
 
+            # LINEAR LAYER
+            linear_layer = []
+            for item in range(len(self.num_linear_neurons) - 1):
+                linear_layer += [nn.Linear(self.num_linear_neurons[item], self.num_linear_neurons[item + 1]), nn.ReLU()]
+            linear_layer += [nn.Linear(self.num_linear_neurons[-1], num_classes)]
+            self.final_linear = nn.Sequential(*linear_layer)
+
+            # Define the combination MLP
+            self.combination_mlp = TwoInputMLP(previous_predictions_size=self.previous_predictions_size, cnn_flattened_size=cnn_flattened_size, 
+                                            neurons=self.neurons, output_size=self.output_size, task=self.task)
+            
+            # Define the final activation depending on the task
+            if self.task == "classification" and not contrastive:
+                self.final_activation = nn.LogSoftmax(dim=1)
+            elif (self.task == "regression_angles" or self.task == "regression_coords") and (not contrastive):
+                self.final_activation = nn.Sigmoid()
+            elif contrastive:
+                self.final_activation = None
+
+        else:
+            # Define the final convolution
+            self.final_convolution = nn.Conv3d(45, self.num_classes, kernel_size=3, stride=1, padding=1)
+        
 
     # Define the model
     def define_channelwise_conv(self):
@@ -294,13 +294,10 @@ class ResnetEncoder_Streamlines(nn.Module):
 
         # If self.previous is not true, then we just do the final convolution
         if not self.previous:
-            print("Shape before final convolution: {}".format(x.shape))
             # Do the final convolution to get the right number of classes
             x = self.final_convolution(x)
-            print("Shape after final convolution: {}".format(x.shape))
             # Flatten so that it's an embedding of size [batch_size, num_classes] only
             x = x.view(batch_size, -1)
-            print("Shape after flattening: {}".format(x.shape))
             # Return the output
             return x
         # If we do want to include the previous predictions, then we do the following
