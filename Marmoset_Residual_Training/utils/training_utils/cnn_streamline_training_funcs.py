@@ -106,21 +106,15 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                     wmfod_cube = grab_cube_around_voxel(image=brain_hemisphere, voxel_coordinates=curr_coord, kernel_size=kernel_size)
                     wmfod_cube = torch.from_numpy(wmfod_cube).float()
                 else:
-                    print("Shape of brain hemisphere is", brain_hemisphere.shape)
-                    print("Shape of curr_coord is", curr_coord)
                     x = curr_coord[0].tolist()
                     y = curr_coord[1].tolist()
                     z = curr_coord[2].tolist()
-                    print("x is", x, "shape is", len(x))
-                    print("y is", y, "shape is", len(y))
-                    print("z is", z, "shape is", len(z))
                     batchsize = brain_hemisphere.shape[0]
                     channels = brain_hemisphere.shape[1]
                     wmfod_cube = torch.zeros((batchsize, channels))
                     for i in range(batchsize):
                         wmfod_cube[i] = brain_hemisphere[i, :, x[i], y[i], z[i]]
 
-                print("Shape of wmfod cube is: {}".format(wmfod_cube.shape))
 
                 # print("Cube shape is", wmfod_cube.shape)
 

@@ -7,3 +7,4 @@ from .baseline_mlp import *
 from .baseline_rf import *
 from .resnet_streamlines import *
 from .conv_lstm import *
+from .voxelwise_mlp import *

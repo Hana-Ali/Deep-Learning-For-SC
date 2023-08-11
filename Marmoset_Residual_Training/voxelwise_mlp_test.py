@@ -82,8 +82,8 @@ model_filename = os.path.join(model_folder, "resnet_streamlines.h5")
 configs = {
 
     ####### Model #######
-    "model_name" : "resnet_streamlines", # Model name
-    "input_nc" : 1,
+    "model_name" : "voxelwise_mlp", # Model name
+    "input_nc" : 45,
     "combination" : True, # Combination
     "task" : task, # Task
     "hidden_size" : 100, # number of neurons

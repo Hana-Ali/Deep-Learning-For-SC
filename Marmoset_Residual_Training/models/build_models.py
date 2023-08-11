@@ -150,6 +150,26 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
                                 task=task,
                                 contrastive=contrastive)
             
+        elif "voxelwise_mlp" in model_name.lower():
+
+            # Assert that none of the parameters are none
+            assert input_nc is not None
+            assert task is not None
+
+            # Ensure that the output size matches the task
+            if task == "classification":
+                assert output_size == 27
+            elif task == "regression_angles" or task == "regression_coords":
+                assert output_size == 3
+            else:
+                raise ValueError("Task {} not found".format(task))
+            
+            # Return the Voxelwise MLP
+            model = voxelwise_MLP(channels=input_nc,
+                                    task=task,
+                                    previous=previous,
+                                    output_size=output_size)
+            
         init_weights(model, init_type="xavier")
 
         return model
