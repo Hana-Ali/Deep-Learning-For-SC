@@ -21,12 +21,15 @@ class AttentionModule(nn.Module):
 
         # Apply the squeeze operation
         x = self.squeeze(input_x)
+        print("x shape after squeeze is", x.shape)
 
         # Apply the excitation operation
         x = self.excitation(x)
+        print("x shape after excitation is", x.shape)
 
         # Multiply the input with the output of the excitation operation
         x = input_x * x
+        print("x shape after multiplication is", x.shape)
 
         return x
 
