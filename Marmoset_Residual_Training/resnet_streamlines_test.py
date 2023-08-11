@@ -2,6 +2,17 @@ from utils import *
 from models import *
 from training import *
 
+import argparse
+
+parser = argparse.ArgumentParser(description="Define the type of training")
+parser.add_argument("-t", "--task", help="what task to run", 
+			default="classification", required=True,
+			type=str)
+parser.add_argument("-c", "--contrastive", help="what type of contrastive to run if running contrastive",
+			default="",
+			type=str)
+args = parser.parse_args()
+
 hpc = False
 labs = False
 paperspace = True
@@ -20,12 +31,17 @@ else:
     main_logs_path = "D:\\Brain-MINDS\\predicted_streamlines"
 
 # Define the main name
-pred_name = "efficientnet"
+pred_name = "resnet"
 train_name = "training_logs"
 
 # Define the task and whether or not we do contrastive
-task = "classification"
-contrastive = False
+# Parse arguments
+task = args.task
+contrastive = args.contrastive
+
+# If contrastive is "", set to False
+if contrastive == "":
+    contrastive = False
 
 # Append task and contrastive to name
 pred_name = pred_name + "_" + task
