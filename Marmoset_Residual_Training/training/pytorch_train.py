@@ -42,7 +42,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
     cube_size = config["cube_size"] if "cube_size" in config else 5
 
     # Get general parameters
-    n_gpus = config["n_gpus"] if "n_gpus" in config else 1
+    n_gpus = torch.cuda.device_count()
     n_workers = config["n_workers"] if "n_workers" in config else 1
     pin_memory = config["pin_memory"] if "pin_memory" in config else False
     prefetch_factor = config["prefetch_factor"] if "prefetch_factor" in config else 1
