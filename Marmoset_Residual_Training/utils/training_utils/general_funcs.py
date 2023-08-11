@@ -357,7 +357,7 @@ def get_predictions_indexing(x, y, z, half_kernel, predictions_array):
     return (start_idx_x, start_idx_y, start_idx_z, end_idx_x, end_idx_y, end_idx_z)
 
 # Function to get the b0 and residual hemispheres
-def get_hemisphere(coordinates, separate_hemisphere, image, kernel_size, is_flipped=False):
+def get_hemisphere(coordinates, separate_hemisphere, image, kernel_size, is_flipped=False, voxel_wise=False):
     
     # Get the coordinates
     x_coord, y_coord, z_coord = coordinates
@@ -390,8 +390,9 @@ def get_hemisphere(coordinates, separate_hemisphere, image, kernel_size, is_flip
         hemisphere = image
 
 
-    # Pad the hemisphere to be of a shape that is a multiple of the kernel_size
-    hemisphere = pad_to_shape(hemisphere, kernel_size)
+    # Pad the hemisphere to be of a shape that is a multiple of the kernel_size if not voxel_wise
+    if not voxel_wise:
+        hemisphere = pad_to_shape(hemisphere, kernel_size)
     
     # Return the hemisphere
     return hemisphere

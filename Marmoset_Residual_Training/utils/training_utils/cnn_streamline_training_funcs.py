@@ -14,10 +14,8 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                         kernel_size=5, n_gpus=None, distributed=False, print_gpu_memory=True, scaler=None, 
                         data_time=None, coordinates=None, use_amp=False, losses=None, batch_time=None,
                         progress=None, input_type="trk", training_task="classification", output_size=1,
-                        contrastive=False):
-    
-    print("Contrastive is", contrastive)
-    
+                        contrastive=False, voxel_wise=False):
+        
     # Initialize the end time
     end = time.time()
         
@@ -52,7 +50,7 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                         human_readable_size(torch.cuda.max_memory_cached(i_gpu)))
 
         # Get the brain hemisphere
-        brain_hemisphere = get_hemisphere(coordinates, separate_hemisphere, wmfod, kernel_size)
+        brain_hemisphere = get_hemisphere(coordinates, separate_hemisphere, wmfod, kernel_size, voxel_wise)
 
         # Get the batch size
         batch_size = brain_hemisphere.shape[0]
@@ -103,10 +101,13 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                 else:
                     streamline_label = streamlines[:, streamline, point + 1]
 
-                # Get the cube in the wmfod that corresponds to this coordinate
-                wmfod_cube = grab_cube_around_voxel(image=brain_hemisphere, voxel_coordinates=curr_coord, kernel_size=kernel_size)
+                # Get the cube in the wmfod that corresponds to this coordinate if not voxelwise
+                if not voxel_wise:
+                    wmfod_cube = grab_cube_around_voxel(image=brain_hemisphere, voxel_coordinates=curr_coord, kernel_size=kernel_size)
+                else:
+                    wmfod_cube = brain_hemisphere[:, :, curr_coord[0], curr_coord[1], curr_coord[2]]
 
-                # print("Shape of wmfod cube is: {}".format(wmfod_cube.shape))
+                print("Shape of wmfod cube is: {}".format(wmfod_cube.shape))
 
                 # Turn the cube into a tensor
                 wmfod_cube = torch.from_numpy(wmfod_cube).float()
