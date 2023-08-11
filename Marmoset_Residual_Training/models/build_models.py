@@ -106,7 +106,7 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
                 raise ValueError("Task {} not found".format(task))
 
             # Return the CNN Attention 2
-            model = AttnCNN(in_channels=input_nc,
+            model = AttnCNN(channels=input_nc,
                             output_size=output_size,
                             n_blocks=num_blocks,
                             hidden_size=hidden_size,
