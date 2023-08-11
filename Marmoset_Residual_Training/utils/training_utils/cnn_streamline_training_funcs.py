@@ -255,12 +255,12 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
             if training_task == "classification" and contrastive == False:
                 np.save(prediction_classification_filename, classifications_decoded_array[batch])
     
-    loss_filename = os.path.join(predictions_folder, "loss.txt")
-    grad_filename = os.path.join(predictions_folder, "grad.txt")
+    loss_filename = os.path.join(predictions_folder, "loss.npy")
+    grad_filename = os.path.join(predictions_folder, "grad.npy")
     
     # Save the loss and grads
-    np.savetxt(grad_filename, np.array(batch_grad))
-    np.savetxt(loss_filename, np.array(batch_losses))
+    np.save(grad_filename, np.array(batch_grad))
+    np.save(loss_filename, np.array(batch_losses))
 
 
 # Define the inner loop validation
@@ -439,10 +439,10 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
             else:
                 np.save(prediction_filename, predictions_array[batch])
 
-    loss_filename = os.path.join(predictions_folder, "loss.txt")
+    loss_filename = os.path.join(predictions_folder, "loss.npy")
     
-    # Save the loss and grads
-    np.savetxt(loss_filename, np.array(batch_losses))
+    # Save the los
+    np.save(loss_filename, np.array(batch_losses))
 
 
         
