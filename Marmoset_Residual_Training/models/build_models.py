@@ -6,7 +6,7 @@ import torch.nn as nn
 from models.model_options import *
 
 # Function to get the model
-def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, norm_layer=None,
+def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=3, norm_layer=None,
               use_dropout=None, padding_type=None, voxel_wise=None, cube_size=15, num_rnn_layers=2,
               num_rnn_hidden_neurons=1000, num_nodes=1, num_coordinates=3, prev_output_size=32,
               combination=True, task="classification", flattened_mlp_size=45*5*5*5, output_size=1,
