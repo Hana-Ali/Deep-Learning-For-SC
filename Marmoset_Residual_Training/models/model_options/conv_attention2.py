@@ -31,7 +31,7 @@ class AttentionModule(nn.Module):
         return x
 
 class AttnCNN(nn.Module):
-    def __init__(self, channels, filters=[32, 64, 128, 256], reduction=16, output_size=256, n_blocks=1,
+    def __init__(self, channels, filters=[64, 128, 256], reduction=16, output_size=256, n_blocks=1,
                  hidden_size=128, task='classification', contrastive=False, previous=True):
 
         # Constructor
@@ -59,7 +59,7 @@ class AttnCNN(nn.Module):
         depthwise_conv = []
 
         # Append the first depthwise separable convolution layer
-        depthwise_conv += [nn.Conv3d(channels, channels, kernel_size=3, groups=channels, padding=1),
+        depthwise_conv += [nn.Conv3d(channels, channels, kernel_size=3, padding=1),
                             nn.BatchNorm3d(channels),
                             nn.ReLU(inplace=True),
                             nn.Conv3d(channels, filters[0], kernel_size=1),
@@ -70,7 +70,7 @@ class AttnCNN(nn.Module):
         for i in range(1, len(filters) - 1):
 
             # Define the depthwise separable convolution layers
-            depthwise_conv += [nn.Conv3d(filters[i], filters[i], kernel_size=3, groups=filters[i], padding=1),
+            depthwise_conv += [nn.Conv3d(filters[i], filters[i], kernel_size=3, padding=1),
                                 nn.BatchNorm3d(filters[i]),
                                 nn.ReLU(inplace=True),
                                 nn.Conv3d(filters[i], filters[i+1], kernel_size=1),
