@@ -53,14 +53,16 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
     verbose = config["verbose"] if "verbose" in config else 1
 
     # Define the output size depending on the task
-    if in_config("task", config, None) == "classification" and not in_config("contrastive", config, None):
+    if in_config("task", config, None) == "classification" and in_config("contrastive", config, False) == False:
         output_size = 27 # Predicting directions, there are 27 bins
-    elif in_config("task", config, None) == "regression_angles" and not in_config("contrastive", config, None):
+    elif in_config("task", config, None) == "regression_angles" and in_config("contrastive", config, False) == False:
         output_size = 3 # Predicting angles
-    elif in_config("task", config, None) == "regression_coords" and not in_config("contrastive", config, None):
+    elif in_config("task", config, None) == "regression_coords" and in_config("contrastive", config, False) == False:
         output_size = 3 # Predicting coordinates
-    elif in_config("contrastive", config, None):
+    elif in_config("contrastive", config, False) != False:
         output_size = 256 # Predicting contrastive loss
+    
+    print("output_size", output_size)
         
     # Build or load the model depending on streamline or dwi training, and build dataset differently
     if config["training_type"] == "streamline":
@@ -99,7 +101,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
     model.train()
     
     # If given a task, then get a specific criterion
-    if in_config("contrastive", config, None):
+    if in_config("contrastive", config, False) != False:
         if config["contrastive"] == "max_margin":
             criterion = ContrastiveLossWithPosNegPairs()
         elif config["contrastive"] == "npair":

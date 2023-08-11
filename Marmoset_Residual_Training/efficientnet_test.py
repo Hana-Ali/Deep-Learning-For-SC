@@ -18,10 +18,25 @@ elif paperspace:
 else:
     main_data_path = "D:\\Brain-MINDS\\model_data"
     main_logs_path = "D:\\Brain-MINDS\\predicted_streamlines"
+    
+# Define the main name
+pred_name = "efficientnet"
+train_name = "training_logs"
 
-streamline_arrays_path = os.path.join(main_logs_path, "streamline_predictions", "efficientnet_contrastive")
-training_log_folder = os.path.join(main_logs_path, "training_logs_contrastive")
-model_folder = os.path.join(main_logs_path, "models", "efficientnet_contrastive")
+# Define the task and whether or not we do contrastive
+task = "classification"
+contrastive = False
+
+# Append task and contrastive to name
+pred_name = pred_name + "_" + task
+train_name = train_name + "_" + task
+if contrastive != False:
+    pred_name = pred_name + "_" + contrastive
+    train_name = train_name + "_" + contrastive
+
+streamline_arrays_path = os.path.join(main_logs_path, "streamline_predictions", pred_name)
+training_log_folder = os.path.join(main_logs_path, train_name)
+model_folder = os.path.join(main_logs_path, "models", pred_name)
 
 check_output_folders(streamline_arrays_path, "streamline arrays", wipe=False)
 check_output_folders(training_log_folder, "training_log_folder", wipe=False)
@@ -37,12 +52,12 @@ configs = {
     "model_name" : "efficientnet", # Model name
     "input_nc" : 1,
     "combination" : True, # Combination
-    "task" : "classification", # Task
-    "hidden_size" : 32, # number of neurons
+    "task" : task, # Task
+    "hidden_size" : 100, # number of neurons
     "depthwise_conv" : True, # Depthwise convolution
     "library_opt" : True, # Use stuff from torch_optim
-    "contrastive" : "npair", # Contrastive
-    "previous" : False, # Whether or not to include previous predictions
+    "contrastive" : contrastive, # Contrastive
+    "previous" : True, # Whether or not to include previous predictions
 
     ####### Training #######
     "n_epochs" : 50, # Number of epochs
@@ -60,8 +75,8 @@ configs = {
     "training_log_path" : training_log_path, # Training log path
     "model_filename" : model_filename, # Model filename
     "streamline_arrays_path" : streamline_arrays_path, # Path to the streamlines array
-    "batch_size" : 128, # Batch size
-    "validation_batch_size" : 128, # Validation batch size
+    "batch_size" : 64, # Batch size
+    "validation_batch_size" : 64, # Validation batch size
     "num_streamlines" : 70, # Number of streamlines to consider from each site
     
     ####### Parameters #######

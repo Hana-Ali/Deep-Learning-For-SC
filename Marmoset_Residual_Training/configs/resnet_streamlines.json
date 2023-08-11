@@ -1,5 +1,5 @@
 {
-    "batch_size": 32,
+    "batch_size": 128,
     "combination": true,
     "contrastive": "npair",
     "cube_size": 5,
@@ -18,7 +18,7 @@
     "model_filename": "/notebooks/predicted_streamlines/models/resnet_streamlines_onlycnn/resnet_streamlines.h5",
     "model_name": "resnet_streamlines",
     "n_epochs": 50,
-    "num_streamlines": 70,
+    "num_streamlines": 100,
     "optimizer": "Adam",
     "overfitting": false,
     "previous": false,
@@ -32,5 +32,5 @@
     "tck_type": "trk",
     "training_log_path": "/notebooks/predicted_streamlines/training_logs_onlycnn/resnet_streamlines.csv",
     "training_type": "streamline",
-    "validation_batch_size": 32
+    "validation_batch_size": 128
 }
