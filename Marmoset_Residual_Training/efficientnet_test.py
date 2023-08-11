@@ -75,15 +75,15 @@ configs = {
     "training_log_path" : training_log_path, # Training log path
     "model_filename" : model_filename, # Model filename
     "streamline_arrays_path" : streamline_arrays_path, # Path to the streamlines array
-    "batch_size" : 64, # Batch size
-    "validation_batch_size" : 64, # Validation batch size
+    "batch_size" : 32, # Batch size
+    "validation_batch_size" : 32, # Validation batch size
     "num_streamlines" : 70, # Number of streamlines to consider from each site
     
     ####### Parameters #######
     "initial_learning_rate" : 1e-3, # Initial learning rate
-    "early_stopping_patience": None, # Early stopping patience
-    "decay_patience": None, # Learning rate decay patience
-    "decay_factor": None, # Learning rate decay factor
+    "early_stopping_patience": 50, # Early stopping patience
+    "decay_patience": 20, # Learning rate decay patience
+    "decay_factor": 0.5, # Learning rate decay factor
     "min_learning_rate": 1e-08, # Minimum learning rate
     "save_last_n_models": 10, # Save last n models
 

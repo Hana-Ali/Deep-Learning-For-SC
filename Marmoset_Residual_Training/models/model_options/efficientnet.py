@@ -215,20 +215,20 @@ class EfficientNet3D(nn.Module):
 
         # Define whether or not we use previous
         self.previous = previous
-        
+                
         # The flattened size depends on the task
-        if self.task == "classification" and not contrastive:
-            cnn_flattened_size = 27
-        elif self.task == "regression_coords" or self.task == "regression_angles" and not contrastive:
-            cnn_flattened_size = 3
-        elif contrastive:
-            cnn_flattened_size = 256
+        if self.task == "classification" and contrastive == False:
+            self.cnn_flattened_size = 27
+        elif self.task == "regression_coords" or self.task == "regression_angles" and contrastive == False:
+            self.cnn_flattened_size = 3
+        elif contrastive != False:
+            self.cnn_flattened_size = 256
         
         # The architecture is different depending on whether we want to include the previous predictions or not
         if self.previous:
 
             # Define the combination MLP
-            self.combination_mlp = TwoInputMLP(previous_predictions_size=self.previous_predictions_size, cnn_flattened_size=cnn_flattened_size, 
+            self.combination_mlp = TwoInputMLP(previous_predictions_size=self.previous_predictions_size, cnn_flattened_size=self.cnn_flattened_size, 
                                             neurons=self.neurons, output_size=self.output_size, task=self.task)
             
             # Define the final activation depending on the task
@@ -293,14 +293,14 @@ class EfficientNet3D(nn.Module):
         # if self._global_params.include_top:
         # Pooling and final linear layer
         x = self._avg_pooling(x)
-        print("Avg pooling shape", x.shape)
-        # x = x.view(bs, -1)
-        # print("View shape", x.shape)
-        # x = self._dropout(x)
-        # print("Dropout shape", x.shape)
 
         # If we use previous
         if self.previous:
+            
+            # Reshape and dropout
+            x = x.view(bs, -1)
+            x = self._dropout(x)
+            # print("Dropout shape", x.shape)
             
             # Pass the CNN output through the final linear layer
             x = self._fc(x)
