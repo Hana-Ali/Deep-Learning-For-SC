@@ -67,7 +67,7 @@ class AttnCNN(nn.Module):
                             nn.ReLU(inplace=True)]
         
         # For the rest of the layers, we use the same structure
-        for i in range(1, len(filters) - 1):
+        for i in range(len(filters) - 1):
 
             # Define the depthwise separable convolution layers
             depthwise_conv += [nn.Conv3d(filters[i], filters[i], kernel_size=3, padding=1),
