@@ -21,22 +21,18 @@ class AttentionModule(nn.Module):
 
         # Apply the squeeze operation
         x = self.squeeze(input_x)
-        print("x shape after squeeze is", x.shape)
 
         # Flatten the output of the squeeze operation
         x = x.view(x.size(0), -1)
-        print("x shape after flattening is", x.shape)
 
         # Apply the excitation operation
         x = self.excitation(x)
-        print("x shape after excitation is", x.shape)
 
         # Reshape the output of the excitation operation
         x = x.view(x.size(0), x.size(1), 1, 1, 1)
 
         # Multiply the input with the output of the excitation operation
         x = input_x * x
-        print("x shape after multiplication is", x.shape)
 
         return x
 
@@ -141,29 +137,19 @@ class AttnCNN(nn.Module):
         for i in range(self.n_blocks):
                 
             # Apply the depthwise separable convolution layers
-            for layer in self.depthwise_conv:
-                x = layer(x)
-                print("x shape is", x.shape)
-
-            # x = self.depthwise_conv(x)
+            x = self.depthwise_conv(x)
 
             # Apply attention module
             x = self.attention_module(x)
 
-            print("x shape after attention is", x.shape)
-
         # Apply global average pooling
         x = self.global_avg_pool(x)
-
-        print("x shape after global avg pool is", x.shape)
 
         # Reshape the output of the depthwise separable convolution layers
         x = x.view(batch_size, -1)
 
         # Apply the final fully connected layers
         x = F.relu(self.final_linear(x))
-
-        print("x shape after final linear is", x.shape)
 
         # If we do want to include the previous predictions, then we do the following
         if self.previous:
