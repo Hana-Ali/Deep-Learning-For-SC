@@ -78,7 +78,7 @@ class AttnCNN(nn.Module):
                                 nn.ReLU(inplace=True)]
             
         # Make sure the last depthwise separable convolution layer has the same number of channels as the input
-        depthwise_conv += [nn.Conv3d(filters[-1], channels, kernel_size=3, groups=filters[-1], padding=1),
+        depthwise_conv += [nn.Conv3d(filters[-1], channels, kernel_size=3, padding=1),
                             nn.BatchNorm3d(channels),
                             nn.ReLU(inplace=True)]
 
