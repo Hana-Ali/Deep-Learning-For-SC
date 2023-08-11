@@ -31,6 +31,9 @@ class AttentionModule(nn.Module):
         x = self.excitation(x)
         print("x shape after excitation is", x.shape)
 
+        # Reshape the output of the excitation operation
+        x = x.view(x.size(0), x.size(1), 1, 1, 1)
+
         # Multiply the input with the output of the excitation operation
         x = input_x * x
         print("x shape after multiplication is", x.shape)
