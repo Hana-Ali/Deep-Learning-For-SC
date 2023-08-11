@@ -13,7 +13,7 @@
     "input_nc": 1,
     "library_opt": true,
     "loss": "negative_log_likelihood_loss",
-    "main_data_path": "/notebooks/model_data_w_resize",
+    "main_data_path": "/storage/model_data_w_resize",
     "min_learning_rate": 1e-08,
     "model_filename": "/notebooks/predicted_streamlines/models/resnet_classification/resnet_streamlines.h5",
     "model_name": "resnet_streamlines",
