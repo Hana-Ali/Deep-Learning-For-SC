@@ -16,6 +16,8 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                         progress=None, input_type="trk", training_task="classification", output_size=1,
                         contrastive=False):
     
+    print("Contrastive is", contrastive)
+    
     # Initialize the end time
     end = time.time()
         
@@ -122,7 +124,7 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                     continue
                 
                 # If the task is classification, then we want to print out the actual node we're predicting, and the actual label
-                if training_task == "classification":
+                if training_task == "classification" and contrastive == False:
                     if point == 0:
                         classifications_decoded_array[:, streamline, point] = streamlines[:, streamline, point]
                     else:
@@ -238,7 +240,7 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
         grad_filename = os.path.join(batch_folder, "grad.txt")
         
         # Save the loss and grads
-        np.savetxt(loss_filename, np.array(batch_loss[batch]))
+        np.savetxt(loss_filename, np.array(batch_losses[batch]))
         np.savetxt(grad_filename, np.array(batch_grad[batch]))
 
         # Turn the predicted streamlines array into a Tractogram with nibabel and save it - note that streamlines is now a torch TENSOR,
@@ -256,7 +258,7 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
         else:
             np.save(prediction_filename, predictions_array[batch])
             # Only save this if the task is classification
-            if training_task == "classification":
+            if training_task == "classification" and contrastive == False:
                 np.save(prediction_classification_filename, classifications_decoded_array[batch])
 
 # Define the inner loop validation
