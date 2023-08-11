@@ -23,6 +23,10 @@ class AttentionModule(nn.Module):
         x = self.squeeze(input_x)
         print("x shape after squeeze is", x.shape)
 
+        # Flatten the output of the squeeze operation
+        x = x.view(x.size(0), -1)
+        print("x shape after flattening is", x.shape)
+
         # Apply the excitation operation
         x = self.excitation(x)
         print("x shape after excitation is", x.shape)
