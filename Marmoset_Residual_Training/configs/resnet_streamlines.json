@@ -1,11 +1,11 @@
 {
-    "batch_size": 32,
+    "batch_size": 128,
     "combination": true,
-    "contrastive": false,
+    "contrastive": "npair",
     "cube_size": 5,
     "decay_factor": 0.5,
     "decay_patience": 20,
-    "depthwise_conv": true,
+    "depthwise_conv": false,
     "early_stopping_patience": 50,
     "evaluation_metric": "negative_log_likelihood_loss",
     "hidden_size": 100,
@@ -15,7 +15,7 @@
     "loss": "negative_log_likelihood_loss",
     "main_data_path": "/storage/model_data_w_resize",
     "min_learning_rate": 1e-08,
-    "model_filename": "/notebooks/predicted_streamlines/models/resnet_classification/resnet_streamlines.h5",
+    "model_filename": "/notebooks/predicted_streamlines/models/resnet_classification_npair/resnet_streamlines.h5",
     "model_name": "resnet_streamlines",
     "n_epochs": 50,
     "num_streamlines": 70,
@@ -27,10 +27,10 @@
     "separate_hemisphere": false,
     "shuffle_dataset": true,
     "skip_val": false,
-    "streamline_arrays_path": "/notebooks/predicted_streamlines/streamline_predictions/resnet_classification",
+    "streamline_arrays_path": "/notebooks/predicted_streamlines/streamline_predictions/resnet_classification_npair",
     "task": "classification",
     "tck_type": "trk",
-    "training_log_path": "/notebooks/predicted_streamlines/training_logs_classification/resnet_streamlines.csv",
+    "training_log_path": "/notebooks/predicted_streamlines/training_logs_classification_npair/resnet_streamlines.csv",
     "training_type": "streamline",
-    "validation_batch_size": 32
+    "validation_batch_size": 128
 }

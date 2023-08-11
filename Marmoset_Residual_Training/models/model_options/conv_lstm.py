@@ -40,9 +40,9 @@ class ConvLSTM(nn.Module):
 
         rnn_input_size = hidden_dim * kernel_size**3
 
-        print("rnn_input_size: ", rnn_input_size)
-        print("hidden_dim: ", hidden_dim)
-        print("kernel_size: ", kernel_size)
+        # print("rnn_input_size: ", rnn_input_size)
+        # print("hidden_dim: ", hidden_dim)
+        # print("kernel_size: ", kernel_size)
         
         self.rnn_cells = nn.ModuleList([
             nn.LSTMCell(input_size=rnn_input_size, hidden_size=hidden_dim)
