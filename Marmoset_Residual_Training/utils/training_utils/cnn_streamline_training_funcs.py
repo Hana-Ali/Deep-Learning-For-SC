@@ -255,7 +255,9 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
         # Else, save the predicted stuff as a numpy array
         else:
             np.save(prediction_filename, predictions_array[batch])
-            np.save(prediction_classification_filename, classifications_decoded_array[batch])
+            # Only save this if the task is classification
+            if training_task == "classification":
+                np.save(prediction_classification_filename, classifications_decoded_array[batch])
 
 # Define the inner loop validation
 def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays_path, separate_hemisphere,
