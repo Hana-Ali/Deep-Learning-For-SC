@@ -131,19 +131,29 @@ class AttnCNN(nn.Module):
         for i in range(self.n_blocks):
                 
             # Apply the depthwise separable convolution layers
-            x = self.depthwise_conv(x)
+            for layer in self.depthwise_conv:
+                x = layer(x)
+                print("x shape is", x.shape)
+
+            # x = self.depthwise_conv(x)
 
             # Apply attention module
             x = self.attention_module(x)
 
+            print("x shape after attention is", x.shape)
+
         # Apply global average pooling
         x = self.global_avg_pool(x)
+
+        print("x shape after global avg pool is", x.shape)
 
         # Reshape the output of the depthwise separable convolution layers
         x = x.view(batch_size, -1)
 
         # Apply the final fully connected layers
         x = F.relu(self.final_linear(x))
+
+        print("x shape after final linear is", x.shape)
 
         # If we do want to include the previous predictions, then we do the following
         if self.previous:
