@@ -479,7 +479,9 @@ def batch_loss(model, wmfod_cube, label, previous_predictions, criterion, origin
             torch.cuda.empty_cache()
 
             if n_gpus == 1:
-                
+
+                print("Putting data on GPU")
+
                 # Get all the data on the GPU
                 wmfod_cube = wmfod_cube.cuda()
                 label = label.cuda()

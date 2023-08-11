@@ -235,6 +235,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
     # Implement data parallelism if more than 1 GPU
     print("Using {} GPUs".format(n_gpus))
     if n_gpus > 1:
+        print("DataParallel")
         model = torch.nn.DataParallel(model)
 
     # For each epoch
