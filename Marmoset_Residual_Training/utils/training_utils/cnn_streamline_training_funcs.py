@@ -107,14 +107,14 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                 else:
                     print("Shape of brain hemisphere is", brain_hemisphere.shape)
                     print("Shape of curr_coord is", curr_coord)
-                    x = curr_coord[:, 0].tolist()
-                    y = curr_coord[:, 1].tolist()
-                    z = curr_coord[:, 2].tolist()
+                    x = curr_coord[0].tolist()
+                    y = curr_coord[1].tolist()
+                    z = curr_coord[2].tolist()
                     print("x is", x)
                     print("y is", y)
                     print("z is", z)
                     wmfod_cube = brain_hemisphere[:, :, x, y, z]
-                    
+
                 print("Shape of wmfod cube is: {}".format(wmfod_cube.shape))
 
                 # Turn the cube into a tensor
