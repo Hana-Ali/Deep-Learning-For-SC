@@ -92,6 +92,7 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=3, norm
             # Assert that none of the parameters are None
             assert input_nc is not None
             assert task is not None
+            assert num_blocks is not None
 
             # Ensure that the output size matches the task
             if task == "classification" and not contrastive:
@@ -208,7 +209,7 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=3, norm
         raise ValueError("Model {} not found".format(model_name))
     
 # Function to build or load the model
-def build_or_load_model(model_name, model_filename, input_nc, output_nc=None, ngf=None, num_blocks=None, norm_layer=nn.BatchNorm3d,
+def build_or_load_model(model_name, model_filename, input_nc, output_nc=None, ngf=None, num_blocks=3, norm_layer=nn.BatchNorm3d,
                         use_dropout=False, padding_type="reflect", voxel_wise=False, cube_size=15, num_rnn_layers=2,
                         num_rnn_hidden_neurons=1000, num_nodes=1, num_coordinates=3, prev_output_size=32, combination=True,
                         n_gpus=0, bias=None, freeze_bias=False, strict=False, task="classification", 

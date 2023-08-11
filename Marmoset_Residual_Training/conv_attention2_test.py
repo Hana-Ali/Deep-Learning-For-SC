@@ -87,6 +87,7 @@ configs = {
     "library_opt" : True, # Use stuff from torch_optim
     "contrastive" : contrastive, # Contrastive
     "previous" : True, # Whether or not to include previous predictions
+    "num_blocks" : 3, # Number of blocks
     
     ####### Training #######
     "n_epochs" : 50, # Number of epochs

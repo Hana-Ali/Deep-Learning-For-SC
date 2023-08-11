@@ -75,7 +75,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
                                     strict=False, task=in_config("task", config, "classification"), output_size=output_size,
                                     hidden_size=in_config("hidden_size", config, 128), batch_norm=True if config["batch_size"] > 1 else False,
                                     depthwise_conv=in_config("depthwise_conv", config, False), contrastive=in_config("contrastive", config, False),
-                                    previous=in_config("previous", config, False))
+                                    previous=in_config("previous", config, False), num_blocks=in_config("num_blocks", config, 3))
         # Build the dataset
         dataset = StreamlineDataset(main_data_path, num_streamlines=config["num_streamlines"], transforms=None, train=True, tck_type=config["tck_type"], 
                                     task=in_config("task", config, "classification"))
@@ -231,6 +231,11 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
         scaler = torch.cuda.amp.GradScaler()
     else:
         scaler = None
+
+    # Implement data parallelism if more than 1 GPU
+    print("Using {} GPUs".format(n_gpus))
+    if n_gpus > 1:
+        model = torch.nn.DataParallel(model)
 
     # For each epoch
     for epoch in range(start_epoch, n_epochs):
