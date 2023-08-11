@@ -117,9 +117,8 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                     batchsize = brain_hemisphere.shape[0]
                     channels = brain_hemisphere.shape[1]
                     wmfod_cube = torch.zeros((batchsize, channels))
-                    for c in range(channels):
-                        selected_values = brain_hemisphere[:, c, x, y, z]
-                        wmfod_cube[:, c] = selected_values
+                    for i in range(batchsize):
+                        wmfod_cube[i] = brain_hemisphere[i, :, x[i], y[i], z[i]]
 
                 print("Shape of wmfod cube is: {}".format(wmfod_cube.shape))
 
