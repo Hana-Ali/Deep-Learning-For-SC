@@ -236,12 +236,6 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
         prediction_filename = os.path.join(batch_folder, "tracer_streamlines_predicted.{extension}".format(extension=extension))
         prediction_classification_filename = os.path.join(batch_folder, "tracer_decoded_predictions.npy")
         groundtruth_filename = os.path.join(batch_folder, "tracer_streamlines.{extension}".format(extension=input_type))
-        loss_filename = os.path.join(batch_folder, "loss.txt")
-        grad_filename = os.path.join(batch_folder, "grad.txt")
-        
-        # Save the loss and grads
-        np.savetxt(loss_filename, np.array(batch_losses[batch]))
-        np.savetxt(grad_filename, np.array(batch_grad[batch]))
 
         # Turn the predicted streamlines array into a Tractogram with nibabel and save it - note that streamlines is now a torch TENSOR,
         # where the first element is a batch index. Thus, we need to take that into consideration and save batch by batch
@@ -260,6 +254,14 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
             # Only save this if the task is classification
             if training_task == "classification" and contrastive == False:
                 np.save(prediction_classification_filename, classifications_decoded_array[batch])
+    
+    loss_filename = os.path.join(predictions_folder, "loss.txt")
+    grad_filename = os.path.join(predictions_folder, "grad.txt")
+    
+    # Save the loss and grads
+    np.savetxt(grad_filename, np.array(batch_grad))
+    np.savetxt(loss_filename, np.array(batch_losses))
+
 
 # Define the inner loop validation
 def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays_path, separate_hemisphere,
@@ -421,10 +423,6 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
             # Define the filenames
             prediction_filename = os.path.join(batch_folder, "tracer_streamlines_predicted.{extension}".format(extension=extension))
             groundtruth_filename = os.path.join(batch_folder, "tracer_streamlines.{extension}".format(extension=input_type))
-            loss_filename = os.path.join(batch_folder, "loss.txt")
-
-            # Save the loss and
-            np.savetxt(loss_filename, np.array(batch_losses[batch]))
 
             # Turn the predicted streamlines array into a Tractogram with nibabel and save it - note that streamlines is now a torch TENSOR,
             # where the first element is a batch index. Thus, we need to take that into consideration and save batch by batch
@@ -440,6 +438,11 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
             # Else, save the predicted stuff as a numpy array
             else:
                 np.save(prediction_filename, predictions_array[batch])
+
+    loss_filename = os.path.join(predictions_folder, "loss.txt")
+    
+    # Save the loss and grads
+    np.savetxt(loss_filename, np.array(batch_losses))
 
 
         
