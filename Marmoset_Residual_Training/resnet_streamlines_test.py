@@ -33,7 +33,7 @@ elif labs:
     main_data_path = "/media/hsa22/Expansion/Brain_MINDS/model_data"
     main_logs_path = "/media/hsa22/Expansion//Brain_MINDS/predicted_streamlines"
 elif paperspace:
-    main_data_path = "/notebooks/model_data_w_resize"
+    main_data_path = "/storage/model_data_w_resize"
     main_logs_path = "/notebooks/predicted_streamlines"
 else:
     main_data_path = "D:\\Brain-MINDS\\model_data"
