@@ -82,8 +82,8 @@ model_filename = os.path.join(model_folder, "resnet_streamlines.h5")
 configs = {
 
     ####### Model #######
-    "model_name" : "voxelwise_mlp", # Model name
-    "input_nc" : 45,
+    "model_name" : "resnet_streamlines", # Model name
+    "input_nc" : 1,
     "combination" : True, # Combination
     "task" : task, # Task
     "hidden_size" : 100, # number of neurons
@@ -91,7 +91,7 @@ configs = {
     "library_opt" : True, # Use stuff from torch_optim
     "contrastive" : contrastive, # Contrastive
     "previous" : True, # Whether or not to include previous predictions
-    "voxel_wise" : voxel_wise, # Voxelwise
+    "voxelwise" : voxel_wise, # Voxelwise
     
     ####### Training #######
     "n_epochs" : 50, # Number of epochs
@@ -111,13 +111,13 @@ configs = {
     "streamline_arrays_path" : streamline_arrays_path, # Path to the streamlines array
     "batch_size" : batch_size, # Batch size
     "validation_batch_size" : batch_size, # Validation batch size
-    "num_streamlines" : 10000, # Number of streamlines to consider from each site
+    "num_streamlines" : 70, # Number of streamlines to consider from each site
     
     ####### Parameters #######
     "initial_learning_rate" : init_lr, # Initial learning rate
-    "early_stopping_patience": None, # Early stopping patience
-    "decay_patience": None, # Learning rate decay patience
-    "decay_factor": None, # Learning rate decay factor
+    "early_stopping_patience": 50, # Early stopping patience
+    "decay_patience": 20, # Learning rate decay patience
+    "decay_factor": 0.5, # Learning rate decay factor
     "min_learning_rate": 1e-08, # Minimum learning rate
     "save_last_n_models": 10, # Save last n models
 
