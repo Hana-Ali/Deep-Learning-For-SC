@@ -91,7 +91,7 @@ configs = {
     "library_opt" : True, # Use stuff from torch_optim
     "contrastive" : contrastive, # Contrastive
     "previous" : True, # Whether or not to include previous predictions
-    "voxelwise" : voxel_wise, # Voxelwise
+    "voxel_wise" : voxel_wise, # Voxelwise
     
     ####### Training #######
     "n_epochs" : 50, # Number of epochs
