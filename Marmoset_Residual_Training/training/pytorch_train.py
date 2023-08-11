@@ -233,7 +233,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
         scaler = None
 
     # Implement data parallelism if more than 1 GPU
-    print("Using {} GPUs".format(n_gpus))
+    # print("Using {} GPUs".format(n_gpus))
     if n_gpus > 1:
         print("DataParallel")
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
