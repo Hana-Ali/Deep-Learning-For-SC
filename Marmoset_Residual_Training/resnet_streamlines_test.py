@@ -11,6 +11,15 @@ parser.add_argument("-t", "--task", help="what task to run",
 parser.add_argument("-c", "--contrastive", help="what type of contrastive to run if running contrastive",
 			default="",
 			type=str)
+parser.add_argument("-d", "--depthwise", help="depthwise conv or not",
+                    action='store_true')
+parser.add_argument("-lr", "--learning_rate", help="initial learning rate",
+			default=0.05,
+			type=float)
+parser.add_argument("-b", "--batch_size", help="batchsize",
+			default=32,
+			type=int)
+
 args = parser.parse_args()
 
 hpc = False
@@ -34,10 +43,14 @@ else:
 pred_name = "resnet"
 train_name = "training_logs"
 
-# Define the task and whether or not we do contrastive
 # Parse arguments
 task = args.task
 contrastive = args.contrastive
+depthwise = args.depthwise
+init_lr = args.learning_rate
+batch_size = args.batch_size
+
+print("depthwise is", depthwise)
 
 # If contrastive is "", set to False
 if contrastive == "":
@@ -70,7 +83,7 @@ configs = {
     "combination" : True, # Combination
     "task" : task, # Task
     "hidden_size" : 100, # number of neurons
-    "depthwise_conv" : True, # Depthwise convolution
+    "depthwise_conv" : depthwise, # Depthwise convolution
     "library_opt" : True, # Use stuff from torch_optim
     "contrastive" : contrastive, # Contrastive
     "previous" : True, # Whether or not to include previous predictions
@@ -91,12 +104,12 @@ configs = {
     "training_log_path" : training_log_path, # Training log path
     "model_filename" : model_filename, # Model filename
     "streamline_arrays_path" : streamline_arrays_path, # Path to the streamlines array
-    "batch_size" : 64, # Batch size
-    "validation_batch_size" : 64, # Validation batch size
+    "batch_size" : batch_size, # Batch size
+    "validation_batch_size" : batch_size, # Validation batch size
     "num_streamlines" : 70, # Number of streamlines to consider from each site
     
     ####### Parameters #######
-    "initial_learning_rate" : 1e-3, # Initial learning rate
+    "initial_learning_rate" : init_lr, # Initial learning rate
     "early_stopping_patience": 50, # Early stopping patience
     "decay_patience": 20, # Learning rate decay patience
     "decay_factor": 0.5, # Learning rate decay factor
