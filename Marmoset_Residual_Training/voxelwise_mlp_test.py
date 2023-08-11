@@ -111,7 +111,7 @@ configs = {
     "streamline_arrays_path" : streamline_arrays_path, # Path to the streamlines array
     "batch_size" : batch_size, # Batch size
     "validation_batch_size" : batch_size, # Validation batch size
-    "num_streamlines" : 70, # Number of streamlines to consider from each site
+    "num_streamlines" : 200, # Number of streamlines to consider from each site
     
     ####### Parameters #######
     "initial_learning_rate" : init_lr, # Initial learning rate
