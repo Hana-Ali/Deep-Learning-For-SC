@@ -424,7 +424,7 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
             loss_filename = os.path.join(batch_folder, "loss.txt")
 
             # Save the loss and
-            np.savetxt(loss_filename, np.array(batch_loss[batch]))
+            np.savetxt(loss_filename, np.array(batch_losses[batch]))
 
             # Turn the predicted streamlines array into a Tractogram with nibabel and save it - note that streamlines is now a torch TENSOR,
             # where the first element is a batch index. Thus, we need to take that into consideration and save batch by batch
