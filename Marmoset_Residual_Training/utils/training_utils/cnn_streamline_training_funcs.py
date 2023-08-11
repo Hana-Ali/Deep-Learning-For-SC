@@ -111,9 +111,9 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                     x = curr_coord[0].tolist()
                     y = curr_coord[1].tolist()
                     z = curr_coord[2].tolist()
-                    print("x is", x, "shape is", len(x).shape)
-                    print("y is", y, "shape is", len(y).shape)
-                    print("z is", z, "shape is", len(z).shape)
+                    print("x is", x, "shape is", len(x))
+                    print("y is", y, "shape is", len(y))
+                    print("z is", z, "shape is", len(z))
                     wmfod_cube = brain_hemisphere[:, :, x, y, z]
 
                 print("Shape of wmfod cube is: {}".format(wmfod_cube.shape))
