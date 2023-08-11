@@ -104,21 +104,19 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                 # Get the cube in the wmfod that corresponds to this coordinate if not voxelwise
                 if not voxel_wise:
                     wmfod_cube = grab_cube_around_voxel(image=brain_hemisphere, voxel_coordinates=curr_coord, kernel_size=kernel_size)
+                    wmfod_cube = torch.from_numpy(wmfod_cube).float()
                 else:
                     print("Shape of brain hemisphere is", brain_hemisphere.shape)
                     print("Shape of curr_coord is", curr_coord)
                     x = curr_coord[0].tolist()
                     y = curr_coord[1].tolist()
                     z = curr_coord[2].tolist()
-                    print("x is", x)
-                    print("y is", y)
-                    print("z is", z)
+                    print("x is", x, "shape is", x.shape)
+                    print("y is", y, "shape is", y.shape)
+                    print("z is", z, "shape is", z.shape)
                     wmfod_cube = brain_hemisphere[:, :, x, y, z]
 
                 print("Shape of wmfod cube is: {}".format(wmfod_cube.shape))
-
-                # Turn the cube into a tensor
-                wmfod_cube = torch.from_numpy(wmfod_cube).float()
 
                 # print("Cube shape is", wmfod_cube.shape)
 
