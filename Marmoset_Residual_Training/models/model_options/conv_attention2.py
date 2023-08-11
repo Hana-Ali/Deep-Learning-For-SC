@@ -102,7 +102,7 @@ class AttnCNN(nn.Module):
         self.global_avg_pool = nn.AdaptiveAvgPool3d(1)
 
         # Define the final fully connected layers
-        self.final_linear = nn.Linear(filters[-1], output_size)
+        self.final_linear = nn.Linear(channels, output_size)
 
         ########################### PREVIOUS PREDICTIONS ###########################
 
