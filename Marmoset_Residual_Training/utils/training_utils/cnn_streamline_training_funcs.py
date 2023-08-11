@@ -478,13 +478,15 @@ def batch_loss(model, wmfod_cube, label, previous_predictions, criterion, origin
             # Empty cache
             torch.cuda.empty_cache()
 
+            device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
             # Get all the data on the GPU
-            wmfod_cube = wmfod_cube.cuda()
-            label = label.cuda()
-            previous_predictions = previous_predictions.cuda()
+            wmfod_cube = wmfod_cube.to(device)
+            label = label.to(device)
+            previous_predictions = previous_predictions.to(device)
             
             # Get the model on the GPU
-            model = model.cuda()
+            model = model.to(device)
     
     # Compute the output
     if use_amp:
