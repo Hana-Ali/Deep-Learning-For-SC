@@ -70,6 +70,7 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
         # Create predictions array of the same size as what we'd expect (batch size x number of streamlines x number of nodes x output_size)
         # Note that it's either num_nodes - 1 or not, depending on if we're predicting nodes, or predicting directions/angles
         predictions_array = np.zeros((batch_size, streamlines.shape[streamline_idx], streamlines.shape[node_idx] - 1, output_size))
+        classifications_decoded_array = np.zeros((batch_size, streamlines.shape[streamline_idx], streamlines.shape[node_idx], 3))
         
         # Initialize the loss and grad for the streamline
         streamline_loss = []
@@ -121,9 +122,12 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                     continue
                 
                 # If the task is classification, then we want to print out the actual node we're predicting, and the actual label
-                # if training_task == "classification":
-                #     if point > 0:
-                #         predicted_node = find_next_node(predicted_label, streamlines[:, streamline, point - 1])
+                if training_task == "classification":
+                    if point == 0:
+                        classifications_decoded_array[:, streamline, point] = streamlines[:, streamline, point]
+                    else:
+                        predicted_node = find_next_node(predicted_label, streamlines[:, streamline, point - 1])
+                        classifications_decoded_array[:, streamline, point] = predicted_node
 
                 # Get the prediction for this node as a numpy array
                 predicted_label = predicted_label.cpu().detach().numpy()
@@ -228,6 +232,7 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
 
         # Define the filenames
         prediction_filename = os.path.join(batch_folder, "tracer_streamlines_predicted.{extension}".format(extension=extension))
+        prediction_classification_filename = os.path.join(batch_folder, "tracer_decoded_predictions.npy")
         groundtruth_filename = os.path.join(batch_folder, "tracer_streamlines.{extension}".format(extension=input_type))
         loss_filename = os.path.join(batch_folder, "loss.txt")
         grad_filename = os.path.join(batch_folder, "grad.txt")
@@ -250,6 +255,7 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
         # Else, save the predicted stuff as a numpy array
         else:
             np.save(prediction_filename, predictions_array[batch])
+            np.save(prediction_classification_filename, classifications_decoded_array[batch])
 
 # Define the inner loop validation
 def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays_path, separate_hemisphere,
