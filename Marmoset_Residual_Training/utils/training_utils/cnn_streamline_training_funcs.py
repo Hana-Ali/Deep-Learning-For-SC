@@ -106,6 +106,7 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                     wmfod_cube = grab_cube_around_voxel(image=brain_hemisphere, voxel_coordinates=curr_coord, kernel_size=kernel_size)
                 else:
                     print("Shape of brain hemisphere is", brain_hemisphere.shape)
+                    print("Shape of curr_coord is", curr_coord)
                     wmfod_cube = brain_hemisphere[:, :, curr_coord[0], curr_coord[1], curr_coord[2]]
 
                 print("Shape of wmfod cube is: {}".format(wmfod_cube.shape))
