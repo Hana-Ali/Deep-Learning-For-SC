@@ -86,6 +86,34 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
                                  num_coordinates=num_coordinates,
                                  prev_output_size=prev_output_size,
                                  combination=combination)
+            
+        elif "conv_attn2" in model_name.lower():
+
+            # Assert that none of the parameters are None
+            assert input_nc is not None
+            assert task is not None
+
+            # Ensure that the output size matches the task
+            if task == "classification" and not contrastive:
+                assert output_size == 27
+            elif task == "regression_angles" and not contrastive:
+                assert output_size == 3
+            elif task == "regression_coords" and not contrastive:
+                assert output_size == 3
+            elif contrastive:
+                assert output_size == 256
+            else:
+                raise ValueError("Task {} not found".format(task))
+
+            # Return the CNN Attention 2
+            model = AttnCNN(in_channels=input_nc,
+                            output_size=output_size,
+                            n_blocks=num_blocks,
+                            hidden_size=hidden_size,
+                            task=task,
+                            contrastive=contrastive,
+                            previous=previous)
+
         
         elif "efficientnet" in model_name.lower():
 
