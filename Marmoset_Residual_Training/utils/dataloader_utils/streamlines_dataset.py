@@ -264,7 +264,7 @@ class StreamlineDataset(torch.utils.data.Dataset):
             label_path = self.labels[index]
             label_array = self.read_npy(label_path)
         else: # Set the label to be the coordinate floats
-            label_array = float_streamlines_list
+            label_array = np.round(float_streamlines_list)
         
         # Define a dictionary to store the images
         sample = {
