@@ -104,17 +104,13 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                 # Get the cube in the wmfod that corresponds to this coordinate if not voxelwise
                 if not voxel_wise:
                     wmfod_cube = grab_cube_around_voxel(image=brain_hemisphere, voxel_coordinates=curr_coord, kernel_size=kernel_size)
-                    wmfod_cube = torch.from_numpy(wmfod_cube).float()
                 else:
-                    x = curr_coord[0].tolist()
-                    y = curr_coord[1].tolist()
-                    z = curr_coord[2].tolist()
-                    batchsize = brain_hemisphere.shape[0]
-                    channels = brain_hemisphere.shape[1]
-                    wmfod_cube = torch.zeros((batchsize, channels))
-                    for i in range(batchsize):
-                        wmfod_cube[i] = brain_hemisphere[i, :, x[i], y[i], z[i]]
+                    wmfod_cube = brain_hemisphere[:, :, curr_coord[0], curr_coord[1], curr_coord[2]]
 
+                print("Shape of wmfod cube is: {}".format(wmfod_cube.shape))
+
+                # Turn the cube into a tensor
+                wmfod_cube = torch.from_numpy(wmfod_cube).float()
 
                 # print("Cube shape is", wmfod_cube.shape)
 
@@ -272,7 +268,7 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
 def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays_path, separate_hemisphere,
                             kernel_size=16, n_gpus=None, distributed=False, coordinates=None, use_amp=None, 
                             losses=None, batch_time=None, progress=None, input_type="trk", training_task="classification",
-                            output_size=1, contrastive=False, voxel_wise=False):
+                            output_size=1, contrastive=False):
     
     # No gradients
     with torch.no_grad():
@@ -338,19 +334,11 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
                     else:
                         streamline_label = streamlines[:, streamline, point + 1]
 
-                    # Get the cube in the wmfod that corresponds to this coordinate if not voxelwise
-                    if not voxel_wise:
-                        wmfod_cube = grab_cube_around_voxel(image=brain_hemisphere, voxel_coordinates=curr_coord, kernel_size=kernel_size)
-                        wmfod_cube = torch.from_numpy(wmfod_cube).float()
-                    else:
-                        x = curr_coord[0].tolist()
-                        y = curr_coord[1].tolist()
-                        z = curr_coord[2].tolist()
-                        batchsize = brain_hemisphere.shape[0]
-                        channels = brain_hemisphere.shape[1]
-                        wmfod_cube = torch.zeros((batchsize, channels))
-                        for i in range(batchsize):
-                            wmfod_cube[i] = brain_hemisphere[i, :, x[i], y[i], z[i]]
+                    # Get the cube in the wmfod that corresponds to this coordinate
+                    wmfod_cube = grab_cube_around_voxel(image=brain_hemisphere, voxel_coordinates=curr_coord, kernel_size=kernel_size)
+
+                    # Turn the cube into a tensor
+                    wmfod_cube = torch.from_numpy(wmfod_cube).float()
 
                     # print("Cube shape is", wmfod_cube.shape)
 
@@ -478,17 +466,13 @@ def batch_loss(model, wmfod_cube, label, previous_predictions, criterion, origin
             # Empty cache
             torch.cuda.empty_cache()
 
-            if n_gpus == 1:
-
-                # print("Putting data on GPU")
-
-                # Get all the data on the GPU
-                wmfod_cube = wmfod_cube.cuda()
-                label = label.cuda()
-                previous_predictions = previous_predictions.cuda()
-                
-                # Get the model on the GPU
-                model = model.cuda()
+            # Get all the data on the GPU
+            wmfod_cube = wmfod_cube.cuda()
+            label = label.cuda()
+            previous_predictions = previous_predictions.cuda()
+            
+            # Get the model on the GPU
+            model = model.cuda()
     
     # Compute the output
     if use_amp:

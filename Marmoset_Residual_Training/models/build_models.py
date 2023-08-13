@@ -6,7 +6,7 @@ import torch.nn as nn
 from models.model_options import *
 
 # Function to get the model
-def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, norm_layer=None,
+def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=3, norm_layer=None,
               use_dropout=None, padding_type=None, voxel_wise=None, cube_size=15, num_rnn_layers=2,
               num_rnn_hidden_neurons=1000, num_nodes=1, num_coordinates=3, prev_output_size=32,
               combination=True, task="classification", flattened_mlp_size=45*5*5*5, output_size=1,
@@ -86,6 +86,35 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
                                  num_coordinates=num_coordinates,
                                  prev_output_size=prev_output_size,
                                  combination=combination)
+            
+        elif "conv_attn2" in model_name.lower():
+
+            # Assert that none of the parameters are None
+            assert input_nc is not None
+            assert task is not None
+            assert num_blocks is not None
+
+            # Ensure that the output size matches the task
+            if task == "classification" and not contrastive:
+                assert output_size == 27
+            elif task == "regression_angles" and not contrastive:
+                assert output_size == 3
+            elif task == "regression_coords" and not contrastive:
+                assert output_size == 3
+            elif contrastive:
+                assert output_size == 256
+            else:
+                raise ValueError("Task {} not found".format(task))
+
+            # Return the CNN Attention 2
+            model = AttnCNN(channels=input_nc,
+                            output_size=output_size,
+                            n_blocks=num_blocks,
+                            hidden_size=hidden_size,
+                            task=task,
+                            contrastive=contrastive,
+                            previous=previous)
+
         
         elif "efficientnet" in model_name.lower():
 
@@ -150,6 +179,26 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
                                 task=task,
                                 contrastive=contrastive)
             
+        elif "voxelwise_mlp" in model_name.lower():
+
+            # Assert that none of the parameters are none
+            assert input_nc is not None
+            assert task is not None
+
+            # Ensure that the output size matches the task
+            if task == "classification":
+                assert output_size == 27
+            elif task == "regression_angles" or task == "regression_coords":
+                assert output_size == 3
+            else:
+                raise ValueError("Task {} not found".format(task))
+            
+            # Return the Voxelwise MLP
+            model = voxelwise_MLP(channels=input_nc,
+                                    task=task,
+                                    previous=previous,
+                                    output_size=output_size)
+            
         init_weights(model, init_type="xavier")
 
         return model
@@ -160,7 +209,7 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=None, n
         raise ValueError("Model {} not found".format(model_name))
     
 # Function to build or load the model
-def build_or_load_model(model_name, model_filename, input_nc, output_nc=None, ngf=None, num_blocks=None, norm_layer=nn.BatchNorm3d,
+def build_or_load_model(model_name, model_filename, input_nc, output_nc=None, ngf=None, num_blocks=3, norm_layer=nn.BatchNorm3d,
                         use_dropout=False, padding_type="reflect", voxel_wise=False, cube_size=15, num_rnn_layers=2,
                         num_rnn_hidden_neurons=1000, num_nodes=1, num_coordinates=3, prev_output_size=32, combination=True,
                         n_gpus=0, bias=None, freeze_bias=False, strict=False, task="classification", 

@@ -42,7 +42,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
     cube_size = config["cube_size"] if "cube_size" in config else 5
 
     # Get general parameters
-    n_gpus = torch.cuda.device_count()
+    n_gpus = config["n_gpus"] if "n_gpus" in config else 1
     n_workers = config["n_workers"] if "n_workers" in config else 1
     pin_memory = config["pin_memory"] if "pin_memory" in config else False
     prefetch_factor = config["prefetch_factor"] if "prefetch_factor" in config else 1
@@ -75,7 +75,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
                                     strict=False, task=in_config("task", config, "classification"), output_size=output_size,
                                     hidden_size=in_config("hidden_size", config, 128), batch_norm=True if config["batch_size"] > 1 else False,
                                     depthwise_conv=in_config("depthwise_conv", config, False), contrastive=in_config("contrastive", config, False),
-                                    previous=in_config("previous", config, False), num_blocks=in_config("num_blocks", config, 3))
+                                    previous=in_config("previous", config, False))
         # Build the dataset
         dataset = StreamlineDataset(main_data_path, num_streamlines=config["num_streamlines"], transforms=None, train=True, tck_type=config["tck_type"], 
                                     task=in_config("task", config, "classification"))
@@ -231,14 +231,6 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
         scaler = torch.cuda.amp.GradScaler()
     else:
         scaler = None
-
-    # Implement data parallelism if more than 1 GPU
-    # print("Using {} GPUs".format(n_gpus))
-    if n_gpus > 1:
-        print("DataParallel")
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        model = torch.nn.DataParallel(model)
-        model.to(device)
 
     # For each epoch
     for epoch in range(start_epoch, n_epochs):
