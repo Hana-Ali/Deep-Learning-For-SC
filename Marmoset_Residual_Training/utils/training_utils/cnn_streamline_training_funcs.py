@@ -5,7 +5,9 @@ import time
 import nibabel as nib
 import torch.nn as nn
 import torch.nn.functional as F
-from utils.dataloader_utils import find_next_node
+from utils.dataloader_utils import (find_next_node_classification, 
+                                    find_next_node_points_direction, 
+                                    get_angular_error_points_direction)
 
 torch.autograd.set_detect_anomaly(True) # For debugging
 
@@ -22,9 +24,12 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
     # Initialize the loss and gradient for the batch
     batch_losses = []    
     batch_grad = []
+
+    # Initialize the batch angular error
+    batch_angular_error = []
     
     # For each batch
-    for i, (wmfod, streamlines, labels) in enumerate(train_loader):
+    for i, (wmfod, streamlines, header, labels) in enumerate(train_loader):
         
         # print("Trial {}".format(i))
         # print("Shape of wmfods is: {}".format(wmfod.shape))
@@ -70,11 +75,14 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
         # Create predictions array of the same size as what we'd expect (batch size x number of streamlines x number of nodes x output_size)
         # Note that it's either num_nodes - 1 or not, depending on if we're predicting nodes, or predicting directions/angles
         predictions_array = np.zeros((batch_size, streamlines.shape[streamline_idx], streamlines.shape[node_idx] - 1, output_size))
-        classifications_decoded_array = np.zeros((batch_size, streamlines.shape[streamline_idx], streamlines.shape[node_idx], 3))
+        decoded_array = np.zeros((batch_size, streamlines.shape[streamline_idx], streamlines.shape[node_idx], 3))
         
         # Initialize the loss and grad for the streamline
         streamline_loss = []
         streamline_grad = []
+
+        # Initialize the streamline angular error
+        streamline_angular_error = []
         
         # For every streamline
         for streamline in range(streamlines.shape[streamline_idx]):
@@ -86,11 +94,14 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
             points_loss = []
             points_grad = []
 
+            # Initialize the points angular error
+            points_angular_error = []
+
             # For every point in the streamline
             for point in range(streamlines.shape[node_idx] - 1):
 
                 # Get the current point from the streamline of all batches
-                streamline_node = streamlines[:, streamline, point]
+                streamline_node = np.round(streamlines[:, streamline, point]).astype(int)
 
                 # Get the x, y, z coordinate into a list
                 curr_coord = [streamline_node[:, 0], streamline_node[:, 1], streamline_node[:, 2]]
@@ -129,12 +140,25 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                     continue
                 
                 # If the task is classification, then we want to print out the actual node we're predicting, and the actual label
-                if training_task == "classification" and contrastive == False:
-                    if point == 0:
-                        classifications_decoded_array[:, streamline, point] = streamlines[:, streamline, point]
-                    else:
-                        predicted_node = find_next_node(predicted_label, streamlines[:, streamline, point - 1])
-                        classifications_decoded_array[:, streamline, point] = predicted_node
+                if contrastive == False:
+                    if training_task == "classification":
+                        if point == 0:
+                            decoded_array[:, streamline, point] = streamlines[:, streamline, point]
+                        else:
+                            predicted_node = find_next_node_classification(predicted_label, streamlines[:, streamline, point - 1])
+                            decoded_array[:, streamline, point] = predicted_node
+                    elif training_task == "regression_points_directions":
+                        if point == 0:
+                            decoded_array[:, streamline, point] = streamlines[:, streamline, point]
+                        else:
+                            predicted_node = find_next_node_points_direction(predicted_label, streamlines[:, streamline, point - 1])
+                            decoded_array[:, streamline, point] = predicted_node
+
+                        # Find the angular error between prediction and label
+                        angular_error = get_angular_error_points_direction(predicted_label, streamline_label)
+
+                        # Add the angular error to the list
+                        points_angular_error.append(angular_error)
 
                 # Get the prediction for this node as a numpy array
                 predicted_label = predicted_label.cpu().detach().numpy()
@@ -209,10 +233,16 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
             # Add the points loss and grad to the streamline loss and grads
             streamline_loss.append(points_loss)
             streamline_grad.append(points_grad)
+
+            # Add the points angular error to the streamline angular error
+            streamline_angular_error.append(points_angular_error)
         
         # Add the streamlines loss and grad to the batch loss and grad
         batch_losses.append(streamline_loss)
         batch_grad.append(streamline_grad)
+
+        # Add the streamline angular error to the batch angular error
+        batch_angular_error.append(streamline_angular_error)
             
     print("Saving...")
 
@@ -239,27 +269,52 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
 
         # Define the filenames
         prediction_filename = os.path.join(batch_folder, "tracer_streamlines_predicted.{extension}".format(extension=extension))
-        prediction_classification_filename = os.path.join(batch_folder, "tracer_decoded_predictions.npy")
         groundtruth_filename = os.path.join(batch_folder, "tracer_streamlines.{extension}".format(extension=input_type))
+
+        # Define the decoded filename
+        if contrastive == False:
+            if training_task == "classification":
+                prediction_decoded_filename = os.path.join(batch_folder, "tracer_decoded_classifications.npy")
+            elif training_task == "regression_points_directions":
+                prediction_decoded_filename = os.path.join(batch_folder, "tracer_decoded_points.npy")
 
         # Turn the predicted streamlines array into a Tractogram with nibabel and save it - note that streamlines is now a torch TENSOR,
         # where the first element is a batch index. Thus, we need to take that into consideration and save batch by batch
         true_streamlines_array = nib.streamlines.Tractogram(streamlines[batch], affine_to_rasmm=np.eye(4))
-        nib.streamlines.save(true_streamlines_array, groundtruth_filename)
+        nib.streamlines.save(true_streamlines_array, groundtruth_filename, header=header)
 
         # Turn the predicted streamlines array into a Tractogram with nibabel if we're predicting coordinates
         if training_task == "regression_coords":
             # Turn the predicted streamlines array into a Tractogram with nibabel and save it
             predicted_streamlines_array = nib.streamlines.Tractogram(predictions_array[batch], affine_to_rasmm=np.eye(4))    
-            nib.streamlines.save(predicted_streamlines_array, prediction_filename)
+            nib.streamlines.save(predicted_streamlines_array, prediction_filename, header=header)
 
         # Else, save the predicted stuff as a numpy array
         else:
             np.save(prediction_filename, predictions_array[batch])
             # Only save this if the task is classification
             if training_task == "classification" and contrastive == False:
-                np.save(prediction_classification_filename, classifications_decoded_array[batch])
+                # Save the decoded array
+                np.save(prediction_decoded_filename, decoded_array[batch])
     
+    # Turn decoded array into a Tractogram with nibabel and save it
+    if contrastive == False:
+            
+        if training_task == "classification":
+            # Convert into tractogram and save
+            decoded_streamlines_array = nib.streamlines.Tractogram(decoded_array, affine_to_rasmm=np.eye(4))
+            decoded_filename = os.path.join(predictions_folder, "tracer_decoded_classifications.{ext}".format(ext=input_type))
+            nib.streamlines.save(decoded_streamlines_array, decoded_filename, header=header)
+        elif training_task == "regression_points_directions":
+            # Convert into tractogram and save
+            decoded_streamlines_array = nib.streamlines.Tractogram(decoded_array, affine_to_rasmm=np.eye(4))
+            decoded_filename = os.path.join(predictions_folder, "tracer_decoded_points.{ext}".format(ext=input_type))
+            nib.streamlines.save(decoded_streamlines_array, decoded_filename, header=header)
+            # Define the angular error filename
+            angular_error_filename = os.path.join(predictions_folder, "angular_error.npy")
+            np.save(angular_error_filename, np.array(batch_angular_error))
+
+    # Define the filenames
     loss_filename = os.path.join(predictions_folder, "loss.npy")
     grad_filename = os.path.join(predictions_folder, "grad.npy")
     
@@ -268,7 +323,7 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
     np.save(loss_filename, np.array(batch_losses))
 
 
-# Define the inner loop validation
+# Define the inner loop validation(wmfod, streamlines, header, labels)
 def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays_path, separate_hemisphere,
                             kernel_size=16, n_gpus=None, distributed=False, coordinates=None, use_amp=None, 
                             losses=None, batch_time=None, progress=None, input_type="trk", training_task="classification",
@@ -282,9 +337,12 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
         
         # Initialize the loss and gradient for the batch
         batch_losses = []  
+
+        # Initialize the angular error for the batch
+        batch_angular_error = []
         
         # For each batch
-        for i, (wmfod, streamlines, labels) in enumerate(val_loader):
+        for i, (wmfod, streamlines, header, labels) in enumerate(val_loader):
             
             # Get the brain hemisphere
             brain_hemisphere = get_hemisphere(coordinates, separate_hemisphere, wmfod, kernel_size)
@@ -306,13 +364,14 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
 
             # Create predictions array of the same size as what we'd expect (batch size x number of streamlines x number of nodes x output_size)
             # Note that it's either num_nodes - 1 or not, depending on if we're predicting nodes, or predicting directions/angles
-            if training_task != "regression_coords":
-                predictions_array = np.zeros((batch_size, streamlines.shape[streamline_idx], streamlines.shape[node_idx] - 1, output_size))
-            else:
-                predictions_array = np.zeros((batch_size, streamlines.shape[streamline_idx], streamlines.shape[node_idx], output_size))
+            predictions_array = np.zeros((batch_size, streamlines.shape[streamline_idx], streamlines.shape[node_idx] - 1, output_size))
+            decoded_array = np.zeros((batch_size, streamlines.shape[streamline_idx], streamlines.shape[node_idx], 3))
                 
             # Initialize the loss for the streamline
             streamline_loss = []
+
+            # Initialize the angular error for the streamline
+            streamline_angular_error = []
 
             # For every streamline
             for streamline in range(streamlines.shape[streamline_idx]):
@@ -323,11 +382,14 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
                 # Initialize the points loss and grad
                 points_loss = []
 
+                # Initialize the points angular error
+                points_angular_error = []
+
                 # For every point in the streamline
                 for point in range(streamlines.shape[node_idx] - 1):
 
-                    #  Get the current point from the streamline of all batches
-                    streamline_node = streamlines[:, streamline, point]
+                    # Get the current point from the streamline of all batches
+                    streamline_node = np.round(streamlines[:, streamline, point]).astype(int)
 
                     # Get the x, y, z coordinate into a list
                     curr_coord = [streamline_node[:, 0], streamline_node[:, 1], streamline_node[:, 2]]
@@ -380,6 +442,29 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
                     if n_gpus and not distributed:
                         torch.cuda.empty_cache()
 
+                    # If the task is classification, then we want to print out the actual node we're predicting, and the actual label
+                    if contrastive == False:
+                        if training_task == "classification":
+                            if point == 0:
+                                decoded_array[:, streamline, point] = streamlines[:, streamline, point]
+                            else:
+                                predicted_node = find_next_node_classification(predicted_label, streamlines[:, streamline, point - 1])
+                                decoded_array[:, streamline, point] = predicted_node
+                        elif training_task == "regression_points_directions":
+                            if point == 0:
+                                decoded_array[:, streamline, point] = streamlines[:, streamline, point]
+                            else:
+                                predicted_node = find_next_node_points_direction(predicted_label, streamlines[:, streamline, point - 1])
+                                print("Predicted node is", predicted_node)
+                                decoded_array[:, streamline, point] = predicted_node
+
+                            # Find the angular error between prediction and label
+                            angular_error = get_angular_error_points_direction(predicted_label, streamline_label)
+                            print("Angular error is", angular_error)
+
+                            # Add the angular error to the list
+                            points_angular_error.append(angular_error)
+
                     # Update the loss
                     losses.update(loss.item(), batch_size)
                     
@@ -401,9 +486,15 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
             
                 # Add the points loss and grad to the streamline loss
                 streamline_loss.append(points_loss)
+
+                # Add the points angular error to the streamline angular error
+                streamline_angular_error.append(points_angular_error)
         
             # Add the streamlines loss and grad to the batch loss
             batch_losses.append(streamline_loss)
+
+            # Add the streamline angular error to the batch angular error
+            batch_angular_error.append(streamline_angular_error)
             
         print("Saving...")
 
@@ -437,27 +528,52 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
             prediction_filename = os.path.join(batch_folder, "tracer_streamlines_predicted.{extension}".format(extension=extension))
             groundtruth_filename = os.path.join(batch_folder, "tracer_streamlines.{extension}".format(extension=input_type))
 
+            # Define the decoded filename
+            if contrastive == False:
+                if training_task == "classification":
+                    prediction_decoded_filename = os.path.join(batch_folder, "tracer_decoded_classifications.npy")
+                elif training_task == "regression_points_directions":
+                    prediction_decoded_filename = os.path.join(batch_folder, "tracer_decoded_points.npy")
+
             # Turn the predicted streamlines array into a Tractogram with nibabel and save it - note that streamlines is now a torch TENSOR,
             # where the first element is a batch index. Thus, we need to take that into consideration and save batch by batch
             true_streamlines_array = nib.streamlines.Tractogram(streamlines[batch], affine_to_rasmm=np.eye(4))
-            nib.streamlines.save(true_streamlines_array, groundtruth_filename)
+            nib.streamlines.save(true_streamlines_array, groundtruth_filename, header=header)
 
             # Turn the predicted streamlines array into a Tractogram with nibabel if we're predicting coordinates
             if training_task == "regression_coords":
                 # Turn the predicted streamlines array into a Tractogram with nibabel and save it
                 predicted_streamlines_array = nib.streamlines.Tractogram(predictions_array[batch], affine_to_rasmm=np.eye(4))    
-                nib.streamlines.save(predicted_streamlines_array, prediction_filename)
+                nib.streamlines.save(predicted_streamlines_array, prediction_filename, header=header)
 
             # Else, save the predicted stuff as a numpy array
             else:
                 np.save(prediction_filename, predictions_array[batch])
-
-    loss_filename = os.path.join(predictions_folder, "loss.npy")
+                # Only save this if the task is classification
+                if training_task == "classification" and contrastive == False:
+                    np.save(prediction_decoded_filename, decoded_array[batch])
     
-    # Save the los
+    # Turn decoded array into a Tractogram with nibabel and save it
+    if contrastive == False:
+
+        if training_task == "classification":
+            # Convert into tractogram and save
+            decoded_streamlines_array = nib.streamlines.Tractogram(decoded_array, affine_to_rasmm=np.eye(4))
+            decoded_filename = os.path.join(predictions_folder, "tracer_decoded_classifications.{ext}".format(ext=input_type))
+            nib.streamlines.save(decoded_streamlines_array, decoded_filename, header=header)
+        
+        elif training_task == "regression_points_directions":
+            # Convert into tractogram and save
+            decoded_streamlines_array = nib.streamlines.Tractogram(decoded_array, affine_to_rasmm=np.eye(4))
+            decoded_filename = os.path.join(predictions_folder, "tracer_decoded_points.{ext}".format(ext=input_type))
+            nib.streamlines.save(decoded_streamlines_array, decoded_filename, header=header)   
+            # Define the angular error filename
+            angular_error_filename = os.path.join(predictions_folder, "angular_error.npy")
+            np.save(angular_error_filename, np.array(batch_angular_error))
+
+    # Save the loss
+    loss_filename = os.path.join(predictions_folder, "loss.npy")
     np.save(loss_filename, np.array(batch_losses))
-
-
         
 # Define the function to get model output
 def batch_loss(model, wmfod_cube, label, previous_predictions, criterion, original_shape, distributed=False, n_gpus=None, use_amp=False,
@@ -511,16 +627,10 @@ def _batch_loss(model, wmfod_cube, label, previous_predictions, criterion, train
         loss = criterion(predicted_output, label)
     else:
         loss = criterion(predicted_output.float(), label.float())
-            
-    # print("Loss is", loss.item())
-    # if training_task == "classification":
-    #     print("Predicted output is", F.softmax(predicted_output))
-    # else:
-    #     print("Predicted output is", predicted_output)
-    # print("Label is", label)
-            
+                        
     # Return the loss
     return predicted_output, loss, batch_size
+
 # Define the inner loop for streamline training
 def overfitting_training_loop_nodes(train_loader, model, criterion, optimizer, epoch, streamline_arrays_path, separate_hemisphere,
                                     kernel_size=3, n_gpus=None, distributed=False, print_gpu_memory=True, scaler=None, 
@@ -611,7 +721,7 @@ def overfitting_training_loop_nodes(train_loader, model, criterion, optimizer, e
         # If the task is classification, then we want to print out the actual node we're predicting, and the actual label
         # if training_task == "classification":
         #     if point > 0:
-        #         predicted_node = find_next_node(predicted_label.cpu().detach().numpy(), streamlines[:, streamline, point - 1])
+        #         predicted_node = find_next_node_classification(predicted_label.cpu().detach().numpy(), streamlines[:, streamline, point - 1])
         #         print("Previous node is", streamlines[:, streamline, point - 1])
         #         print("Predicted node is", predicted_node)
         #         print("Actual node is", streamlines[:, streamline, point])

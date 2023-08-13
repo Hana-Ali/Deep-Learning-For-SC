@@ -1,6 +1,7 @@
 import torch
 from torch.nn.functional import l1_loss, mse_loss, cross_entropy, nll_loss
 import torch.nn as nn
+import torch.nn.functional as F
 
 # Define the L1 loss
 def L1_loss(output, target):
@@ -46,3 +47,23 @@ class WeightedLoss(object):
     # Define the call function
     def __call__(self, output, target):
         return weighted_loss(output, target, self.weights, self.criterion, weighted_dimension=self.weighted_dimension)
+
+# Define the angular error loss
+def angular_error_loss(vec1, vec2):
+    # Ensure the vectors are normalized
+    vec1_normalized = F.normalize(vec1, p=2, dim=-1)
+    vec2_normalized = F.normalize(vec2, p=2, dim=-1)
+
+    # Calculate the cosine similarity
+    cosine_similarity = torch.sum(vec1_normalized * vec2_normalized, dim=-1)
+
+    # Clamp the values to handle numerical issues
+    cosine_similarity = torch.clamp(cosine_similarity, min=-1.0, max=1.0)
+
+    # Calculate the angular error in radians
+    angular_error_rad = torch.acos(cosine_similarity)
+
+    # Optionally, you could convert the angular error to degrees
+    angular_error_deg = torch.rad2deg(angular_error_rad)
+
+    return angular_error_deg

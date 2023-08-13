@@ -135,6 +135,14 @@ class StreamlineDataset(torch.utils.data.Dataset):
         elif self.task == "regression_directions":
             label_npy_files = [file for file in self.npy_files if "direction_tuple" in file and "tracer" in file and "sharp" not in file]
             label_npy_files = self.get_tck_trk_data(label_npy_files)
+        
+        elif self.task == "regression_points_directions":
+            label_npy_files = [file for file in self.npy_files if "points_direction" in file and "tracer" in file and "sharp" not in file]
+            label_npy_files = self.get_tck_trk_data(label_npy_files)
+
+        elif self.task == "regression_vector_directions":
+            label_npy_files = [file for file in self.npy_files if "vector_direction" in file and "tracer" in file and "sharp" not in file]
+            label_npy_files = self.get_tck_trk_data(label_npy_files)
 
         elif self.task == "regression_coords":
             label_npy_files = []
@@ -211,8 +219,14 @@ class StreamlineDataset(torch.utils.data.Dataset):
     # Function to read a streamline
     def read_streamline(self, streamline_path):
 
-        # Read the streamline
-        streamlines = nib.streamlines.load(streamline_path).streamlines
+        # Read the tractogram
+        tractogram = nib.streamlines.load(streamline_path)
+
+        # Read the streamlines
+        streamlines = tractogram.streamlines
+
+        # Read the header
+        header = tractogram.header
 
         # Get a random range of streamlines
         streamlines_range = self.choose_random_streamlines_range(streamlines)
@@ -220,11 +234,9 @@ class StreamlineDataset(torch.utils.data.Dataset):
         # Get the streamlines from the range
         streamlines = streamlines[streamlines_range]
 
-        # # Round the streamlines
-        # streamlines = np.round(streamlines).astype(int)
 
-        # Return the streamline list of lists of coordinates
-        return streamlines
+        # Return the streamline list of lists of coordinates and the header
+        return streamlines, header
     
     # Function to read a npy file
     def read_npy(self, npy_path):
@@ -254,27 +266,25 @@ class StreamlineDataset(torch.utils.data.Dataset):
         wmfod_image_array = self.read_image(wmfod_image_path)
 
         # Read the streamline
-        float_streamlines_list = self.read_streamline(streamline_path)
-
-        # Round the streamlines to the nearest integer
-        streamline_list = np.round(float_streamlines_list).astype(int)
+        float_streamlines_list, header = self.read_streamline(streamline_path)
 
         # Choose and read label if the task is correct
         if self.task != "regression_coords":
             label_path = self.labels[index]
             label_array = self.read_npy(label_path)
         else: # Set the label to be the coordinate floats
-            label_array = np.round(float_streamlines_list)
+            label_array = float_streamlines_list
         
         # Define a dictionary to store the images
         sample = {
                     'wmfod' : wmfod_image_array,
-                    'streamlines' : streamline_list,
+                    'streamlines' : float_streamlines_list,
+                    "header" : header,
                     'labels' : label_array
                  }
          
         # Return the nps. This is the final output to feed the network
-        return sample["wmfod"], sample["streamlines"], sample["labels"]
+        return sample["wmfod"], sample["streamlines"], sample["header"], sample["labels"]
     
     def __len__(self):
         return self.streamlines_size
@@ -445,7 +455,7 @@ def map_points_to_directions(points):
     return directions, directions_tuples
 
 # Function to, given a direction and previous node, find what the corresponding next node should be
-def find_next_node(direction, previous_node):
+def find_next_node_classification(direction, previous_node):
     
     # Get the bins
     bins = define_bins()
@@ -493,6 +503,33 @@ def find_next_node(direction, previous_node):
     # Return the next nodes as a numpy array
     return next_nodes
 
+# Function to get the next node for when we regress the directions
+def find_next_node_points_direction(direction, previous_node):
+
+    # Convert the previous node and direction to a numpy array
+    direction = direction.cpu().detach().numpy()
+    previous_node = previous_node.cpu().detach().numpy()
+
+    # Since the points direction is just the difference between the previous node and the next node, we can just
+    # add the direction to the previous node to get the next node
+    next_node = previous_node + direction
+
+    # Return the next node
+    return next_node
+
+# Function to get the angular error between the points direction and the actual direction
+def get_angular_error_points_direction(points_direction, actual_direction):
+
+    # Convert the points direction and actual direction to a numpy array
+    points_direction = points_direction.cpu().detach().numpy()
+    actual_direction = actual_direction.cpu().detach().numpy()
+
+    # Get the angular error between the points direction and the actual direction
+    angular_error = np.arccos(np.dot(points_direction, actual_direction) / (np.linalg.norm(points_direction) * np.linalg.norm(actual_direction)))
+
+    # Return the angular error
+    return angular_error
+
 # Function to get the next node for a given a list of directions
 def reconstruct_predicted_streamline(directions):
 
@@ -509,7 +546,7 @@ def reconstruct_predicted_streamline(directions):
         previous_node = nodes[i-1]
 
         # Get the next node
-        next_node = find_next_node(directions[i], previous_node)
+        next_node = find_next_node_classification(directions[i], previous_node)
 
         # Append the next node to the list of nodes
         nodes.append(next_node)

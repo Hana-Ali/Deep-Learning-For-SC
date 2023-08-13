@@ -53,13 +53,14 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
     verbose = config["verbose"] if "verbose" in config else 1
 
     # Define the output size depending on the task
-    if in_config("task", config, None) == "classification" and in_config("contrastive", config, False) == False:
-        output_size = 27 # Predicting directions, there are 27 bins
-    elif in_config("task", config, None) == "regression_angles" and in_config("contrastive", config, False) == False:
-        output_size = 3 # Predicting angles
-    elif in_config("task", config, None) == "regression_coords" and in_config("contrastive", config, False) == False:
-        output_size = 3 # Predicting coordinates
-    elif in_config("contrastive", config, False) != False:
+    if in_config("contrastive", config, False) == False:
+        if in_config("task", config, None) == "classification":
+            output_size = 27 # Predicting directions, there are 27 bins
+        elif in_config("task", config, None) == "regression_angles":
+            output_size = 3 # Predicting angles
+        elif in_config("task", config, None) == "regression_coords":
+            output_size = 3 # Predicting coordinates
+    else:
         output_size = 256 # Predicting contrastive loss
     
     print("output_size", output_size)
@@ -113,6 +114,8 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
             criterion = negative_log_likelihood_loss
         elif in_config("task", config, None) == "regression_angles" or in_config("task", config, None) == "regression_coords":
             criterion = MSE_loss
+        elif in_config("task", config, None) == "regression_points_directions":
+            criterion = angular_error_loss
         else: # If no task is given, then we need to load one according to the evaluation metric
             criterion = load_criterion(config['evaluation_metric'], n_gpus=n_gpus)
 

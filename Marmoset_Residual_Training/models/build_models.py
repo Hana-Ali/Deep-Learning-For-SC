@@ -41,16 +41,15 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=3, norm
             assert task is not None
 
             # Ensure that the output size matches the task
-            if task == "classification" and not contrastive:
-                assert output_size == 27
-            elif task == "regression_angles" and not contrastive:
-                assert output_size == 3
-            elif task == "regression_coords" and not contrastive:
-                assert output_size == 3
-            elif contrastive:
-                assert output_size == 256
+            if not contrastive:
+                if task == "classification":
+                    assert output_size == 27
+                elif (task == "regression_coords" or task == "regression_angles" or task == "regression_points_directions"):
+                    assert output_size == 3
+                else:
+                    raise ValueError("Task {} not found".format(task))
             else:
-                raise ValueError("Task {} not found".format(task))
+                assert output_size == 256
 
             # Return the ResNet encoder
             model = ResnetEncoder_Streamlines(num_classes=output_size, 
@@ -95,16 +94,15 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=3, norm
             assert num_blocks is not None
 
             # Ensure that the output size matches the task
-            if task == "classification" and not contrastive:
-                assert output_size == 27
-            elif task == "regression_angles" and not contrastive:
-                assert output_size == 3
-            elif task == "regression_coords" and not contrastive:
-                assert output_size == 3
-            elif contrastive:
-                assert output_size == 256
+            if not contrastive:
+                if task == "classification":
+                    assert output_size == 27
+                elif (task == "regression_coords" or task == "regression_angles" or task == "regression_points_directions"):
+                    assert output_size == 3
+                else:
+                    raise ValueError("Task {} not found".format(task))
             else:
-                raise ValueError("Task {} not found".format(task))
+                assert output_size == 256
 
             # Return the CNN Attention 2
             model = AttnCNN(channels=input_nc,
@@ -124,16 +122,15 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=3, norm
             assert task is not None
 
             # Ensure that the output size matches the task
-            if task == "classification" and not contrastive:
-                assert output_size == 27
-            elif task == "regression_angles" and not contrastive:
-                assert output_size == 3
-            elif task == "regression_coords" and not contrastive:
-                assert output_size == 3
-            elif contrastive:
-                assert output_size == 256
+            if not contrastive:
+                if task == "classification":
+                    assert output_size == 27
+                elif (task == "regression_coords" or task == "regression_angles" or task == "regression_points_directions"):
+                    assert output_size == 3
+                else:
+                    raise ValueError("Task {} not found".format(task))
             else:
-                raise ValueError("Task {} not found".format(task))
+                assert output_size == 256
             
             # Assert that if we do depthwise conv, the input_nc is 1
             if depthwise_conv:
@@ -161,16 +158,15 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=3, norm
             flattened_mlp_size = input_nc * ((cube_size) ** 3)
 
             # Ensure that the output size matches the task
-            if task == "classification" and not contrastive:
-                assert output_size == 27
-            elif task == "regression_angles" and not contrastive:
-                assert output_size == 3
-            elif task == "regression_coords" and not contrastive:
-                assert output_size == 3
-            elif contrastive:
-                assert output_size == 256
+            if not contrastive:
+                if task == "classification":
+                    assert output_size == 27
+                elif (task == "regression_coords" or task == "regression_angles" or task == "regression_points_directions"):
+                    assert output_size == 3
+                else:
+                    raise ValueError("Task {} not found".format(task))
             else:
-                raise ValueError("Task {} not found".format(task))
+                assert output_size == 256
 
             # Return the Baseline MLP
             model = Baseline_MLP(cnn_flattened_size=flattened_mlp_size,
@@ -186,12 +182,15 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=3, norm
             assert task is not None
 
             # Ensure that the output size matches the task
-            if task == "classification":
-                assert output_size == 27
-            elif task == "regression_angles" or task == "regression_coords":
-                assert output_size == 3
+            if not contrastive:
+                if task == "classification":
+                    assert output_size == 27
+                elif (task == "regression_coords" or task == "regression_angles" or task == "regression_points_directions"):
+                    assert output_size == 3
+                else:
+                    raise ValueError("Task {} not found".format(task))
             else:
-                raise ValueError("Task {} not found".format(task))
+                assert output_size == 256
             
             # Return the Voxelwise MLP
             model = voxelwise_MLP(channels=input_nc,
