@@ -8,6 +8,7 @@ import regex as re
 from collections import OrderedDict
 import json
 import glob
+import nibabel as nib
 
 from torchvision import transforms
 
@@ -123,3 +124,33 @@ class TwoCropTransform:
 
     def __call__(self, x):
         return [x, x]
+    
+# Function to get the header from a trk/tck file
+def get_streamline_header(main_data_path, tck_type):
+
+    # Glob streamline files, depending on tck_type
+    if tck_type == "tck":
+        streamline_files = glob_files(main_data_path, "tck")
+    elif tck_type == "trk":
+        streamline_files = glob_files(main_data_path, "trk")
+    else:
+        raise ValueError("tck_type must be either tck or trk")
+    
+    # Get the tracer and non sharp files
+    tracer_files = [file for file in streamline_files if "tracer" in file and "sharp" not in file]
+
+    # Load the tractogram from the first path
+    tractogram = nib.streamlines.load(tracer_files[0])
+
+    # Get the header
+    header = tractogram.header
+
+    # Return the header
+    return header
+
+# Function to glob files
+def glob_files(PATH_NAME, file_format):
+    INPUT_FILES = []
+    for file in glob.glob(os.path.join(PATH_NAME, os.path.join("**", "*.{}".format(file_format))), recursive=True):
+        INPUT_FILES.append(file)
+    return INPUT_FILES

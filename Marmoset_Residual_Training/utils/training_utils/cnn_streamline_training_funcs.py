@@ -16,7 +16,7 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                         kernel_size=5, n_gpus=None, distributed=False, print_gpu_memory=True, scaler=None, 
                         data_time=None, coordinates=None, use_amp=False, losses=None, batch_time=None,
                         progress=None, input_type="trk", training_task="classification", output_size=1,
-                        contrastive=False, voxel_wise=False):
+                        contrastive=False, voxel_wise=False, streamline_header=None):
         
     # Initialize the end time
     end = time.time()
@@ -281,13 +281,13 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
         # Turn the predicted streamlines array into a Tractogram with nibabel and save it - note that streamlines is now a torch TENSOR,
         # where the first element is a batch index. Thus, we need to take that into consideration and save batch by batch
         true_streamlines_array = nib.streamlines.Tractogram(streamlines[batch], affine_to_rasmm=np.eye(4))
-        nib.streamlines.save(true_streamlines_array, groundtruth_filename, header=header)
+        nib.streamlines.save(true_streamlines_array, groundtruth_filename, header=streamline_header)
 
         # Turn the predicted streamlines array into a Tractogram with nibabel if we're predicting coordinates
         if training_task == "regression_coords":
             # Turn the predicted streamlines array into a Tractogram with nibabel and save it
             predicted_streamlines_array = nib.streamlines.Tractogram(predictions_array[batch], affine_to_rasmm=np.eye(4))    
-            nib.streamlines.save(predicted_streamlines_array, prediction_filename, header=header)
+            nib.streamlines.save(predicted_streamlines_array, prediction_filename, header=streamline_header)
 
         # Else, save the predicted stuff as a numpy array
         else:
@@ -304,12 +304,12 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
             # Convert into tractogram and save
             decoded_streamlines_array = nib.streamlines.Tractogram(decoded_array, affine_to_rasmm=np.eye(4))
             decoded_filename = os.path.join(predictions_folder, "tracer_decoded_classifications.{ext}".format(ext=input_type))
-            nib.streamlines.save(decoded_streamlines_array, decoded_filename, header=header)
+            nib.streamlines.save(decoded_streamlines_array, decoded_filename, header=streamline_header)
         elif training_task == "regression_points_directions":
             # Convert into tractogram and save
             decoded_streamlines_array = nib.streamlines.Tractogram(decoded_array, affine_to_rasmm=np.eye(4))
             decoded_filename = os.path.join(predictions_folder, "tracer_decoded_points.{ext}".format(ext=input_type))
-            nib.streamlines.save(decoded_streamlines_array, decoded_filename, header=header)
+            nib.streamlines.save(decoded_streamlines_array, decoded_filename, header=streamline_header)
             # Define the angular error filename
             angular_error_filename = os.path.join(predictions_folder, "angular_error.npy")
             np.save(angular_error_filename, np.array(batch_angular_error))
@@ -327,7 +327,7 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
 def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays_path, separate_hemisphere,
                             kernel_size=16, n_gpus=None, distributed=False, coordinates=None, use_amp=None, 
                             losses=None, batch_time=None, progress=None, input_type="trk", training_task="classification",
-                            output_size=1, contrastive=False, voxel_wise=False):
+                            output_size=1, contrastive=False, voxel_wise=False, streamline_header=None):
     
     # No gradients
     with torch.no_grad():
@@ -342,7 +342,7 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
         batch_angular_error = []
         
         # For each batch
-        for i, (wmfod, streamlines, header, labels) in enumerate(val_loader):
+        for i, (wmfod, streamlines, labels) in enumerate(val_loader):
             
             # Get the brain hemisphere
             brain_hemisphere = get_hemisphere(coordinates, separate_hemisphere, wmfod, kernel_size)
@@ -538,13 +538,13 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
             # Turn the predicted streamlines array into a Tractogram with nibabel and save it - note that streamlines is now a torch TENSOR,
             # where the first element is a batch index. Thus, we need to take that into consideration and save batch by batch
             true_streamlines_array = nib.streamlines.Tractogram(streamlines[batch], affine_to_rasmm=np.eye(4))
-            nib.streamlines.save(true_streamlines_array, groundtruth_filename, header=header)
+            nib.streamlines.save(true_streamlines_array, groundtruth_filename, header=streamline_header)
 
             # Turn the predicted streamlines array into a Tractogram with nibabel if we're predicting coordinates
             if training_task == "regression_coords":
                 # Turn the predicted streamlines array into a Tractogram with nibabel and save it
                 predicted_streamlines_array = nib.streamlines.Tractogram(predictions_array[batch], affine_to_rasmm=np.eye(4))    
-                nib.streamlines.save(predicted_streamlines_array, prediction_filename, header=header)
+                nib.streamlines.save(predicted_streamlines_array, prediction_filename, header=streamline_header)
 
             # Else, save the predicted stuff as a numpy array
             else:
@@ -560,13 +560,13 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
             # Convert into tractogram and save
             decoded_streamlines_array = nib.streamlines.Tractogram(decoded_array, affine_to_rasmm=np.eye(4))
             decoded_filename = os.path.join(predictions_folder, "tracer_decoded_classifications.{ext}".format(ext=input_type))
-            nib.streamlines.save(decoded_streamlines_array, decoded_filename, header=header)
+            nib.streamlines.save(decoded_streamlines_array, decoded_filename, header=streamline_header)
         
         elif training_task == "regression_points_directions":
             # Convert into tractogram and save
             decoded_streamlines_array = nib.streamlines.Tractogram(decoded_array, affine_to_rasmm=np.eye(4))
             decoded_filename = os.path.join(predictions_folder, "tracer_decoded_points.{ext}".format(ext=input_type))
-            nib.streamlines.save(decoded_streamlines_array, decoded_filename, header=header)   
+            nib.streamlines.save(decoded_streamlines_array, decoded_filename, header=streamline_header)   
             # Define the angular error filename
             angular_error_filename = os.path.join(predictions_folder, "angular_error.npy")
             np.save(angular_error_filename, np.array(batch_angular_error))

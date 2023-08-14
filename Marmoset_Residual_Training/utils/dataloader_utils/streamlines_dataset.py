@@ -281,6 +281,7 @@ class StreamlineDataset(torch.utils.data.Dataset):
         sample = {
                     'wmfod' : wmfod_image_array,
                     'streamlines' : streamlines_list,
+                    'header' : header,
                     'labels' : label_array
                  }
          
