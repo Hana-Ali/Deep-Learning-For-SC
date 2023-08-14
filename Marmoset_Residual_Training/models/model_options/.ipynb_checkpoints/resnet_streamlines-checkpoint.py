@@ -145,19 +145,16 @@ class ResnetEncoder_Streamlines(nn.Module):
         self.adaptive_pooling = nn.AdaptiveAvgPool3d((1, 1, 1))
 
         # Assert that the number of classes matches the task
-        if not contrastive:
-            if self.task == "classification":
-                assert self.num_classes == 27, "Number of classes must be 27 for classification task"
-            elif self.task == "regression_angles":
-                assert self.num_classes == 3, "Number of classes must be 3 for regression angles task"
-            elif self.task == "regression_coords":
-                assert self.num_classes == 3, "Number of classes must be 3 for regression coordinates task"
-            elif self.task == "regression_points_directions":
-                assert self.num_classes == 3, "Number of classes must be 3 for regression points direction task"
-            else:
-                raise NotImplementedError("Task {} is not implemented".format(self.task))
-        else:
+        if self.task == "classification" and not contrastive:
+            assert self.num_classes == 27, "Number of classes must be 27 for classification task"
+        elif self.task == "regression_angles" and not contrastive:
+            assert self.num_classes == 3, "Number of classes must be 3 for regression angles task"
+        elif self.task == "regression_coords" and not contrastive:
+            assert self.num_classes == 3, "Number of classes must be 3 for regression coordinates task"
+        elif contrastive:
             assert self.num_classes == 256, "Number of classes must be 256 for contrastive task"
+        else:
+            raise NotImplementedError("Task {} is not implemented".format(self.task))
         
         #  Define the output size (different depending on task)
         self.output_size = self.num_classes
@@ -169,12 +166,11 @@ class ResnetEncoder_Streamlines(nn.Module):
         self.previous_predictions_size = self.output_size * 2
                 
         # The flattened size depends on the task
-        if not contrastive:
-            if self.task == "classification":
-                cnn_flattened_size = 27
-            elif self.task == "regression_coords" or self.task == "regression_angles" or self.task == "regression_points_directions":
-                cnn_flattened_size = 3
-        else:
+        if self.task == "classification" and not contrastive:
+            cnn_flattened_size = 27
+        elif self.task == "regression_coords" or self.task == "regression_angles" and not contrastive:
+            cnn_flattened_size = 3
+        elif contrastive:
             cnn_flattened_size = 256
         
         # The architecture is different depending on whether we want to include the previous predictions or not
@@ -192,12 +188,11 @@ class ResnetEncoder_Streamlines(nn.Module):
                                             neurons=self.neurons, output_size=self.output_size, task=self.task)
             
             # Define the final activation depending on the task
-            if not contrastive:
-                if self.task == "classification" and not contrastive:
-                    self.final_activation = nn.LogSoftmax(dim=1)
-                elif self.task == "regression_angles" or self.task == "regression_coords" or self.task == "regression_points_directions":
-                    self.final_activation = nn.Sigmoid()
-            else:
+            if self.task == "classification" and not contrastive:
+                self.final_activation = nn.LogSoftmax(dim=1)
+            elif (self.task == "regression_angles" or self.task == "regression_coords") and (not contrastive):
+                self.final_activation = nn.Sigmoid()
+            elif contrastive:
                 self.final_activation = None
 
         else:

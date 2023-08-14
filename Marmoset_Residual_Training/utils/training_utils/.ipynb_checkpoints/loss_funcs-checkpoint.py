@@ -66,4 +66,4 @@ def angular_error_loss(vec1, vec2):
     # Optionally, you could convert the angular error to degrees
     angular_error_deg = torch.rad2deg(angular_error_rad)
 
-    return torch.mean(angular_error_deg)
+    return angular_error_deg

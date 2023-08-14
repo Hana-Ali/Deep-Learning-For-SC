@@ -20,6 +20,8 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
         
     # Initialize the end time
     end = time.time()
+    
+    # print("Streamline header is", streamline_header)
         
     # Initialize the loss and gradient for the batch
     batch_losses = []    
@@ -627,7 +629,7 @@ def _batch_loss(model, wmfod_cube, label, previous_predictions, criterion, train
         loss = criterion(predicted_output, label)
     else:
         loss = criterion(predicted_output.float(), label.float())
-                                
+                                        
     # Return the loss
     return predicted_output, loss, batch_size
 

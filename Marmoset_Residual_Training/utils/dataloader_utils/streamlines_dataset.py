@@ -137,7 +137,7 @@ class StreamlineDataset(torch.utils.data.Dataset):
             label_npy_files = self.get_tck_trk_data(label_npy_files)
         
         elif self.task == "regression_points_directions":
-            label_npy_files = [file for file in self.npy_files if "points_direction" in file and "tracer" in file and "sharp" not in file]
+            label_npy_files = [file for file in self.npy_files if "points_direction_no_first" in file and "tracer" in file and "sharp" not in file]
             label_npy_files = self.get_tck_trk_data(label_npy_files)
 
         elif self.task == "regression_vector_directions":
@@ -276,12 +276,11 @@ class StreamlineDataset(torch.utils.data.Dataset):
             label_array = self.read_npy(label_path)
         else: # Set the label to be the coordinate floats
             label_array = streamlines_list
-        
+                    
         # Define a dictionary to store the images
         sample = {
                     'wmfod' : wmfod_image_array,
                     'streamlines' : streamlines_list,
-                    'header' : header,
                     'labels' : label_array
                  }
          
@@ -527,7 +526,10 @@ def get_angular_error_points_direction(points_direction, actual_direction):
     actual_direction = actual_direction.cpu().detach().numpy()
 
     # Get the angular error between the points direction and the actual direction
-    angular_error = np.arccos(np.dot(points_direction, actual_direction) / (np.linalg.norm(points_direction) * np.linalg.norm(actual_direction)))
+    angular_error = np.arccos(np.dot(points_direction, actual_direction.T) / (np.linalg.norm(points_direction) * np.linalg.norm(actual_direction)))
+    
+    # Turn into torch tensor, find the mean, then get the value
+    angular_error = torch.mean(torch.from_numpy(angular_error)).item()
 
     # Return the angular error
     return angular_error

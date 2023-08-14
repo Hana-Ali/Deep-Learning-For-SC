@@ -106,12 +106,11 @@ class AttnCNN(nn.Module):
         self.previous_predictions_size = self.output_size * 2
                 
         # The flattened size depends on the task
-        if not contrastive:
-            if self.task == "classification":
-                cnn_flattened_size = 27
-            elif self.task == "regression_coords" or self.task == "regression_angles" or self.task == "regression_points_directions":
-                cnn_flattened_size = 3
-        else:
+        if self.task == "classification" and not contrastive:
+            cnn_flattened_size = 27
+        elif self.task == "regression_coords" or self.task == "regression_angles" and not contrastive:
+            cnn_flattened_size = 3
+        elif contrastive:
             cnn_flattened_size = 256
         
         # The architecture is different depending on whether we want to include the previous predictions or not
@@ -122,12 +121,11 @@ class AttnCNN(nn.Module):
                                             neurons=self.neurons, output_size=self.output_size, task=self.task)
             
             # Define the final activation depending on the task
-            if not contrastive:
-                if self.task == "classification" and not contrastive:
-                    self.final_activation = nn.LogSoftmax(dim=1)
-                elif self.task == "regression_angles" or self.task == "regression_coords" or self.task == "regression_points_directions":
-                    self.final_activation = nn.Sigmoid()
-            else:
+            if self.task == "classification" and not contrastive:
+                self.final_activation = nn.LogSoftmax(dim=1)
+            elif (self.task == "regression_angles" or self.task == "regression_coords") and (not contrastive):
+                self.final_activation = nn.Sigmoid()
+            elif contrastive:
                 self.final_activation = None
 
     def forward(self, x, previous_predictions, original_shapes):

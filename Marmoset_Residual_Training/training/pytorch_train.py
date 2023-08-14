@@ -54,17 +54,21 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
 
     # Get the streamline header
     streamline_header = get_streamline_header(main_data_path, config["tck_type"])
+    
+    # Define contrastive and the task
+    contrastive = in_config("contrastive", config, False)
+    task = in_config("task", config, None)
 
     # Define the output size depending on the task
-    if in_config("contrastive", config, False) == False:
-        if in_config("task", config, None) == "classification":
-            output_size = 27 # Predicting directions, there are 27 bins
-        elif in_config("task", config, None) == "regression_angles":
-            output_size = 3 # Predicting angles
-        elif in_config("task", config, None) == "regression_coords":
-            output_size = 3 # Predicting coordinates
+    if not contrastive:
+        if task == "classification":
+            output_size = 27
+        elif (task == "regression_coords" or task == "regression_angles" or task == "regression_points_directions"):
+            output_size = 3
+        else:
+            raise ValueError("Task {} not found".format(task))
     else:
-        output_size = 256 # Predicting contrastive loss
+        output_size = 256
     
     print("output_size", output_size)
         
