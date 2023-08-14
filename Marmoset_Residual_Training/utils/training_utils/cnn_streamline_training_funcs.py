@@ -255,7 +255,7 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
     check_output_folders(predictions_folder, "predictions folder", wipe=False)
     
     # Define the extension depending on the task (the output is either a npy file or a trk/tck file)
-    if training_task == "classification" or training_task == "regression_angles":
+    if training_task == "classification" or training_task == "regression_angles" or training_task == "regression_points_directions":
         extension = "npy"
     elif training_task == "regression_coords":
         extension = "{ext}".format(ext=input_type)
@@ -294,10 +294,11 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
         # Else, save the predicted stuff as a numpy array
         else:
             np.save(prediction_filename, predictions_array[batch])
-            # Only save this if the task is classification
-            if training_task == "classification" and contrastive == False:
-                # Save the decoded array
-                np.save(prediction_decoded_filename, decoded_array[batch])
+            # Only save this if the task is classification or regression_points_directions
+            if contrastive == False:
+                if training_task == "classification" or training_task == "regression_points_directions":
+                    # Save the decoded array
+                    np.save(prediction_decoded_filename, decoded_array[batch])
     
     # Turn decoded array into a Tractogram with nibabel and save it
     if contrastive == False:
@@ -391,8 +392,8 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
                 for point in range(streamlines.shape[node_idx] - 1):
 
                     # Get the current point from the streamline of all batches
-                    streamline_node = np.round(streamlines[:, streamline, point]).astype(int)
-
+                    streamline_node = torch.round(streamlines[:, streamline, point])
+                    
                     # Get the x, y, z coordinate into a list
                     curr_coord = [streamline_node[:, 0], streamline_node[:, 1], streamline_node[:, 2]]
 
@@ -510,7 +511,7 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
         # print("Shape of predicted_streamlines_array", predictions_array.shape)
 
         # Define the extension depending on the task (the output is either a npy file or a trk/tck file)
-        if training_task == "classification" or training_task == "regression_angles":
+        if training_task == "classification" or training_task == "regression_angles" or training_task == "regression_points_directions":
             extension = "npy"
         elif training_task == "regression_coords":
             extension = "{ext}".format(ext=input_type)
@@ -551,9 +552,11 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
             # Else, save the predicted stuff as a numpy array
             else:
                 np.save(prediction_filename, predictions_array[batch])
-                # Only save this if the task is classification
-                if training_task == "classification" and contrastive == False:
-                    np.save(prediction_decoded_filename, decoded_array[batch])
+                # Only save this if the task is classification or regression_points_directions
+                if contrastive == False:
+                    if training_task == "classification" or training_task == "regression_points_directions":
+                        # Save the decoded array
+                        np.save(prediction_decoded_filename, decoded_array[batch])
     
     # Turn decoded array into a Tractogram with nibabel and save it
     if contrastive == False:
