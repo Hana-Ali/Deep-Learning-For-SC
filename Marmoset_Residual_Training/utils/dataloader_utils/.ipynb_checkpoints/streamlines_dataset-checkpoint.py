@@ -233,10 +233,8 @@ class StreamlineDataset(torch.utils.data.Dataset):
 
         # Get the streamlines from the range
         streamlines = streamlines[streamlines_range]
-        
-        # Round the streamlines
-        streamlines = np.round(streamlines, decimals=2)
-                
+
+
         # Return the streamline list of lists of coordinates and the header
         return streamlines, header
     
@@ -268,24 +266,25 @@ class StreamlineDataset(torch.utils.data.Dataset):
         wmfod_image_array = self.read_image(wmfod_image_path)
 
         # Read the streamline
-        streamlines_list, header = self.read_streamline(streamline_path)
+        float_streamlines_list, header = self.read_streamline(streamline_path)
 
         # Choose and read label if the task is correct
         if self.task != "regression_coords":
             label_path = self.labels[index]
             label_array = self.read_npy(label_path)
         else: # Set the label to be the coordinate floats
-            label_array = streamlines_list
+            label_array = float_streamlines_list
         
         # Define a dictionary to store the images
         sample = {
                     'wmfod' : wmfod_image_array,
-                    'streamlines' : streamlines_list,
+                    'streamlines' : float_streamlines_list,
+                    "header" : header,
                     'labels' : label_array
                  }
          
         # Return the nps. This is the final output to feed the network
-        return sample["wmfod"], sample["streamlines"], sample["labels"]
+        return sample["wmfod"], sample["streamlines"], sample["header"], sample["labels"]
     
     def __len__(self):
         return self.streamlines_size

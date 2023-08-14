@@ -211,7 +211,7 @@ def grab_cube_around_voxel(image, voxel_coordinates, kernel_size):
                     # For each item in the batch
                     for batch in range(batch_size):
                         # Get the value in the image
-                        value = image[batch, :, x_coord[batch], y_coord[batch], z_coord[batch]]
+                        value = image[batch, :, int(x_coord[batch]), int(y_coord[batch]), int(z_coord[batch])]
                         # Set the value in the cube
                         cube[batch, :, x, y, z] = value
                 else:

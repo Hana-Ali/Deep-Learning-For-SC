@@ -29,7 +29,7 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
     batch_angular_error = []
     
     # For each batch
-    for i, (wmfod, streamlines, header, labels) in enumerate(train_loader):
+    for i, (wmfod, streamlines, labels) in enumerate(train_loader):
         
         # print("Trial {}".format(i))
         # print("Shape of wmfods is: {}".format(wmfod.shape))
@@ -101,7 +101,7 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
             for point in range(streamlines.shape[node_idx] - 1):
 
                 # Get the current point from the streamline of all batches
-                streamline_node = np.round(streamlines[:, streamline, point]).astype(int)
+                streamline_node = torch.round(streamlines[:, streamline, point])
 
                 # Get the x, y, z coordinate into a list
                 curr_coord = [streamline_node[:, 0], streamline_node[:, 1], streamline_node[:, 2]]
@@ -162,7 +162,7 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
 
                 # Get the prediction for this node as a numpy array
                 predicted_label = predicted_label.cpu().detach().numpy()
-
+                
                 # Add the predicted label to the predictions array
                 predictions_array[:, streamline, point] = predicted_label
 
@@ -627,7 +627,7 @@ def _batch_loss(model, wmfod_cube, label, previous_predictions, criterion, train
         loss = criterion(predicted_output, label)
     else:
         loss = criterion(predicted_output.float(), label.float())
-                        
+                                
     # Return the loss
     return predicted_output, loss, batch_size
 
