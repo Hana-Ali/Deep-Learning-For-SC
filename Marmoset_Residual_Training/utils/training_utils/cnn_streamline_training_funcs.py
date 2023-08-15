@@ -154,7 +154,9 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                             decoded_array[:, streamline, point] = streamlines[:, streamline, point]
                         else:
                             predicted_node = find_next_node_points_direction(predicted_label, streamlines[:, streamline, point - 1])
+                            print("Shape of predicted node is", predicted_node.shape)
                             decoded_array[:, streamline, point] = predicted_node
+                            print("Shape of decoded array is", decoded_array[:, streamline, point].shape)
 
                         # Find the angular error between prediction and label
                         angular_error = get_angular_error_points_direction(predicted_label, streamline_label)
@@ -309,6 +311,7 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
             decoded_filename = os.path.join(predictions_folder, "tracer_decoded_classifications.{ext}".format(ext=input_type))
             nib.streamlines.save(decoded_streamlines_array, decoded_filename, header=streamline_header)
         elif training_task == "regression_points_directions":
+            print("Shape of decoded array is", decoded_array[:, streamline, point].shape)
             # Convert into tractogram and save
             decoded_streamlines_array = nib.streamlines.Tractogram(decoded_array, affine_to_rasmm=np.eye(4))
             decoded_filename = os.path.join(predictions_folder, "tracer_decoded_points.{ext}".format(ext=input_type))
