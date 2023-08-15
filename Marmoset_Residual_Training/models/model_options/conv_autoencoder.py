@@ -4,7 +4,7 @@ import torch.nn as nn
 class ConvAutoencoder(nn.Module):
 
     # Constructor
-    def __init__(self, channels, filters=[64, 128, 256, 512], n_blocks=1, depthwise=False):
+    def __init__(self, channels, filters=[64, 128, 256, 512], n_blocks=1, depthwise=False, encoder_only=False):
         
         # Call the parent class
         super(ConvAutoencoder, self).__init__()
@@ -56,7 +56,8 @@ class ConvAutoencoder(nn.Module):
         self.encoder = nn.Sequential(*depthwise_conv)
         
         # Define one layer for when we use encoder alone to get it into size we want
-        self.final_conv = nn.Conv3d(512 * 45, 512, kernel_size=3, padding=1)
+        if encoder_only:
+            self.final_conv = nn.Conv3d(512 * 45, 512, kernel_size=3, padding=1)
 
         # The decoder is the same thing as the encoder but in reverse WITH CONV TRANSPOSE
         decoder = []
