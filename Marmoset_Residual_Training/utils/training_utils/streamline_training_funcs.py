@@ -271,14 +271,13 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
 
         # Define the filenames
         prediction_filename = os.path.join(batch_folder, "tracer_streamlines_predicted.{extension}".format(extension=extension))
+        decoded_prediction_trk_filename = os.path.join(batch_folder, "tracer_decoded.{extension}".format(extension=input_type))
         groundtruth_filename = os.path.join(batch_folder, "tracer_streamlines.{extension}".format(extension=input_type))
 
         # Define the decoded filename
         if contrastive == False:
-            if training_task == "classification":
-                prediction_decoded_filename = os.path.join(batch_folder, "tracer_decoded_classifications.npy")
-            elif training_task == "regression_points_directions":
-                prediction_decoded_filename = os.path.join(batch_folder, "tracer_decoded_points.npy")
+            if training_task == "classification" or training_task == "regression_points_directions":
+                decoded_prediction_np_filename = os.path.join(batch_folder, "tracer_decoded_numpy.npy")
 
         # Turn the predicted streamlines array into a Tractogram with nibabel and save it - note that streamlines is now a torch TENSOR,
         # where the first element is a batch index. Thus, we need to take that into consideration and save batch by batch
@@ -290,35 +289,28 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
             # Turn the predicted streamlines array into a Tractogram with nibabel and save it
             predicted_streamlines_array = nib.streamlines.Tractogram(predictions_array[batch], affine_to_rasmm=np.eye(4))    
             nib.streamlines.save(predicted_streamlines_array, prediction_filename, header=streamline_header)
-
+        
+        # Turn the decoded streamline array into a Tractogram with nibabel if we're predicting points directions
+        elif training_task == "regression_points_directions" or (training_task == "classification" and contrastive == False):
+            # Convert into tractogram and save
+            decoded_streamlines_array = nib.streamlines.Tractogram(decoded_array[batch], affine_to_rasmm=np.eye(4))
+            nib.streamlines.save(decoded_streamlines_array, decoded_prediction_trk_filename, header=streamline_header)
+        
         # Else, save the predicted stuff as a numpy array
         else:
             np.save(prediction_filename, predictions_array[batch])
             # Only save this if the task is classification or regression_points_directions
-            if contrastive == False:
-                if training_task == "classification" or training_task == "regression_points_directions":
-                    # Save the decoded array
-                    np.save(prediction_decoded_filename, decoded_array[batch])
+            if (training_task == "classification" or training_task == "regression_points_directions") and contrastive == False:
+                # Save the decoded array
+                np.save(decoded_prediction_np_filename, decoded_array[batch])
     
-    # Turn decoded array into a Tractogram with nibabel and save it
-    if contrastive == False:
-            
-        if training_task == "classification":
-            # Convert into tractogram and save
-            decoded_streamlines_array = nib.streamlines.Tractogram(decoded_array, affine_to_rasmm=np.eye(4))
-            decoded_filename = os.path.join(predictions_folder, "tracer_decoded_classifications.{ext}".format(ext=input_type))
-            nib.streamlines.save(decoded_streamlines_array, decoded_filename, header=streamline_header)
-        elif training_task == "regression_points_directions":
-            print("Shape of decoded_array is", decoded_array.shape)
-            if decoded_array.shape[1] == 1:
-                decoded_array = decoded_array.squeeze(1)
-            # Convert into tractogram and save
-            decoded_streamlines_array = nib.streamlines.Tractogram(decoded_array, affine_to_rasmm=np.eye(4))
-            decoded_filename = os.path.join(predictions_folder, "tracer_decoded_points.{ext}".format(ext=input_type))
-            nib.streamlines.save(decoded_streamlines_array, decoded_filename, header=streamline_header)
-            # Define the angular error filename
-            angular_error_filename = os.path.join(predictions_folder, "angular_error.npy")
-            np.save(angular_error_filename, np.array(batch_angular_error))
+    # Save the angular error
+    if training_task == "regression_points_directions":
+
+        # Define the angular error filename
+        angular_error_filename = os.path.join(predictions_folder, "angular_error.npy")
+        np.save(angular_error_filename, np.array(batch_angular_error))
+
 
     # Define the filenames
     loss_filename = os.path.join(predictions_folder, "loss.npy")
@@ -520,23 +512,20 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
 
         # Since we're doing batch, we want to save each batch by batch
         for batch in range(streamlines.shape[batch_idx]):
-
-            # print("Saving batch {}".format(batch))
-
+                    
             # Define the folder for this batch
             batch_folder = os.path.join(predictions_folder, "batch_{}".format(batch))
             check_output_folders(batch_folder, "batch_folder", wipe=False)
 
             # Define the filenames
             prediction_filename = os.path.join(batch_folder, "tracer_streamlines_predicted.{extension}".format(extension=extension))
+            decoded_prediction_trk_filename = os.path.join(batch_folder, "tracer_decoded.{extension}".format(extension=input_type))
             groundtruth_filename = os.path.join(batch_folder, "tracer_streamlines.{extension}".format(extension=input_type))
 
             # Define the decoded filename
             if contrastive == False:
-                if training_task == "classification":
-                    prediction_decoded_filename = os.path.join(batch_folder, "tracer_decoded_classifications.npy")
-                elif training_task == "regression_points_directions":
-                    prediction_decoded_filename = os.path.join(batch_folder, "tracer_decoded_points.npy")
+                if training_task == "classification" or training_task == "regression_points_directions":
+                    decoded_prediction_np_filename = os.path.join(batch_folder, "tracer_decoded_numpy.npy")
 
             # Turn the predicted streamlines array into a Tractogram with nibabel and save it - note that streamlines is now a torch TENSOR,
             # where the first element is a batch index. Thus, we need to take that into consideration and save batch by batch
@@ -548,33 +537,24 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
                 # Turn the predicted streamlines array into a Tractogram with nibabel and save it
                 predicted_streamlines_array = nib.streamlines.Tractogram(predictions_array[batch], affine_to_rasmm=np.eye(4))    
                 nib.streamlines.save(predicted_streamlines_array, prediction_filename, header=streamline_header)
-
+            
+            # Turn the decoded streamline array into a Tractogram with nibabel if we're predicting points directions
+            elif training_task == "regression_points_directions" or (training_task == "classification" and contrastive == False):
+                # Convert into tractogram and save
+                decoded_streamlines_array = nib.streamlines.Tractogram(decoded_array[batch], affine_to_rasmm=np.eye(4))
+                nib.streamlines.save(decoded_streamlines_array, decoded_prediction_trk_filename, header=streamline_header)
+            
             # Else, save the predicted stuff as a numpy array
             else:
                 np.save(prediction_filename, predictions_array[batch])
                 # Only save this if the task is classification or regression_points_directions
-                if contrastive == False:
-                    if training_task == "classification" or training_task == "regression_points_directions":
-                        # Save the decoded array
-                        np.save(prediction_decoded_filename, decoded_array[batch])
-    
-    # Turn decoded array into a Tractogram with nibabel and save it
-    if contrastive == False:
-
-        if training_task == "classification":
-            # Convert into tractogram and save
-            decoded_streamlines_array = nib.streamlines.Tractogram(decoded_array, affine_to_rasmm=np.eye(4))
-            decoded_filename = os.path.join(predictions_folder, "tracer_decoded_classifications.{ext}".format(ext=input_type))
-            nib.streamlines.save(decoded_streamlines_array, decoded_filename, header=streamline_header)
+                if (training_task == "classification" or training_task == "regression_points_directions") and contrastive == False:
+                    # Save the decoded array
+                    np.save(decoded_prediction_np_filename, decoded_array[batch])
         
-        elif training_task == "regression_points_directions":
-            print("Shape of decoded_array is", decoded_array.shape)
-            if decoded_array.shape[1] == 1:
-                decoded_array = decoded_array.squeeze(1)
-            # Convert into tractogram and save
-            decoded_streamlines_array = nib.streamlines.Tractogram(decoded_array, affine_to_rasmm=np.eye(4))
-            decoded_filename = os.path.join(predictions_folder, "tracer_decoded_points.{ext}".format(ext=input_type))
-            nib.streamlines.save(decoded_streamlines_array, decoded_filename, header=streamline_header)   
+        # Save the angular error
+        if training_task == "regression_points_directions":
+
             # Define the angular error filename
             angular_error_filename = os.path.join(predictions_folder, "angular_error.npy")
             np.save(angular_error_filename, np.array(batch_angular_error))
