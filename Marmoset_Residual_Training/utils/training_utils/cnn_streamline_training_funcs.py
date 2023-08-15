@@ -154,9 +154,7 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
                             decoded_array[:, streamline, point] = streamlines[:, streamline, point]
                         else:
                             predicted_node = find_next_node_points_direction(predicted_label, streamlines[:, streamline, point - 1])
-                            print("Shape of predicted node is", predicted_node.shape)
                             decoded_array[:, streamline, point] = predicted_node
-                            print("Shape of decoded array is", decoded_array[:, streamline, point].shape)
 
                         # Find the angular error between prediction and label
                         angular_error = get_angular_error_points_direction(predicted_label, streamline_label)
@@ -311,7 +309,9 @@ def training_loop_nodes(train_loader, model, criterion, optimizer, epoch, stream
             decoded_filename = os.path.join(predictions_folder, "tracer_decoded_classifications.{ext}".format(ext=input_type))
             nib.streamlines.save(decoded_streamlines_array, decoded_filename, header=streamline_header)
         elif training_task == "regression_points_directions":
-            print("Shape of decoded array is", decoded_array[:, streamline, point].shape)
+            print("Shape of decoded_array is", decoded_array.shape)
+            if decoded_array.shape[1] == 1:
+                decoded_array = decoded_array.squeeze(1)
             # Convert into tractogram and save
             decoded_streamlines_array = nib.streamlines.Tractogram(decoded_array, affine_to_rasmm=np.eye(4))
             decoded_filename = os.path.join(predictions_folder, "tracer_decoded_points.{ext}".format(ext=input_type))
@@ -432,6 +432,26 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
                     if loss == 0:
                         continue
 
+                    if contrastive == False:
+                        if training_task == "classification":
+                            if point == 0:
+                                decoded_array[:, streamline, point] = streamlines[:, streamline, point]
+                            else:
+                                predicted_node = find_next_node_classification(predicted_label, streamlines[:, streamline, point - 1])
+                                decoded_array[:, streamline, point] = predicted_node
+                        elif training_task == "regression_points_directions":
+                            if point == 0:
+                                decoded_array[:, streamline, point] = streamlines[:, streamline, point]
+                            else:
+                                predicted_node = find_next_node_points_direction(predicted_label, streamlines[:, streamline, point - 1])
+                                decoded_array[:, streamline, point] = predicted_node
+
+                            # Find the angular error between prediction and label
+                            angular_error = get_angular_error_points_direction(predicted_label, streamline_label)
+
+                            # Add the angular error to the list
+                            points_angular_error.append(angular_error)
+
                     # Get the prediction for this node as a numpy array
                     predicted_label = predicted_label.cpu().detach().numpy()
                     
@@ -447,29 +467,6 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
                     # Empty cache
                     if n_gpus and not distributed:
                         torch.cuda.empty_cache()
-
-                    # If the task is classification, then we want to print out the actual node we're predicting, and the actual label
-                    if contrastive == False:
-                        if training_task == "classification":
-                            if point == 0:
-                                decoded_array[:, streamline, point] = streamlines[:, streamline, point]
-                            else:
-                                predicted_node = find_next_node_classification(predicted_label, streamlines[:, streamline, point - 1])
-                                decoded_array[:, streamline, point] = predicted_node
-                        elif training_task == "regression_points_directions":
-                            if point == 0:
-                                decoded_array[:, streamline, point] = streamlines[:, streamline, point]
-                            else:
-                                predicted_node = find_next_node_points_direction(predicted_label, streamlines[:, streamline, point - 1])
-                                print("Predicted node is", predicted_node)
-                                decoded_array[:, streamline, point] = predicted_node
-
-                            # Find the angular error between prediction and label
-                            angular_error = get_angular_error_points_direction(predicted_label, streamline_label)
-                            print("Angular error is", angular_error)
-
-                            # Add the angular error to the list
-                            points_angular_error.append(angular_error)
 
                     # Update the loss
                     losses.update(loss.item(), batch_size)
@@ -571,6 +568,9 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
             nib.streamlines.save(decoded_streamlines_array, decoded_filename, header=streamline_header)
         
         elif training_task == "regression_points_directions":
+            print("Shape of decoded_array is", decoded_array.shape)
+            if decoded_array.shape[1] == 1:
+                decoded_array = decoded_array.squeeze(1)
             # Convert into tractogram and save
             decoded_streamlines_array = nib.streamlines.Tractogram(decoded_array, affine_to_rasmm=np.eye(4))
             decoded_filename = os.path.join(predictions_folder, "tracer_decoded_points.{ext}".format(ext=input_type))
