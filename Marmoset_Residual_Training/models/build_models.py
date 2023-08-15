@@ -113,6 +113,15 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=3, norm
                             contrastive=contrastive,
                             previous=previous)
 
+        elif "conv_autoencoder" in model_name.lower():
+
+            # Assert that none of the parameters are none
+            assert input_nc is not None
+            assert num_blocks is not None
+
+            # Return the Convolutional Autoencoder
+            model = ConvAutoencoder(channels=input_nc,
+                                    n_blocks=num_blocks)
         
         elif "efficientnet" in model_name.lower():
 

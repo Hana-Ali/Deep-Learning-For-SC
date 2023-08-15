@@ -153,4 +153,5 @@ def glob_files(PATH_NAME, file_format):
     INPUT_FILES = []
     for file in glob.glob(os.path.join(PATH_NAME, os.path.join("**", "*.{}".format(file_format))), recursive=True):
         INPUT_FILES.append(file)
+        break
     return INPUT_FILES

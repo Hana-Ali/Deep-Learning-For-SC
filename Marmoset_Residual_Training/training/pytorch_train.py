@@ -29,6 +29,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
     training_log_path = config["training_log_path"]
     residual_arrays_path = config["residual_arrays_path"] if "residual_arrays_path" in config else None
     streamline_arrays_path = config["streamline_arrays_path"] if "streamline_arrays_path" in config else None
+    autoenc_arrays_path = config["autoenc_arrays_path"] if "autoenc_arrays_path" in config else None
 
     # Get the training parameters
     n_epochs = config["n_epochs"]
@@ -65,6 +66,8 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
             output_size = 27
         elif (task == "regression_coords" or task == "regression_angles" or task == "regression_points_directions"):
             output_size = 3
+        elif (task == "autoencoder"):
+            output_size = None
         else:
             raise ValueError("Task {} not found".format(task))
     else:
@@ -123,6 +126,8 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
             criterion = MSE_loss
         elif in_config("task", config, None) == "regression_points_directions":
             criterion = angular_error_loss
+        elif in_config("task", config, None) == "autoencoder":
+            criterion = MSE_loss
         else: # If no task is given, then we need to load one according to the evaluation metric
             criterion = load_criterion(config['evaluation_metric'], n_gpus=n_gpus)
 
@@ -267,10 +272,10 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
                                     epoch=epoch, residual_arrays_path=residual_arrays_path, separate_hemisphere=separate_hemisphere, 
                                     cube_size=cube_size, n_gpus=n_gpus, distributed=False,
                                     print_gpu_memory=False, scaler=scaler, train_or_val="train", training_type=config["training_type"],
-                                    streamline_arrays_path=in_config("streamline_arrays_path", config, False), input_type=in_config("tck_type", config, False),
+                                    streamline_arrays_path=streamline_arrays_path, input_type=in_config("tck_type", config, False),
                                     training_task=in_config("task", config, "classification"), output_size=output_size, 
                                     overfitting=in_config("overfitting", config, False), contrastive=in_config("contrastive", config, False),
-                                    voxel_wise=voxel_wise, streamline_header=streamline_header)
+                                    voxel_wise=voxel_wise, streamline_header=streamline_header, autoenc_arrays_path=autoenc_arrays_path)
                                        
         try:
             train_loader.dataset.on_epoch_end()
@@ -288,10 +293,10 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
                                         epoch=epoch, residual_arrays_path=residual_arrays_path, separate_hemisphere=separate_hemisphere, 
                                         cube_size=cube_size, n_gpus=n_gpus, distributed=False,
                                         print_gpu_memory=False, scaler=scaler, train_or_val="val", training_type=config["training_type"],
-                                        streamline_arrays_path=in_config("streamline_arrays_path", config, False), input_type=in_config("tck_type", config, False),
+                                        streamline_arrays_path=streamline_arrays_path, input_type=in_config("tck_type", config, False),
                                         training_task=in_config("task", config, "classification"), output_size=output_size,
                                         overfitting=in_config("overfitting", config, False), contrastive=in_config("contrastive", config, False),
-                                        voxel_wise=voxel_wise, streamline_header=streamline_header)
+                                        voxel_wise=voxel_wise, streamline_header=streamline_header, autoenc_arrays_path=autoenc_arrays_path)
         else:
             val_loss = None
         
@@ -341,7 +346,8 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
 def epoch_training(train_loader, val_loader, model, criterion, optimizer, epoch, residual_arrays_path, separate_hemisphere, 
                    streamline_arrays_path, input_type, cube_size=5, n_gpus=None, distributed=False, 
                    print_gpu_memory=False, scaler=None, train_or_val="train", training_type="residual", training_task="classification",
-                   output_size=1, overfitting=False, contrastive=False, voxel_wise=False, streamline_header=None):
+                   output_size=1, overfitting=False, contrastive=False, voxel_wise=False, streamline_header=None, 
+                   autoenc_arrays_path=None):
     
     # Define the meters
     batch_time = AverageMeter("Time", ":6.3f")
@@ -395,6 +401,11 @@ def epoch_training(train_loader, val_loader, model, criterion, optimizer, epoch,
                                     scaler=scaler, data_time=data_time, coordinates=coordinates, use_amp=use_amp, losses=losses, 
                                     batch_time=batch_time, progress=progress, input_type=input_type, training_task=training_task,
                                     output_size=output_size, contrastive=contrastive, voxel_wise=voxel_wise, streamline_header=streamline_header)
+        elif training_type == "autoencoder":
+            training_loop_autoenc(train_loader, model, criterion, optimizer, epoch, autoenc_arrays_path, separate_hemisphere,
+                                  kernel_size=kernel_size, n_gpus=n_gpus, distributed=distributed, print_gpu_memory=print_gpu_memory,
+                                  scaler=scaler, data_time=data_time, coordinates=coordinates, use_amp=use_amp, losses=losses,
+                                  batch_time=batch_time, progress=progress, training_task=training_task, voxel_wise=voxel_wise)
         else:
             raise ValueError("Training type {} not found".format(training_type))
         
@@ -410,6 +421,11 @@ def epoch_training(train_loader, val_loader, model, criterion, optimizer, epoch,
                                     use_amp=use_amp, losses=losses, batch_time=batch_time, progress=progress, input_type=input_type,
                                     training_task=training_task, output_size=output_size, contrastive=contrastive, voxel_wise=voxel_wise,
                                     streamline_header=streamline_header)
+        elif training_type == "autoencoder":
+            validation_loop_autoenc(val_loader, model, criterion, epoch, autoenc_arrays_path, separate_hemisphere,
+                                    kernel_size=kernel_size, n_gpus=n_gpus, distributed=distributed, coordinates=coordinates, 
+                                    use_amp=use_amp, losses=losses, batch_time=batch_time, progress=progress, training_task=training_task,
+                                    voxel_wise=voxel_wise)
         else:
             raise ValueError("Training type {} not found".format(training_type))
             
