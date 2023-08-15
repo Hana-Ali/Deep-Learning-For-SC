@@ -69,13 +69,13 @@ class StreamlineDataset(torch.utils.data.Dataset):
             wmfod_path  = [file for file in wmfod_images if region_id in file]
 
             # Get the labels that correspond to the region ID
-            if self.task != "regression_coords":
+            if self.task != "regression_coords" and self.task != "autoencoder":
                 label_path = [file for file in label_npy_files if region_id in file]
             else:
                 label_path = []
 
             # Raise an error if it's empty
-            if label_path == [] and self.task != "regression_coords":
+            if label_path == [] and self.task != "regression_coords" and self.task != "autoencoder":
                 raise ValueError("Label npy files are empty!")
 
             # If wmfod is empty it's empty, choose a random wmfod image
@@ -91,7 +91,7 @@ class StreamlineDataset(torch.utils.data.Dataset):
             self.streamlines.append(streamline_path)
 
             # Append the label npy files to the list
-            if self.task != "regression_coords":
+            if self.task != "regression_coords" and self.task != "autoencoder":
                 self.labels.append(label_path[0])
             
         # Define the size of the lists
@@ -101,7 +101,7 @@ class StreamlineDataset(torch.utils.data.Dataset):
         # Assert that we have the same number of wmfod as streamlines
         assert self.wmfod_size == self.streamlines_size, "WMFOD and streamlines list are not the same length!"
         # Assert that we have the same number of labels as streamlines (only if task isn't regression_coords, otherwise we don't need labels)
-        if self.task != "regression_coords":
+        if self.task != "regression_coords" and self.task != "autoencoder":
             assert self.labels_size == self.streamlines_size, "Labels and streamlines list are not the same length!"
 
         # Define the transforms
@@ -144,10 +144,10 @@ class StreamlineDataset(torch.utils.data.Dataset):
             label_npy_files = [file for file in self.npy_files if "vector_direction" in file and "tracer" in file and "sharp" not in file]
             label_npy_files = self.get_tck_trk_data(label_npy_files)
 
-        elif self.task == "regression_coords":
+        elif self.task == "regression_coords" or self.task == "autoencoder":
             label_npy_files = []
         else:
-            raise ValueError("Task not recognized. Please choose from: classification, regression_angles, regression_directions, regression_coords")
+            raise ValueError("Task not recognized. Please choose from: classification, regression_angles, regression_directions, regression_coords, autoencoder")
 
         # Return the wmfods, streamlines, and labels
         return wmfod_images, streamlines, label_npy_files
@@ -271,9 +271,11 @@ class StreamlineDataset(torch.utils.data.Dataset):
         streamlines_list, header = self.read_streamline(streamline_path)
 
         # Choose and read label if the task is correct
-        if self.task != "regression_coords":
+        if self.task != "regression_coords" and self.task != "autoencoder":
             label_path = self.labels[index]
             label_array = self.read_npy(label_path)
+        elif self.task == "autoencoder":
+            label_array = np.zeros((2, 2))
         else: # Set the label to be the coordinate floats
             label_array = streamlines_list
             

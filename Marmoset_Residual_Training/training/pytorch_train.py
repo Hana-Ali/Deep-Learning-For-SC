@@ -76,7 +76,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
     print("output_size", output_size)
         
     # Build or load the model depending on streamline or dwi training, and build dataset differently
-    if config["training_type"] == "streamline":
+    if config["training_type"] == "streamline" or config["training_type"] == "autoencoder":
         # Build the model
         model = build_or_load_model(model_name, model_filename, input_nc=config["input_nc"], cube_size=config["cube_size"],
                                     num_rnn_layers=in_config("num_rnn_layers", config, None), num_rnn_hidden_neurons=in_config("num_rnn_hidden_neurons", config, None),
@@ -402,6 +402,7 @@ def epoch_training(train_loader, val_loader, model, criterion, optimizer, epoch,
                                     batch_time=batch_time, progress=progress, input_type=input_type, training_task=training_task,
                                     output_size=output_size, contrastive=contrastive, voxel_wise=voxel_wise, streamline_header=streamline_header)
         elif training_type == "autoencoder":
+            print("Autoencoder training...")
             training_loop_autoenc(train_loader, model, criterion, optimizer, epoch, autoenc_arrays_path, separate_hemisphere,
                                   kernel_size=kernel_size, n_gpus=n_gpus, distributed=distributed, print_gpu_memory=print_gpu_memory,
                                   scaler=scaler, data_time=data_time, coordinates=coordinates, use_amp=use_amp, losses=losses,

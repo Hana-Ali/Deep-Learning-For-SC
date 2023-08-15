@@ -11,6 +11,8 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=3, norm
               num_rnn_hidden_neurons=1000, num_nodes=1, num_coordinates=3, prev_output_size=32,
               combination=True, task="classification", flattened_mlp_size=45*5*5*5, output_size=1,
               hidden_size=128, batch_norm=True, depthwise_conv=False, contrastive=False, previous=True):
+    
+    print("model_name is", model_name)
     try:
         if "resnet" in model_name.lower() and "streamlines" not in model_name.lower():
             
@@ -113,7 +115,7 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=3, norm
                             contrastive=contrastive,
                             previous=previous)
 
-        elif "conv_autoencoder" in model_name.lower():
+        elif "autoencoder" in model_name.lower():
 
             # Assert that none of the parameters are none
             assert input_nc is not None

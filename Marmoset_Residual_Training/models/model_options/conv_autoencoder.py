@@ -4,7 +4,13 @@ import torch.nn as nn
 class ConvAutoencoder(nn.Module):
 
     # Constructor
-    def __init__(self, channels, filters=[64, 128, 256], n_blocks=1):
+    def __init__(self, channels, filters=[64, 128, 256], n_blocks=1, depthwise=False):
+        
+        # Call the parent class
+        super(ConvAutoencoder, self).__init__()
+        
+        # Define whether depthwise or not
+        self.depthwise = depthwise
 
         # Define the number of blocks
         self.n_blocks = n_blocks
@@ -47,16 +53,27 @@ class ConvAutoencoder(nn.Module):
         # Define the encoder as the depthwise separable convolution layers
         self.encoder = nn.Sequential(*depthwise_conv)
 
-        # The decoder is the same thing as the encoder but in reverse
-        self.decoder = nn.Sequential(*depthwise_conv[::-1])
+        # The decoder is the same thing as the encoder but in reverse WITH CONV TRANSPOSE
 
     # Forward function
     def forward(self, x):
+        
+        # Get the batch size
+        batch_size = x.shape[0]
+        channels = x.shape[1]
+        
+        # Reshape the input so we do depthwise
+        if self.depthwise:
+            x = x.view(batch_size * channels, 1, x.shape[2], x.shape[3], x.shape[4])
 
         # Run the encoder
         x = self.encoder(x)
 
         # Run the decoder
         x = self.decoder(x)
+        
+        # Reshape the input if depthwise
+        if self.depthwise:
+            x = x.view(batchsize, channels, x.shape[2], x.shape[3], x.shape[4])
 
         return x
