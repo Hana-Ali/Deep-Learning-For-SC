@@ -254,7 +254,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         model = torch.nn.DataParallel(model)
         model.to(device)
-
+        
     # For each epoch
     for epoch in range(start_epoch, n_epochs):
 

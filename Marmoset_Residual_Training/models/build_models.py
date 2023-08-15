@@ -263,7 +263,12 @@ def build_or_load_model(model_name, model_filename, input_nc, output_nc=None, ng
         model_files = os.listdir(model_folder)
 
         # Get the one that has "best" in it
-        model_filename = [model_file for model_file in model_files if "best" in model_file][0]
+        best_filename = [model_file for model_file in model_files if "best" in model_file][0]
+        
+        # Create into a path
+        model_filename = os.path.join(model_folder, best_filename)
+        
+        print("model_filename is", model_filename)
         
         if n_gpus > 0:
             state_dict = torch.load(model_filename)
