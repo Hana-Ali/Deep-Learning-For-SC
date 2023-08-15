@@ -11,8 +11,6 @@ parser.add_argument("-lr", "--learning_rate", help="initial learning rate",
 parser.add_argument("-b", "--batch_size", help="batchsize",
 			default=32,
 			type=int)
-parser.add_argument("-d", "--depthwise", help="depthwise conv or not",
-                    action='store_true')
 
 args = parser.parse_args()
 
@@ -40,9 +38,6 @@ train_name = "training_logs"
 # Parse arguments
 init_lr = args.learning_rate
 batch_size = args.batch_size
-depthwise = args.depthwise
-
-print("depthwise is", depthwise)
 
 # Define the paths
 autoenc_arrays_path = os.path.join(main_logs_path, "autoenc_predictions", pred_name)
@@ -64,7 +59,6 @@ configs = {
     "input_nc" : 1,
     "combination" : True, # Combination
     "task" : "autoencoder", # Task
-    "depthwise_conv" : depthwise, # Depthwise convolution
     "hidden_size" : 100, # number of neurons
     "library_opt" : True, # Use stuff from torch_optim
     "previous" : True, # Whether or not to include previous predictions

@@ -123,7 +123,8 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=3, norm
 
             # Return the Convolutional Autoencoder
             model = ConvAutoencoder(channels=input_nc,
-                                    n_blocks=num_blocks)
+                                    n_blocks=num_blocks,
+                                    depthwise=depthwise_conv)
         
         elif "efficientnet" in model_name.lower():
 
