@@ -50,10 +50,13 @@ class ConvAutoencoder(nn.Module):
                                 nn.ReLU(inplace=True)]
             
         # Add the last adaptive average pooling layer
-        depthwise_conv += [nn.AdaptiveAvgPool3d((2, 2, 2))]
+        depthwise_conv += [nn.AdaptiveAvgPool3d((1, 1, 1))]
         
         # Define the encoder as the depthwise separable convolution layers
         self.encoder = nn.Sequential(*depthwise_conv)
+        
+        # Define one layer for when we use encoder alone to get it into size we want
+        self.final_conv = nn.Conv3d(512 * 45, 512, kernel_size=3, padding=1)
 
         # The decoder is the same thing as the encoder but in reverse WITH CONV TRANSPOSE
         decoder = []
@@ -66,7 +69,7 @@ class ConvAutoencoder(nn.Module):
                         nn.ReLU(inplace=True)]
             
         # Upsample to make it twice as big
-        decoder += [nn.Upsample(scale_factor=2, mode='trilinear', align_corners=True)]
+        decoder += [nn.Upsample(scale_factor=4, mode='trilinear', align_corners=True)]
             
         # Make sure the last depthwise separable convolution layer has the same number of channels as the input
         decoder += [nn.ConvTranspose3d(filters[0], channels, kernel_size=3, padding=1),
@@ -95,15 +98,40 @@ class ConvAutoencoder(nn.Module):
         if self.depthwise:
             x = x.view(batch_size * channels, 1, x.shape[2], x.shape[3], x.shape[4])
 
-        # Run the encoder
-        for layer in self.encoder:
-            x = layer(x)
-
-        for layer in self.decoder:
-            x = layer(x)
+        # Run through encoder
+        x = self.encoder(x)
+        
+        # Run through decoder
+        x = self.decoder(x)
         
         # Reshape the input if depthwise
         if self.depthwise:
             x = x.view(batch_size, channels, x.shape[2], x.shape[3], x.shape[4])
 
         return x
+    
+    # Function to run only the encoder
+    def forward_encoder(self, x):
+    
+        # Get the batch size
+        batch_size = x.shape[0]
+        channels = x.shape[1]
+        
+        # Reshape the input so we do depthwise
+        if self.depthwise:
+            x = x.view(batch_size * channels, 1, x.shape[2], x.shape[3], x.shape[4])
+
+        # Run through encoder
+        x = self.encoder(x)
+        
+        # Reshape the input if depthwise
+        if self.depthwise:
+            x = x.view(batch_size, -1, x.shape[2], x.shape[3], x.shape[4])
+            x = self.final_conv(x)
+
+        return x
+    
+    # Function to run only the decoder
+    def forward_decoder(self, x):
+        
+        return self.decoder(x)
