@@ -50,7 +50,7 @@ class ConvAutoencoder(nn.Module):
                                 nn.ReLU(inplace=True)]
             
         # Add the last adaptive average pooling layer
-        depthwise_conv += [nn.AdaptiveAvgPool3d((1, 1, 1))]
+        depthwise_conv += [nn.AdaptiveAvgPool3d((2, 2, 2))]
         
         # Define the encoder as the depthwise separable convolution layers
         self.encoder = nn.Sequential(*depthwise_conv)
@@ -70,7 +70,7 @@ class ConvAutoencoder(nn.Module):
                         nn.ReLU(inplace=True)]
             
         # Upsample to make it twice as big
-        decoder += [nn.Upsample(scale_factor=4, mode='trilinear', align_corners=True)]
+        decoder += [nn.Upsample(scale_factor=2, mode='trilinear', align_corners=True)]
             
         # Make sure the last depthwise separable convolution layer has the same number of channels as the input
         decoder += [nn.ConvTranspose3d(filters[0], channels, kernel_size=3, padding=1),

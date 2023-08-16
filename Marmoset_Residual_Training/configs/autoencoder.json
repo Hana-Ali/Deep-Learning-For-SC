@@ -1,6 +1,6 @@
 {
     "autoenc_arrays_path": "/notebooks/predicted_streamlines/autoenc_predictions/autoenc",
-    "batch_size": 32,
+    "batch_size": 128,
     "combination": true,
     "cube_size": 5,
     "decay_factor": 0.5,
@@ -31,5 +31,5 @@
     "tck_type": "trk",
     "training_log_path": "/notebooks/predicted_streamlines/training_logs/autoencoder.csv",
     "training_type": "autoencoder",
-    "validation_batch_size": 32
+    "validation_batch_size": 128
 }

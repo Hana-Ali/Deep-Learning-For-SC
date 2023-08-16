@@ -171,7 +171,7 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
     lengths[-1] = len(dataset) - sum(lengths[:-1])
 
     # Split the data
-    seed = torch.Generator().manual_seed(42)
+    seed = torch.Generator().manual_seed(50)
     train_set, val_set, test_set = torch.utils.data.random_split(dataset, lengths, generator=seed)
 
     # Define the training loader
