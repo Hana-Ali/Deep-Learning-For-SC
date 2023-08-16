@@ -1,5 +1,5 @@
 {
-    "batch_size": 40,
+    "batch_size": 32,
     "combination": true,
     "contrastive": false,
     "cube_size": 5,
@@ -9,7 +9,7 @@
     "early_stopping_patience": 50,
     "evaluation_metric": "negative_log_likelihood_loss",
     "hidden_size": 100,
-    "initial_learning_rate": 0.05,
+    "initial_learning_rate": 0.0001,
     "input_nc": 1,
     "library_opt": true,
     "loss": "negative_log_likelihood_loss",
@@ -32,5 +32,5 @@
     "tck_type": "trk",
     "training_log_path": "/notebooks/predicted_streamlines/training_logs_regression_points_directions/resnet_streamlines.csv",
     "training_type": "streamline",
-    "validation_batch_size": 40
+    "validation_batch_size": 32
 }
