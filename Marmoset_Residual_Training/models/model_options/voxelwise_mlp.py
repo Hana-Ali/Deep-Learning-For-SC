@@ -3,7 +3,7 @@ import torch.nn as nn
 from ..model_builders.twoinput_mlp import TwoInputMLP
 
 class voxelwise_MLP(nn.Module):
-    def __init__(self, channels, task="classification", previous=True, output_size=1):
+    def __init__(self, channels, task="classification", previous=True, output_size=1, hidden_layers=[128, 256, 512, 256, 128, 64, 16, 8]):
         super(voxelwise_MLP, self).__init__()
         
         # Define attributes
@@ -12,7 +12,7 @@ class voxelwise_MLP(nn.Module):
         self.output_size = output_size
 
         # Define hidden layer sizes
-        hidden_layers = [128, 256, 512, 256, 128, 64, 16, 8]
+        self.hidden_layers = hidden_layers
 
         # Assert that the number of classes matches the task
         if self.task == "classification":
@@ -29,21 +29,21 @@ class voxelwise_MLP(nn.Module):
         layers = []
 
         # Input layer
-        layers.append(nn.Linear(channels, hidden_layers[0]))
+        layers.append(nn.Linear(channels, self.hidden_layers[0]))
         layers.append(nn.ReLU())
 
         # Hidden layers
-        for i in range(len(hidden_layers) - 1):
-            layers.append(nn.Linear(hidden_layers[i], hidden_layers[i + 1]))
+        for i in range(len(self.hidden_layers) - 1):
+            layers.append(nn.Linear(self.hidden_layers[i], self.hidden_layers[i + 1]))
             layers.append(nn.ReLU())
 
         # Output layer - to change to [batchsize, 1] change out_features to 1
-        layers.append(nn.Linear(hidden_layers[-1], self.output_size))
+        layers.append(nn.Linear(self.hidden_layers[-1], self.output_size))
 
         # Define the final activation depending on the task
         if self.task == "classification":
             layers.append(nn.LogSoftmax(dim=1))
-        elif self.task == "regression_angles" or self.task == "regression_coords":
+        elif self.task == "regression_angles" or self.task == "regression_coords" or self.task == "regression_points_directions":
             layers.append(nn.Sigmoid())
 
         # Combine the layers
@@ -63,7 +63,6 @@ class voxelwise_MLP(nn.Module):
             # Multiply the two together
             output_x = x * shapes_tensor
             # Return it rounded to the first decimal point
-            # return torch.round(output_x, decimals=1)
             return output_x
         else:
             return x

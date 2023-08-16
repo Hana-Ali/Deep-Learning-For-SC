@@ -277,7 +277,7 @@ class ResnetEncoder_Streamlines(nn.Module):
             raise NotImplementedError('normalization layer [%s] is not found' % norm_layer)
     
     # Forward pass
-    def forward(self, inputs, previous_predictions, original_shapes):
+    def forward(self, inputs, previous_predictions, original_shapes=[1, 1, 128, 178, 115]):
         """
         Forward pass
         """

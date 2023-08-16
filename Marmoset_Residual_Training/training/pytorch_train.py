@@ -74,6 +74,18 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
         output_size = 256
     
     print("output_size", output_size)
+
+    # Define whether or not we're doing encoding -> MLP/RNN
+    two_models = config["two_models"] if "two_models" in config else False
+    encoder_choice = config["encoder_choice"] if "encoder_choice" in config else None
+
+    # Get the encoder if we're doing two models
+    if two_models:
+        encoder = get_encoder(encoder_choice, input_channels=config["input_nc"], output_size=output_size,
+                              num_blocks=in_config("num_blocks", config, 3), depthwise_conv=in_config("depthwise_conv", config, False),
+                              encoder_filename=config["encoder_filename"], freeze_bias=in_config("freeze_bias", config, False), n_gpus=n_gpus)
+        
+    print("Encoder is: {}".format(encoder.__class__.__name__))
         
     # Build or load the model depending on streamline or dwi training, and build dataset differently
     if config["training_type"] == "streamline" or config["training_type"] == "autoencoder":
@@ -275,7 +287,8 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
                                     streamline_arrays_path=streamline_arrays_path, input_type=in_config("tck_type", config, False),
                                     training_task=in_config("task", config, "classification"), output_size=output_size, 
                                     overfitting=in_config("overfitting", config, False), contrastive=in_config("contrastive", config, False),
-                                    voxel_wise=voxel_wise, streamline_header=streamline_header, autoenc_arrays_path=autoenc_arrays_path)
+                                    voxel_wise=voxel_wise, streamline_header=streamline_header, autoenc_arrays_path=autoenc_arrays_path,
+                                    encoder=encoder)
                                        
         try:
             train_loader.dataset.on_epoch_end()
@@ -296,7 +309,8 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
                                         streamline_arrays_path=streamline_arrays_path, input_type=in_config("tck_type", config, False),
                                         training_task=in_config("task", config, "classification"), output_size=output_size,
                                         overfitting=in_config("overfitting", config, False), contrastive=in_config("contrastive", config, False),
-                                        voxel_wise=voxel_wise, streamline_header=streamline_header, autoenc_arrays_path=autoenc_arrays_path)
+                                        voxel_wise=voxel_wise, streamline_header=streamline_header, autoenc_arrays_path=autoenc_arrays_path,
+                                        encoder=encoder)
         else:
             val_loss = None
         
@@ -347,7 +361,7 @@ def epoch_training(train_loader, val_loader, model, criterion, optimizer, epoch,
                    streamline_arrays_path, input_type, cube_size=5, n_gpus=None, distributed=False, 
                    print_gpu_memory=False, scaler=None, train_or_val="train", training_type="residual", training_task="classification",
                    output_size=1, overfitting=False, contrastive=False, voxel_wise=False, streamline_header=None, 
-                   autoenc_arrays_path=None):
+                   autoenc_arrays_path=None, encoder=None):
     
     # Define the meters
     batch_time = AverageMeter("Time", ":6.3f")
@@ -389,7 +403,13 @@ def epoch_training(train_loader, val_loader, model, criterion, optimizer, epoch,
                                     use_amp=use_amp, losses=losses, batch_time=batch_time, progress=progress)
         elif training_type == "streamline":
             print("Streamline training...")
-            if overfitting:
+            if encoder is not None:
+                encoder_train_loop_nodes(train_loader, encoder, model, criterion, optimizer, epoch, streamline_arrays_path, separate_hemisphere,
+                                    kernel_size=kernel_size, n_gpus=n_gpus, distributed=distributed, print_gpu_memory=print_gpu_memory, 
+                                    scaler=scaler, data_time=data_time, coordinates=coordinates, use_amp=use_amp, losses=losses, 
+                                    batch_time=batch_time, progress=progress, input_type=input_type, training_task=training_task,
+                                    output_size=output_size, contrastive=contrastive, voxel_wise=voxel_wise, streamline_header=streamline_header)
+            elif overfitting:
                 overfitting_training_loop_nodes(train_loader, model, criterion, optimizer, epoch, streamline_arrays_path, separate_hemisphere,
                                                 kernel_size=kernel_size, n_gpus=n_gpus, distributed=distributed, print_gpu_memory=print_gpu_memory, 
                                                 scaler=scaler, data_time=data_time, coordinates=coordinates, use_amp=use_amp, losses=losses, 
@@ -417,11 +437,18 @@ def epoch_training(train_loader, val_loader, model, criterion, optimizer, epoch,
                                     kernel_size=kernel_size, n_gpus=n_gpus, voxel_wise=voxel_wise, distributed=distributed,
                                     coordinates=coordinates, use_amp=use_amp, losses=losses, batch_time=batch_time, progress=progress)
         elif training_type == "streamline":
-            validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays_path, separate_hemisphere,
-                                    kernel_size=kernel_size, n_gpus=n_gpus, distributed=distributed, coordinates=coordinates, 
-                                    use_amp=use_amp, losses=losses, batch_time=batch_time, progress=progress, input_type=input_type,
-                                    training_task=training_task, output_size=output_size, contrastive=contrastive, voxel_wise=voxel_wise,
-                                    streamline_header=streamline_header)
+            if encoder is not None:
+                encoder_val_loop_nodes(train_loader, encoder, model, criterion, optimizer, epoch, streamline_arrays_path, separate_hemisphere,
+                                    kernel_size=kernel_size, n_gpus=n_gpus, distributed=distributed, print_gpu_memory=print_gpu_memory, 
+                                    scaler=scaler, data_time=data_time, coordinates=coordinates, use_amp=use_amp, losses=losses, 
+                                    batch_time=batch_time, progress=progress, input_type=input_type, training_task=training_task,
+                                    output_size=output_size, contrastive=contrastive, voxel_wise=voxel_wise, streamline_header=streamline_header)
+            else:
+                validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays_path, separate_hemisphere,
+                                        kernel_size=kernel_size, n_gpus=n_gpus, distributed=distributed, coordinates=coordinates, 
+                                        use_amp=use_amp, losses=losses, batch_time=batch_time, progress=progress, input_type=input_type,
+                                        training_task=training_task, output_size=output_size, contrastive=contrastive, voxel_wise=voxel_wise,
+                                        streamline_header=streamline_header)
         elif training_type == "autoencoder":
             validation_loop_autoenc(val_loader, model, criterion, epoch, autoenc_arrays_path, separate_hemisphere,
                                     kernel_size=kernel_size, n_gpus=n_gpus, distributed=distributed, coordinates=coordinates, 

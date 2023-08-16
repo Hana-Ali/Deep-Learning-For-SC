@@ -336,3 +336,75 @@ def match_tensor_sizes(fixed_tensor, moving_tensor):
             moving_tensor = moving_tensor.narrow(dim=dim, start=0, length=fixed_tensor_size[dim])
     
     return moving_tensor
+
+# Function to get an encoder
+def get_encoder(encoder_name, input_channels, output_size, num_blocks=3, depthwise_conv=True, encoder_filename=None,
+                freeze_bias=True, n_gpus=1):
+
+    if "autoencoder" in encoder_name.lower():
+
+        # Assert that none of the parameters are none
+        assert input_channels is not None
+
+        # Return the ResNet encoder
+        encoder = ConvAutoencoder(channels=input_channels,
+                                    depthwise=depthwise_conv,
+                                    n_blocks=num_blocks,
+                                    encoder_only=True)
+    
+    elif "resnet_streamlines" in encoder_name.lower():
+
+      
+        # Assert that none of the parameters are None
+        assert output_size == 256
+
+        # Return the ResNet encoder
+        encoder = ResnetEncoder_Streamlines(num_classes=output_size, 
+                                          task="classification", 
+                                          contrastive=True,
+                                          previous=True)
+        
+    else:
+        raise ValueError("Encoder {} not found".format(encoder_name))
+        
+    # Initialize the weights
+    init_weights(encoder, init_type="xavier")
+        
+     # If we're freezing the bias
+    if freeze_bias:
+        encoder.fc.bias.requires_grad_(False)
+
+    # If we're using multiple GPUs
+    if n_gpus > 1:
+        encoder = encoder.cuda()
+        encoder = torch.nn.DataParallel(encoder).cuda()
+    elif n_gpus == 1:
+        encoder = encoder.cuda()
+    
+    # If the encoder file exists
+    if os.path.exists(encoder_filename):
+
+        # Get the path to the encoder
+        encoder_folder = (os.sep).join(encoder_filename.split(os.sep)[:-1])
+
+        # Get all the files in the encoder folder
+        encoder_files = os.listdir(encoder_folder)
+
+        # Get the one that has "best" in it
+        best_filename = [encoder_file for encoder_file in encoder_files if "best" in encoder_file][0]
+        
+        # Create into a path
+        encoder_filename = os.path.join(encoder_folder, best_filename)
+        
+        print("encoder_filename is", encoder_filename)
+        
+        if n_gpus > 0:
+            state_dict = torch.load(encoder_filename)
+        else:
+            state_dict = torch.load(encoder_filename, map_location=torch.device("cpu"))
+        
+        # Load the state dict
+        encoder = load_state_dict(encoder=encoder, state_dict=state_dict, strict=False, n_gpus=n_gpus)
+    
+    # Return the encoder
+    return encoder
