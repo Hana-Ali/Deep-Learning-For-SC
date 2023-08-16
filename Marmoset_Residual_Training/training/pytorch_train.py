@@ -81,7 +81,8 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
 
     # Get the encoder if we're doing two models
     if two_models:
-        encoder = get_encoder(encoder_choice, input_channels=config["input_nc"], output_size=output_size,
+        encoder_output_size = 256
+        encoder = get_encoder(encoder_choice, input_channels=config["input_nc"], output_size=encoder_output_size,
                               num_blocks=in_config("num_blocks", config, 3), depthwise_conv=in_config("depthwise_conv", config, False),
                               encoder_filename=config["encoder_filename"], freeze_bias=in_config("freeze_bias", config, False), n_gpus=n_gpus)
         

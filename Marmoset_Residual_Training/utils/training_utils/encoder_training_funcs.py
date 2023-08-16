@@ -129,8 +129,10 @@ def encoder_train_loop_nodes(train_loader, encoder, model, criterion, optimizer,
                         wmfod_cube[i] = brain_hemisphere[i, :, x[i], y[i], z[i]]
 
                 # Pass the wmfod cube through the encoder
-                embedding = encoder_pass(encoder, wmfod_cube, previous_predictions, previous_predictions=previous_predictions, training_task=training_task, 
+                embedding = encoder_pass(encoder, wmfod_cube, previous_predictions=previous_predictions, training_task=training_task, 
                                          n_gpus=n_gpus, distributed=distributed, use_amp=use_amp)
+                
+                print("Size of embedding is", embedding.shape)
 
                 # Get model output
                 (predicted_label, loss, batch_size) = batch_loss(model, embedding, streamline_label, previous_predictions, criterion, 
@@ -408,7 +410,7 @@ def encoder_val_loop_nodes(val_loader, encoder, model, criterion, epoch, streaml
                             wmfod_cube[i] = brain_hemisphere[i, :, x[i], y[i], z[i]]
 
                     # Pass the wmfod cube through the encoder
-                    embedding = encoder_pass(encoder, wmfod_cube, previous_predictions, previous_predictions=previous_predictions, training_task=training_task, 
+                    embedding = encoder_pass(encoder, wmfod_cube, previous_predictions=previous_predictions, training_task=training_task, 
                                             n_gpus=n_gpus, distributed=distributed, use_amp=use_amp)
 
                     # Get model output

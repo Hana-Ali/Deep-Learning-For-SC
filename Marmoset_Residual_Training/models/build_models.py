@@ -352,7 +352,7 @@ def get_encoder(encoder_name, input_channels, output_size, num_blocks=3, depthwi
                                     n_blocks=num_blocks,
                                     encoder_only=True)
     
-    elif "resnet_streamlines" in encoder_name.lower():
+    elif "resnet" in encoder_name.lower():
 
       
         # Assert that none of the parameters are None
@@ -362,7 +362,7 @@ def get_encoder(encoder_name, input_channels, output_size, num_blocks=3, depthwi
         encoder = ResnetEncoder_Streamlines(num_classes=output_size, 
                                           task="classification", 
                                           contrastive=True,
-                                          previous=True)
+                                          previous=False)
         
     else:
         raise ValueError("Encoder {} not found".format(encoder_name))
