@@ -91,9 +91,9 @@ configs = {
     
     ####### Parameters #######
     "initial_learning_rate" : init_lr, # Initial learning rate
-    "early_stopping_patience": 50, # Early stopping patience
-    "decay_patience": 20, # Learning rate decay patience
-    "decay_factor": 0.5, # Learning rate decay factor
+    "early_stopping_patience": 15, # Early stopping patience
+    "decay_patience": 2, # Learning rate decay patience
+    "decay_factor": 0.6, # Learning rate decay factor
     "min_learning_rate": 1e-08, # Minimum learning rate
     "save_last_n_models": 10, # Save last n models
 
