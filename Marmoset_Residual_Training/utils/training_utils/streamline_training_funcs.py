@@ -8,6 +8,7 @@ import torch.nn.functional as F
 from utils.dataloader_utils import (find_next_node_classification, 
                                     find_next_node_points_direction, 
                                     get_angular_error_points_direction)
+from nibabel.affines import apply_affine
 
 torch.autograd.set_detect_anomaly(True) # For debugging
 
@@ -602,8 +603,8 @@ def test_loop_nodes(brain_data, model, criterion, brain_name, streamline_arrays_
             print("Shape of wmfod is", wmfod.shape)
             print("Shape of streamlines is", streamlines.shape)
             print("Shape of labels is", labels.shape)
-            print("Type of header is", type(header))
-            print("Type of affine is", type(affine))
+            print("Header is", header)
+            print("Affine is", affine)
             
             # Get the brain hemisphere
             brain_hemisphere = wmfod
@@ -806,7 +807,7 @@ def test_loop_nodes(brain_data, model, criterion, brain_name, streamline_arrays_
                 # For every streamline in the batch, invert the streamline
                 inverted_streamlines = []
                 for streamline in range(decoded_array.shape[streamline_idx]):
-                    inverted_streamlines.append(nib.affines.apply_affine(affine, decoded_array[batch, streamline]))
+                    inverted_streamlines.append(apply_affine(affine, decoded_array[batch, streamline]))
                 # Convert into tractogram and save
                 inverted_tractogram = nib.streamlines.Tractogram(inverted_streamlines, affine_to_rasmm=np.eye(4))
                 nib.streamlines.save(inverted_tractogram, decoded_prediction_trk_inverted_filename, header=header)
