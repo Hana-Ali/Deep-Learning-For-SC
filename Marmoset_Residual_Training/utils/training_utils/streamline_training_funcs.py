@@ -589,15 +589,21 @@ def test_loop_nodes(brain_data, model, criterion, brain_name, streamline_arrays_
         # Initialize the angular error for the batch
         batch_angular_error = []
         
-        # For each batch
-        for i, (wmfod, streamlines, header, labels) in enumerate(brain_data):
+        # Get the wmfod, streamlines, header and labels
+        wmfod = torch.from_numpy(brain_data["wmfod"]).unsqueeze(0)
+        streamlines = torch.from_numpy(brain_data["streamlines"]).unsqueeze(0)
+        header = brain_data["header"]
+        labels = torch.from_numpy(brain_data["labels"]).unsqueeze(0)
+        
+        # For each streamline
+        for i in range(streamlines.shape[0]):
 
             print("Shape of wmfod is", wmfod.shape)
             print("Shape of streamlines is", streamlines.shape)
             print("Shape of labels is", labels.shape)
             
             # Get the brain hemisphere
-            brain_hemisphere = get_hemisphere(coordinates, separate_hemisphere, wmfod, kernel_size)
+            brain_hemisphere = wmfod
 
             # Get the batch size
             batch_size = brain_hemisphere.shape[0]

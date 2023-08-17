@@ -71,9 +71,7 @@ def run_testing(config, bias=None):
                               num_blocks=in_config("num_blocks", config, 3), depthwise_conv=in_config("depthwise_conv", config, False),
                               encoder_filename=config["encoder_filename"], freeze_bias=in_config("freeze_bias", config, False), n_gpus=n_gpus)
         
-        print("Encoder is: {}".format(encoder.__class__.__name__))
-    else:
-        encoder = None
+    print("Encoder is: {}".format(encoder.__class__.__name__))
         
     # Build the model
     model = build_or_load_model(model_name, model_filename, input_nc=config["input_nc"], cube_size=config["cube_size"],
@@ -82,7 +80,7 @@ def run_testing(config, bias=None):
                                 prev_output_size=in_config("prev_output_size", config, False), combination=config["combination"],
                                 n_gpus=n_gpus, bias=bias, freeze_bias=in_config("freeze_bias", config, False),
                                 strict=False, task=in_config("task", config, "classification"), output_size=output_size,
-                                hidden_size=in_config("hidden_size", config, 128), batch_norm=True if in_config("batch_size", config, 0) > 1 else False,
+                                hidden_size=in_config("hidden_size", config, 128), batch_norm=True if config["batch_size"] > 1 else False,
                                 depthwise_conv=in_config("depthwise_conv", config, False), contrastive=in_config("contrastive", config, False),
                                 previous=in_config("previous", config, False), num_blocks=in_config("num_blocks", config, 3))
         
@@ -125,9 +123,10 @@ def run_testing(config, bias=None):
     brain_data, brain_name = whole_brain_dataset.get_brain_data()
 
     print("Brain name is: {}".format(brain_name))
-    print("Brain data wmfod is shape: {}".format(brain_data['wmfod'].shape))
-    print("Brain data streamlines is shape: {}".format(brain_data['streamlines'].shape))
-    print("Brain data labels is shape: {}".format(brain_data['labels'].shape))
+    print("Brain data shape is: {}".format(brain_data.shape))
+    print("Brain data wmfod is shape: {}".format(brain_data[0].shape))
+    print("Brain data streamlines is shape: {}".format(brain_data[1].shape))
+    print("Brain data labels is shape: {}".format(brain_data[3].shape))
 
     #########################################################################################################
     ########################################## MODEL TRAINING ###############################################

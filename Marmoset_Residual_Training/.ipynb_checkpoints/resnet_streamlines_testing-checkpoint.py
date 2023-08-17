@@ -106,10 +106,8 @@ configs = {
 }
 
 # Define the configuration path and save it as a .json file
-configs_folder = "configs_test"
-if not os.path.exists(configs_folder):
-    os.makedirs(configs_folder, exist_ok=True)
-config_path = os.path.join(configs_folder, configs["model_name"] + ".json")
+config_folder = os.makedirs("configs_test", exist_ok=True)
+config_path = os.path.join(config_folder, configs["model_name"] + ".json")
 
 # Save the configuration
 dump_json(configs, config_path)
@@ -117,4 +115,4 @@ dump_json(configs, config_path)
 # Load the configuration
 configs = load_json(config_path)
 
-run_testing(configs, bias=None)
+run_training(configs, bias=None)

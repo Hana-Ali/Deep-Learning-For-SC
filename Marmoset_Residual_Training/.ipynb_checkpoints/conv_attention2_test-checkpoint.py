@@ -40,8 +40,8 @@ else:
     main_logs_path = "D:\\Brain-MINDS\\predicted_streamlines"
 
 # Define the main name
-pred_name = "resnet"
-test_name = "testing_logs"
+pred_name = "conv_attn2"
+train_name = "training_logs"
 
 # Parse arguments
 task = args.task
@@ -58,28 +58,28 @@ if contrastive == "":
 
 # Append task and contrastive to name
 pred_name = pred_name + "_" + task
-test_name = test_name + "_" + task
+train_name = train_name + "_" + task
 if contrastive != False:
     pred_name = pred_name + "_" + contrastive
-    test_name = test_name + "_" + contrastive
+    train_name = train_name + "_" + contrastive
 
 streamline_arrays_path = os.path.join(main_logs_path, "streamline_predictions", pred_name)
-testing_log_folder = os.path.join(main_logs_path, test_name)
+training_log_folder = os.path.join(main_logs_path, train_name)
 model_folder = os.path.join(main_logs_path, "models", pred_name)
 
 check_output_folders(streamline_arrays_path, "streamline arrays", wipe=False)
-check_output_folders(testing_log_folder, "testing_log_folder", wipe=False)
+check_output_folders(training_log_folder, "training_log_folder", wipe=False)
 check_output_folders(model_folder, "model_folder", wipe=False)
 
-testing_log_path = os.path.join(testing_log_folder, "resnet_streamlines.csv")
-model_filename = os.path.join(model_folder, "resnet_streamlines.h5")
+training_log_path = os.path.join(training_log_folder, "conv_attn2_streamlines.csv")
+model_filename = os.path.join(model_folder, "conv_attn2_streamlines.h5")
 
 # Create the configs dictionary
 configs = {
 
     ####### Model #######
-    "model_name" : "resnet_streamlines", # Model name
-    "input_nc" : 1,
+    "model_name" : "conv_attn2", # Model name
+    "input_nc" : 45,
     "combination" : True, # Combination
     "task" : task, # Task
     "hidden_size" : 100, # number of neurons
@@ -87,29 +87,45 @@ configs = {
     "library_opt" : True, # Use stuff from torch_optim
     "contrastive" : contrastive, # Contrastive
     "previous" : True, # Whether or not to include previous predictions
+    "num_blocks" : 3, # Number of blocks
     
     ####### Training #######
+    "n_epochs" : 50, # Number of epochs
     "loss" : "negative_log_likelihood_loss", # Loss function
+    "optimizer" : "Adam", # Optimizer
     "evaluation_metric" : "negative_log_likelihood_loss", # Evaluation metric
+    "shuffle_dataset" : True,
     "separate_hemisphere" : False,
     "cube_size" : 5, # cube size
+    "save_best" : True, # Save best model
+    "overfitting" : False, # Overfitting
 
     ####### Data #######
     "main_data_path" : main_data_path, # Data path
-    "testing_log_path" : testing_log_path, # Training log path
+    "training_log_path" : training_log_path, # Training log path
     "model_filename" : model_filename, # Model filename
     "streamline_arrays_path" : streamline_arrays_path, # Path to the streamlines array
+    "batch_size" : batch_size, # Batch size
+    "validation_batch_size" : batch_size, # Validation batch size
+    "num_streamlines" : 10000, # Number of streamlines to consider from each site
     
+    ####### Parameters #######
+    "initial_learning_rate" : init_lr, # Initial learning rate
+    "early_stopping_patience": None, # Early stopping patience
+    "decay_patience": None, # Learning rate decay patience
+    "decay_factor": None, # Learning rate decay factor
+    "min_learning_rate": 1e-08, # Minimum learning rate
+    "save_last_n_models": 10, # Save last n models
+
     ####### Misc #######
+    "skip_val" : False, # Skip validation
+    "training_type" : "streamline", # Training type
     "tck_type" : "trk" # TCK type
 
 }
 
 # Define the configuration path and save it as a .json file
-configs_folder = "configs_test"
-if not os.path.exists(configs_folder):
-    os.makedirs(configs_folder, exist_ok=True)
-config_path = os.path.join(configs_folder, configs["model_name"] + ".json")
+config_path = os.path.join("configs", configs["model_name"] + ".json")
 
 # Save the configuration
 dump_json(configs, config_path)
@@ -117,4 +133,18 @@ dump_json(configs, config_path)
 # Load the configuration
 configs = load_json(config_path)
 
-run_testing(configs, bias=None)
+# Define the metric to monitor based on whether we're skipping val or not
+if configs["skip_val"]:
+    metric_to_monitor = "val_loss"
+else:
+    metric_to_monitor = "train_loss"
+
+# Define the groups
+if configs["skip_val"]:
+    groups = ("training",)
+else:
+    groups = ("training", "validation")
+
+model_metrics = (configs["evaluation_metric"],)
+
+run_training(configs, metric_to_monitor=metric_to_monitor, bias=None)
