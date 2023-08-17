@@ -572,7 +572,7 @@ def test_loop_nodes(brain_data, model, criterion, brain_name, streamline_arrays_
     data_time = AverageMeter("Data", ":6.3f")
     losses = AverageMeter("Loss", ":.4e")
     progress = ProgressMeter(
-        len(brain_data),
+        len(brain_data["streamlines"]),
         [batch_time, data_time, losses],
         prefix='Epoch [{}]'.format(0)
     )
@@ -735,7 +735,7 @@ def test_loop_nodes(brain_data, model, criterion, brain_name, streamline_arrays_
                 end = time.time()
 
                 # Print out the progress after every streamline is done
-                progress.display(i)
+                progress.display(streamline)
             
                 # Add the points loss and grad to the streamline loss
                 streamline_loss.append(points_loss)
