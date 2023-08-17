@@ -46,10 +46,11 @@ class WholeBrainDataset(torch.utils.data.Dataset):
         self.npy_files = glob_files(self.data_path, "npy")
 
         # Load up the inputs
-        wmfod_images, streamlines, label_npy_files = self.load_inputs()
+        wmfod_images, dMRI_images, streamlines, label_npy_files = self.load_inputs()
            
         # Prepare the lists
         self.wmfod_images = []
+        self.dMRI_images = []
         self.streamlines = []
         self.labels = []
 
@@ -64,6 +65,9 @@ class WholeBrainDataset(torch.utils.data.Dataset):
 
             # Get the wmfod path that corresponds to the region ID
             wmfod_path = [file for file in wmfod_images if region_id in file]
+
+            # Get the dMRI path that corresponds to the region ID
+            dMRI_path = [file for file in dMRI_images if region_id in file]
 
             # Get the labels that correspond to the region ID
             if self.task != "regression_coords" and self.task != "autoencoder":
@@ -81,8 +85,17 @@ class WholeBrainDataset(torch.utils.data.Dataset):
             else:
                 wmfod_path = wmfod_path[0]
 
+            # If dMRI is empty it's empty, choose a random dMRI image
+            if dMRI_path == []:
+                dMRI_path = np.random.choice(dMRI_images)
+            else:
+                dMRI_path = dMRI_path[0]
+
             # Append the wmfod image to the list
             self.wmfod_images.append(wmfod_path)
+
+            # Append the dMRI image to the list
+            self.dMRI_images.append(dMRI_path)
 
             # Append the streamline to the list
             self.streamlines.append(streamline_path)
@@ -93,8 +106,11 @@ class WholeBrainDataset(torch.utils.data.Dataset):
             
         # Define the size of the lists
         self.wmfod_size = len(self.wmfod_images)
+        self.dMRI_size = len(self.dMRI_images)
         self.streamlines_size = len(self.streamlines)
         self.labels_size = len(self.labels)
+        # Assert that we have the same number of dMRI as streamlines
+        assert self.dMRI_size == self.streamlines_size, "dMRI and streamlines list are not the same length!"
         # Assert that we have the same number of wmfod as streamlines
         assert self.wmfod_size == self.streamlines_size, "WMFOD and streamlines list are not the same length!"
         # Assert that we have the same number of labels as streamlines (only if task isn't regression_coords, otherwise we don't need labels)
@@ -106,6 +122,9 @@ class WholeBrainDataset(torch.utils.data.Dataset):
 
         # Filter out the WMFOD images (INPUTS 1)
         wmfod_images = [file for file in self.nii_gz_files if "wmfod" in file]
+
+        # Filter out the dMRI images (INPUTS 2)
+        dMRI_images = [file for file in self.nii_gz_files if "dMRI" in file]
 
         # Get the correct streamline TYPE, depending on the task and the input type
         streamlines = [file for file in self.streamline_files if "tracer" in file and "sharp" not in file]
@@ -137,7 +156,7 @@ class WholeBrainDataset(torch.utils.data.Dataset):
             raise ValueError("Task not recognized. Please choose from: classification, regression_angles, regression_directions, regression_coords, autoencoder")
 
         # Return the wmfods, streamlines, and labels
-        return wmfod_images, streamlines, label_npy_files
+        return wmfod_images, dMRI_images, streamlines, label_npy_files
 
     # Function to get either tck or trk data
     def get_tck_trk_data(self, data_files):
@@ -218,6 +237,18 @@ class WholeBrainDataset(torch.utils.data.Dataset):
         # Return the npy
         return npy
     
+    # Function to get the affine of a dMRI image
+    def get_affine(self, dMRI_path):
+
+        # Load the dMRI image
+        dMRI_image = nib.load(dMRI_path)
+
+        # Get the affine
+        affine = dMRI_image.affine
+
+        # Return the affine
+        return affine
+    
     # Function to get item
     def get_brain_data(self):
 
@@ -227,6 +258,9 @@ class WholeBrainDataset(torch.utils.data.Dataset):
         # Get the wmfod image path
         wmfod_image_path = self.wmfod_images[index]
 
+        # Get the dMRI image path
+        dMRI_image_path = self.dMRI_images[index]
+
         # Get the streamline path
         streamline_path = self.streamlines[index]
 
@@ -235,6 +269,9 @@ class WholeBrainDataset(torch.utils.data.Dataset):
 
         # Read the wmfod image
         wmfod_image_array = self.read_image(wmfod_image_path)
+
+        # Get the DWI affine
+        affine = self.get_affine(dMRI_image_path)
 
         # Read the streamline
         streamlines_list, header = self.read_streamline(streamline_path)
@@ -253,6 +290,7 @@ class WholeBrainDataset(torch.utils.data.Dataset):
                         'wmfod' : wmfod_image_array,
                         'streamlines' : streamlines_list,
                         'header' : header,
+                        'affine' : affine,
                         'labels' : label_array
                     }
          

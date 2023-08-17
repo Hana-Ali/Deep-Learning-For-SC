@@ -13,12 +13,6 @@ parser.add_argument("-c", "--contrastive", help="what type of contrastive to run
 			type=str)
 parser.add_argument("-d", "--depthwise", help="depthwise conv or not",
                     action='store_true')
-parser.add_argument("-lr", "--learning_rate", help="initial learning rate",
-			default=0.05,
-			type=float)
-parser.add_argument("-b", "--batch_size", help="batchsize",
-			default=32,
-			type=int)
 
 args = parser.parse_args()
 
@@ -47,8 +41,6 @@ test_name = "testing_logs"
 task = args.task
 contrastive = args.contrastive
 depthwise = args.depthwise
-init_lr = args.learning_rate
-batch_size = args.batch_size
 
 print("depthwise is", depthwise)
 

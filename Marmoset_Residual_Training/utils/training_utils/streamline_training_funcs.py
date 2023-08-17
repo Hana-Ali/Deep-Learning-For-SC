@@ -592,8 +592,9 @@ def test_loop_nodes(brain_data, model, criterion, brain_name, streamline_arrays_
         # Get the wmfod, streamlines, header and labels
         wmfod = torch.from_numpy(brain_data["wmfod"]).unsqueeze(0)
         streamlines = torch.from_numpy(brain_data["streamlines"]).unsqueeze(0)
-        header = brain_data["header"]
         labels = torch.from_numpy(brain_data["labels"]).unsqueeze(0)
+        header = brain_data["header"]
+        affine = brain_data["affine"]
         
         # For each streamline
         for i in range(streamlines.shape[0]):
@@ -601,6 +602,8 @@ def test_loop_nodes(brain_data, model, criterion, brain_name, streamline_arrays_
             print("Shape of wmfod is", wmfod.shape)
             print("Shape of streamlines is", streamlines.shape)
             print("Shape of labels is", labels.shape)
+            print("Type of header is", type(header))
+            print("Type of affine is", type(affine))
             
             # Get the brain hemisphere
             brain_hemisphere = wmfod
@@ -775,6 +778,7 @@ def test_loop_nodes(brain_data, model, criterion, brain_name, streamline_arrays_
             # Define the filenames
             prediction_filename = os.path.join(batch_folder, "tracer_streamlines_predicted.{extension}".format(extension=extension))
             decoded_prediction_trk_filename = os.path.join(batch_folder, "tracer_decoded.{extension}".format(extension=input_type))
+            decoded_prediction_trk_inverted_filename = os.path.join(batch_folder, "tracer_decoded_inverted.{extension}".format(extension=input_type))
             groundtruth_filename = os.path.join(batch_folder, "tracer_streamlines.{extension}".format(extension=input_type))
 
             # Define the decoded filename
@@ -798,7 +802,16 @@ def test_loop_nodes(brain_data, model, criterion, brain_name, streamline_arrays_
                 # Convert into tractogram and save
                 decoded_streamlines_array = nib.streamlines.Tractogram(decoded_array[batch], affine_to_rasmm=np.eye(4))
                 nib.streamlines.save(decoded_streamlines_array, decoded_prediction_trk_filename, header=header)
-            
+
+                # For every streamline in the batch, invert the streamline
+                inverted_streamlines = []
+                for streamline in range(decoded_array.shape[streamline_idx]):
+                    inverted_streamlines.append(nib.affines.apply_affine(affine, decoded_array[batch, streamline]))
+                # Convert into tractogram and save
+                inverted_tractogram = nib.streamlines.Tractogram(inverted_streamlines, affine_to_rasmm=np.eye(4))
+                nib.streamlines.save(inverted_tractogram, decoded_prediction_trk_inverted_filename, header=header)
+                print("Saved new streamlines to {}".format(decoded_prediction_trk_inverted_filename))
+
             # Else, save the predicted stuff as a numpy array
             else:
                 np.save(prediction_filename, predictions_array[batch])
