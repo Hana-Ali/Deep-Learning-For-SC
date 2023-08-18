@@ -12,7 +12,7 @@ import numpy.linalg as npl
 def streamline_node_extraction(trk_file, template, output_path):
     
     # Get the filename of the streamline
-    streamline_filename = trk_file.split(os.sep)[-1].replace(".trk", "_voxel_transform.trk")
+    streamline_filename = trk_file.split(os.sep)[-1].replace(".trk", "_voxel.trk")
 
     # Get the region folder name
     region_ID = trk_file.split(os.sep)[-2]
@@ -50,9 +50,9 @@ def main():
         template = "/rds/general/ephemeral/user/hsa22/ephemeral/Brain_MINDS/model_data_w_resize/dMRI_b0/A10-R01_0028-TT21/DWI_concatenated_b0_resized.nii.gz"
         output_path = "/rds/general/ephemeral/user/hsa22/ephemeral/Brain_MINDS/model_data_w_resize/trk_data_voxels"
     else:
-        data_path = "/media/hsa22/Expansion/Brain-MINDS/model_data_w_resize/resampled_streamlines"
-        template = "/media/hsa22/Expansion/Brain-MINDS/model_data_w_resize/dMRI_b0/A10-R01_0028-TT21/DWI_concatenated_b0_resized.nii.gz"
-        output_path = "/media/hsa22/Expansion/Brain-MINDS/model_data_w_resize/resampled_streamlines_voxels"
+        data_path = "/media/hsa22/Expansion/Brain-MINDS/model_data_w_resize/trk_data_originalsize"
+        template = "/media/hsa22/Expansion/Brain-MINDS/unused_model_data/dMRI_b0/A10-R01_0028-TT21/DWI_concatenated_b0.nii.gz"
+        output_path = "/media/hsa22/Expansion/Brain-MINDS/model_data_w_resize/trk_data_originalsize_voxels"
 
     check_output_folders(output_path, "output_path", wipe=False)
 
