@@ -29,13 +29,16 @@ def connectome_creation(tck_file, atlas_dictionary):
         # Create the connectome file path
         connectome_path = os.path.join(region_folder, connectome_name)
 
-        # Connectivity matrix command
-        CONNECTIVITY_COMMAND = "tck2connectome {input} {atlas} {output} -zero_diagonal -symmetric \
-            -assignment_all_voxels -force".format(input=tck_file, atlas=atlas_path, output=connectome_path)
-        
-        # Run the command
-        print("Running: {}".format(CONNECTIVITY_COMMAND))
-        subprocess.run(CONNECTIVITY_COMMAND, shell=True, check=True)
+        # If path doesnt exist, create it
+        if not os.path.exists(connectome_path):
+
+            # Connectivity matrix command
+            CONNECTIVITY_COMMAND = "tck2connectome {input} {atlas} {output} -zero_diagonal -symmetric \
+                -assignment_all_voxels -force".format(input=tck_file, atlas=atlas_path, output=connectome_path)
+            
+            # Run the command
+            print("Running: {}".format(CONNECTIVITY_COMMAND))
+            subprocess.run(CONNECTIVITY_COMMAND, shell=True, check=True)
 
 
 # Main function
