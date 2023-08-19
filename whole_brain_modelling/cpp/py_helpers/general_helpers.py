@@ -23,7 +23,7 @@ def check_all_shapes(inputs):
         check_shape(inputs, input_shape, input_name)
 
 # Function to define paths, based on hpc
-def define_paths(hpc=True, wbm_type="kuramoto"):
+def define_paths(hpc=True, wbm_type="kuramoto", species_type="marmoset"):
 
     print("hpc is ", hpc)
     
