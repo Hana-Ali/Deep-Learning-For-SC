@@ -24,7 +24,7 @@ def connectome_creation(tck_file, atlas_dictionary):
         check_output_folders(region_folder, "region", wipe=False)
             
         # Create the connectome file name
-        connectome_name = tck_file.split(os.sep)[-1].replace(".tck", "_tracer.csv")
+        connectome_name = tck_file.split(os.sep)[-1].replace(".tck", "_track.csv")
 
         # Create the connectome file path
         connectome_path = os.path.join(region_folder, connectome_name)
@@ -56,7 +56,8 @@ def main():
     tck_files = glob_files(tck_path, "tck")
 
     # Filter out for the tracer streamline ones
-    tck_files = [tck for tck in tck_files if "tracer" in tck and "sharp" not in tck]
+    # tck_files = [tck for tck in tck_files if "tracer" in tck and "sharp" not in tck]
+    tck_files = [tck for tck in tck_files if "track" in tck]
 
     # Grab all the nii.gz files (atlas)
     atlas_reg_paths = glob_files(atlas_reg_path, "nii.gz")
