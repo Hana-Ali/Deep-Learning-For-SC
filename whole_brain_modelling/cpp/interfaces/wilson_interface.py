@@ -32,7 +32,7 @@ def wilson_simulator(coupling_strength, delay):
     print('----------------- In wilson_electrical_sim -----------------')
 
     # --------- Get the main paths
-    (SC_FC_root, write_path, config_path, NUMPY_root_path, 
+    (SC_FC_root, write_folder, config_path, NUMPY_root_path, 
      SC_numpy_root, FC_numpy_root) = define_paths(hpc, wbm_type="wilson")
 
     # --------- Read the config file
@@ -61,32 +61,38 @@ def wilson_simulator(coupling_strength, delay):
     integration_step_size = config['integration_step_size']
     start_save_idx = config['start_save_idx']
     downsampling_rate = config['downsampling_rate']
+    SC_path = config['SC_path']
+    FC_path = config['FC_path']
+    LENGTH_path = config['LENGTH_path']
     noise_type = config['noise_type']
     noise_amplitude = config['noise_amplitude']
-    write_path = config['write_path']
+    write_folder = config['write_folder']
     order = config['order']
     cutoffLow = config['cutoffLow']
     cutoffHigh = config['cutoffHigh']
     TR = config['TR']
-    SC_path = config['SC_path']
-    FC_path = config['FC_path']
+    species = config['species']
+    streamline_type = config['streamline_type']
+    connectome_type = config['connectome_type']
+    symmetric = config['symmetric']
 
     # --------- Get the SC and FC matrices
     print('Getting SC and FC matrices...')
-    SC = np.load(SC_path)
-    emp_FC = np.load(FC_path)
+    SC_matrix = get_empirical_SC(SC_path, HPC=hpc, species_type=species, symmetric=symmetric)
+    FC_matrix = get_empirical_FC(FC_path, config_path, HPC=hpc, species_type=species)
+    LENGTH_matrix = get_empirical_LENGTH(LENGTH_path, HPC=hpc, species_type=species)
 
     # --------- Check the shape of the SC and FC matrices
     inputs = [
-        (SC, (number_oscillators, number_oscillators), 'SC'),
-        (emp_FC, (number_oscillators, number_oscillators), 'FC')
+        (SC_matrix, (number_oscillators, number_oscillators), 'SC'),
+        (FC_matrix, (number_oscillators, number_oscillators), 'FC')
     ]
     check_all_shapes(inputs)
 
     # --------- Check the type of data in the SC and FC matrices
     inputs = [
-        (SC[0, 0], np.float64, 'SC[0, 0]'),
-        (emp_FC[0, 0], np.float64, 'FC[0, 0]')
+        (SC_matrix[0, 0], np.float64, 'SC[0, 0]'),
+        (FC_matrix[0, 0], np.float64, 'FC[0, 0]')
     ]
     check_all_types(inputs)
 
@@ -105,10 +111,10 @@ def wilson_simulator(coupling_strength, delay):
     # --------- Defining the coupling and delay matrices
     print('Defining coupling and delay matrices...')
     # COUPLING is either c_ee, if local coupling, or SC, if global coupling
-    coupling_matrix = coupling_strength * SC    
+    coupling_matrix = coupling_strength * SC_matrix    
     coupling_matrix += (np.diag(np.ones((number_oscillators,)) * c_ee))
     # DELAY is either 0, if local coupling, or delay * path lengths, if global coupling
-    delay_matrix = delay * SC
+    delay_matrix = delay * LENGTH_matrix
     delay_matrix += (np.diag(np.zeros((number_oscillators,))))
 
     # --------- Define the index matrices for integration (WHAT IS THIS)
@@ -125,7 +131,7 @@ def wilson_simulator(coupling_strength, delay):
     raw_sim_bold = sim.parsing_wilson_inputs(
         coupling_strength,
         delay,
-        SC,
+        SC_matrix,
         number_oscillators,
         c_ee,
         c_ei,
@@ -188,13 +194,13 @@ def wilson_simulator(coupling_strength, delay):
 
     # --------- Define folder path for all simulations
     print("Creating folders...")
-    if not os.path.exists(write_path):
-        os.makedirs(write_path)
+    if not os.path.exists(write_folder):
+        os.makedirs(write_folder)
 
     folder_name = "Coupling {:.4f}, Delay{:.4f}\\".format(coupling_strength, delay)
-    # bold_path_main = os.path.join(write_path, folder_name)
-    FC_path_main = os.path.join(write_path, folder_name)
-    empFC_simFC_corr_path_main = os.path.join(write_path, folder_name)
+    # bold_path_main = os.path.join(write_folder, folder_name)
+    FC_path_main = os.path.join(write_folder, folder_name)
+    empFC_simFC_corr_path_main = os.path.join(write_folder, folder_name)
 
     # if not os.path.exists(bold_path_main):
     #     os.makedirs(bold_path_main)

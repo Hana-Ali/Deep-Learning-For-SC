@@ -3,19 +3,39 @@
 #%% Import libraries
 import os
 
-hpc = False
+import argparse
+
+parser = argparse.ArgumentParser(description="Define stuff for running the model")
+parser.add_argument("-st", "--streamline_type", help="whether to do WBM for tracks or tracer streamlines",
+                    default="tracer", required=True,
+                    type=str)
+parser.add_argument("-s", "--species", help="what species we're predicting for", 
+                    default="marmoset", required=False,
+                    type=str)
+parser.add_argument("-h", "--hpc", help="whether to run on HPC or not",
+                    action='store_true')
+parser.add_argument("-c", "--connectome_type", help="what type of atlas to use", 
+                    default="MBCA", required=True,
+                    type=str)
+parser.add_argument("-sym", "--symmetric", help="whether to use symmetric SC matrix or not",
+                    action='store_true')
+
+args = parser.parse_args()
+
+streamline_type = args.streamline_type
+species = args.species
+hpc = args.hpc
+connectome_type = args.connectome_type
+symmetric = args.symmetric
 
 if not hpc:
     os.add_dll_directory(r"C:\src\vcpkg\installed\x64-windows\bin")
     os.add_dll_directory(r"C:\cpp_libs\include\bayesopt\build\bin\Release")
     
-from sklearn.preprocessing import MinMaxScaler
-
 from py_helpers import *
 from interfaces import *
 
 from collections import OrderedDict
-import multiprocessing as mp
 import numpy as np
 
 try:
@@ -76,9 +96,6 @@ number_threads_needed = 48
 noise_type = 1
 noise_amplitude = 0.001
 
-# Defining the number of oscillators
-number_oscillators = 100
-
 # Defining filter parameters
 order = 6
 cutoffLow = 0.01
@@ -95,8 +112,9 @@ if __name__ == "__main__":
     # %% Initial operations - making config file, starting timer, etc.
 
     # Get the main paths
-    (SC_FC_root, write_path, config_path, NUMPY_root_path, 
-     SC_numpy_root, FC_numpy_root) = define_paths(hpc, wbm_type="wilson")
+    (SC_root_path, FC_root_path, write_folder, 
+     config_path) = define_paths(hpc, wbm_type="wilson", species_type=species,
+                                 streamline_type=streamline_type, connectome_type=connectome_type)
 
     # Derive some parameters for simulation
     number_integration_steps = int(time_simulated / integration_step_size)
@@ -105,49 +123,52 @@ if __name__ == "__main__":
 
     # Parameters for JSON file
     wilson_params = [
-        number_oscillators,
-        c_ee,
-        c_ei,
-        c_ie,
-        c_ii,
-        tau_e,
-        tau_i,
-        r_e,
-        r_i,
-        alpha_e,
-        alpha_i,
-        theta_e,
-        theta_i,
-        external_e,
-        external_i,
-        number_integration_steps,
-        integration_step_size,
-        start_save_idx,
-        downsampling_rate,
-        noise_type,
-        noise_amplitude,
-        write_path,
-        order,
-        cutoffLow,
-        cutoffHigh,
-        TR
+        c_ee, # 0
+        c_ei, # 1
+        c_ie, # 2
+        c_ii, # 3
+        tau_e, # 4
+        tau_i, # 5
+        r_e, # 6
+        r_i, # 7
+        alpha_e, # 8
+        alpha_i, # 9
+        theta_e, # 10
+        theta_i, # 11
+        external_e, # 12
+        external_i, # 13
+        number_integration_steps, # 14
+        integration_step_size, # 15
+        start_save_idx, # 16
+        downsampling_rate, # 17
+        noise_type, # 18
+        noise_amplitude, # 19
+        write_folder, # 20
+        order, # 21
+        cutoffLow, # 22
+        cutoffHigh, # 23
+        TR, # 24
+        species, # 25
+        streamline_type, # 26
+        connectome_type, # 27
+        symmetric # 28
     ]
 
     print('Create initial config of parameters...')
-    write_initial_config_kura(wilson_params, config_path)
+    write_initial_config_wilson(wilson_params, config_path)
 
     # Choose current subject to do processing for
-    (SUBJECT_SC_PATH, SUBJECT_FC_PATH) = choose_random_subject(SC_FC_root, NUMPY_root_path)
+    (SUBJECT_SC_PATH, SUBJECT_FC_PATH,
+     SUBJECT_LENGTH_PATH) = get_subject_matrices(SC_root_path, FC_root_path, write_folder, 
+                                                 streamline_type=streamline_type, 
+                                                 connectome_type=connectome_type)
 
-    # Get the SC and FC matrices
-    SC_matrix = get_empirical_SC(SUBJECT_SC_PATH, HCP=False)
-    FC_matrix = get_empirical_FC(SUBJECT_FC_PATH, config_path, HCP=False)
-
-    # Store the numpy matrices in the numpy arrays folder
-    (SC_matrix_path, FC_matrix_path) = store_subject_numpy_arrays(SC_matrix, FC_matrix, SUBJECT_SC_PATH, NUMPY_root_path)
+    # Getting the SC matrix just to get number of oscillators
+    SC_matrix = get_empirical_SC(SUBJECT_SC_PATH, HPC=hpc, species_type=species, symmetric=symmetric)
+    number_of_oscillators = SC_matrix.shape[0]
 
     # Append the SC and FC matrix paths to the config file
-    wilson_params = [SC_matrix_path, FC_matrix_path]
+    wilson_params = [number_of_oscillators, SUBJECT_SC_PATH, SUBJECT_FC_PATH, SUBJECT_LENGTH_PATH]
     append_SC_FC_to_config(wilson_params, config_path)
 
 

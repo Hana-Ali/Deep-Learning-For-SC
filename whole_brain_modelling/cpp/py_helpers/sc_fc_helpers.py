@@ -11,24 +11,82 @@ import os
 import mat73
 
 # Get the Structural Connectivity Matrices
-def get_empirical_SC(path, HCP=False):
+def get_empirical_SC(path, HPC=False, species_type="marmoset", symmetric=True):
 
     # The SC is different depending on path
-    if HCP:
-        SC_array = get_empirical_SC_HCP(path)
+    if HPC:
+        SC_array = get_empirical_SC_HPC(path)
     else:
-        SC_array = get_empirical_SC_CAMCAN(path)
+        if species_type == "marmoset":
+            if symmetric:
+                _, _, _, SC_array = get_empirical_SC_BrainMinds(path)
+            else:
+                _, SC_array, _, _ = get_empirical_SC_BrainMinds(path)
+        elif species_type == "human":
+            SC_array = get_empirical_SC_CAMCAN(path)
+        else:
+            raise ValueError("The input species_type is not valid")
 
     # Return the SC array
     return SC_array
 
+# Function to get the Functional Connectivity Matrices
+def get_empirical_FC(path, config_path=None, HPC=False, species_type="marmoset"):
+
+    # FC is also different depending on path
+    if HPC:
+        FC_array = get_empirical_FC_HPC(path, config_path)
+    else:
+        if species_type == "marmoset":
+            FC_array = get_empirical_FC_BrainMinds(path)
+        elif species_type == "human":
+            FC_array = get_empirical_FC_CAMCAN(path, config_path)
+        else:
+            raise ValueError("The input species_type is not valid")
+        
+    # Return the FC array
+    return FC_array
+
+# Function to get the length matrices
+def get_empirical_LENGTH(path, HPC=False, species_type="marmoset"):
+
+    # The length is different depending on path
+    if HPC:
+        LENGTH_array = get_empirical_LENGTH_HPC(path)
+    else:
+        if species_type == "marmoset":
+            LENGTH_array = get_empirical_LENGTH_BrainMinds(path)
+        elif species_type == "human":
+            LENGTH_array = get_empirical_LENGTH_CAMCAN(path)
+        else:
+            raise ValueError("The input species_type is not valid")
+
+    # Return the length array
+    return LENGTH_array
+
+# Function to get the empirical length HPC
+def get_empirical_LENGTH_HPC(path):
+    pass
+
+# Function to get the empirical length BrainMinds
+def get_empirical_LENGTH_BrainMinds(path):
+
+    # Load the length
+    length = np.genfromtxt(path, delimiter=",")
+
+    # Return the length
+    return length
+
+# Function to get the empirical length CAMCAN
+def get_empirical_LENGTH_CAMCAN(path):
+    pass
 
 # Get the Functional Connectivity Matrices
-def get_empirical_FC(path, config_path, HCP=False):
+def get_empirical_FC_old(path, config_path, HPC=False):
     
     # The FC is different depending on path
-    if HCP:
-        FC_array = get_empirical_FC_HCP(path, config_path)
+    if HPC:
+        FC_array = get_empirical_FC_HPC(path, config_path)
     else:
         FC_array = get_empirical_FC_CAMCAN(path, config_path)
 
@@ -36,12 +94,12 @@ def get_empirical_FC(path, config_path, HCP=False):
     return FC_array
 
 # Get the Structural Connectivity Matrices
-def get_empirical_SC_HCP(path):
+def get_empirical_SC_HPC(path):
     
     # Define paths, load matrices, and stack into array shape
-    SC_path = os.path.join(path, 'Schaefer100_DTI_HCP.mat')
+    SC_path = os.path.join(path, 'Schaefer100_DTI_HPC.mat')
     SC_all = sio.loadmat(SC_path)
-    SC_all = np.array(SC_all['DTI_fibers_HCP'])
+    SC_all = np.array(SC_all['DTI_fibers_HPC'])
     SC_all = np.concatenate(SC_all, axis=0)
     SC_all = np.array([subject for subject in SC_all])
 
@@ -80,6 +138,33 @@ def get_empirical_SC_HCP(path):
 
     return SC_final
 
+# Function to get the empirical SC - BrainMinds
+def get_empirical_SC_BrainMinds(path):
+
+    # Load the connectome
+    connectome = np.genfromtxt(path, delimiter=",")
+
+    # Log the connectome
+    log_connectome = np.log(connectome + 1)
+
+    # Symmetrize the connectome
+    symmetrized_connectome = flip_matrix(connectome)
+
+    # Symmetrize the log connectome
+    symmetrized_log_connectome = flip_matrix(log_connectome)
+    
+    # Return the connectomes
+    return connectome, log_connectome, symmetrized_connectome, symmetrized_log_connectome
+
+# Function to get empirical FC - BrainMinds
+def get_empirical_FC_BrainMinds(path):
+
+    # Load the FC
+    FC = np.genfromtxt(path, delimiter=",")
+
+    # Return the FC
+    return FC
+
 # Function to get empirical SC - CAMCAN
 def get_empirical_SC_CAMCAN(SUBJECT_SC_PATH):
 
@@ -106,7 +191,7 @@ def get_empirical_SC_CAMCAN(SUBJECT_SC_PATH):
     return (csv_data, SC_type)
 
 # Get the Functional Connectivity Matrices
-def get_empirical_FC_HCP(path, config_path):
+def get_empirical_FC_HPC(path, config_path):
 
     # Check that config path exists
     if not os.path.exists(config_path):
@@ -122,9 +207,9 @@ def get_empirical_FC_HCP(path, config_path):
     cutoffHigh = config['cutoffHigh']
 
     # Define paths, load matrices, and stack into array shape
-    FC_path = os.path.join(path, 'Schaefer100_BOLD_HCP.mat')
+    FC_path = os.path.join(path, 'Schaefer100_BOLD_HPC.mat')
     FC_all = sio.loadmat(FC_path)
-    FC_all = np.array(FC_all['BOLD_timeseries_HCP'])
+    FC_all = np.array(FC_all['BOLD_timeseries_HPC'])
     FC_all = np.concatenate(FC_all, axis=0)
     FC_all = np.array([subject for subject in FC_all])
 
@@ -191,9 +276,9 @@ def get_empirical_FC_CAMCAN(SUBJECT_FC_PATH, config_path):
 # Function to get the BOLD signals
 def get_empirical_BOLD(path):
     # Define paths, load matrices, and stack into array shape
-    BOLD_path = os.path.join(path, 'Schaefer100_BOLD_HCP.mat')
+    BOLD_path = os.path.join(path, 'Schaefer100_BOLD_HPC.mat')
     BOLD_all = sio.loadmat(BOLD_path)
-    BOLD_all = np.array(BOLD_all['BOLD_timeseries_HCP'])
+    BOLD_all = np.array(BOLD_all['BOLD_timeseries_HPC'])
     BOLD_all = np.concatenate(BOLD_all, axis=0)
     BOLD_all = np.array([subject for subject in BOLD_all])
 
@@ -226,102 +311,3 @@ def process_BOLD(BOLD_signal, order, TR, cutoffLow, cutoffHigh):
     BOLD_z_score = stats.zscore(BOLD_butter)
 
     return BOLD_z_score
-
-# Determine the R order parameter
-def determine_order_R(BOLD_signal, number_of_parcels, start_index):
-    """"
-    This function determines the order parameter R of the data, which is a measure of the
-    synchronization of the data. It is defined as the mean of the absolute values of the
-    complex phases of the data.
-
-    Parameters
-    ----------
-    BOLD_signal : numpy array
-        The BOLD signal data, with shape (number of oscillators, number of time points)
-    number_of_parcels : int
-        The number of parcels to use with the data
-    start_index : int
-        The index at which to start the analysis
-        
-    Returns
-    -------
-    R_mean : float
-        The mean of the order parameter R of the data
-    R_std : float
-        The standard deviation of the order parameter R of the data
-
-    """
-
-    # --------- Check that the input arguments are of the correct type
-    check_type(BOLD_signal, np.ndarray, 'BOLD_signal')
-    check_type(number_of_parcels, int, 'number_of_parcels')
-    print('BOLD_signal', BOLD_signal)
-
-    # --------- Check that the input arguments are of the correct shape
-    if not BOLD_signal.shape[0] == number_of_parcels:
-        raise ValueError('The input BOLD_signal must have shape (number of oscillators, number of time points), has shape ' + str(BOLD_signal.shape))
-
-    # --------- Calculate the order parameter R
-    # Process the simulated BOLD in the same way the empirical is processed
-    BOLD_processed = process_BOLD(BOLD_signal)
-
-    # Apply the Hilbert transform to the data
-    BOLD_hilbert = signal.hilbert(BOLD_processed)
-    phase = np.angle(BOLD_hilbert)
-    phase = phase[:, start_index:]
-
-    # Calculate the complex phases of the data
-    complex_phase = np.exp(1j * phase)
-
-    # Calculate the order parameter R
-    R = np.mean(np.abs(complex_phase), axis=0)
-
-    # Calculate the mean and standard deviation of the order parameter R
-    R_mean = np.mean(R)
-    R_std = np.std(R, ddof=1)
-
-    return float(R_mean), float(R_std)
-
-
-def determine_similarity(empFC, simFC, technique="Pearson"):
-    """
-    This function determines the similarity between the empirical and simulated FC matrices.
-    Different similarity measures can be used, including Pearson correlation, Spearman
-    correlation, and the Euclidean distance. Others should be researched first
-
-    Parameters
-    ----------
-    empFC : numpy array
-        The empirical FC matrix, with shape (number of oscillators, number of oscillators)
-    simFC : numpy array
-        The simulated FC matrix, with shape (number of oscillators, number of oscillators)
-    technique : str
-        The technique to use to determine the similarity. Currently supported are "Pearson",
-        "Spearman", and "Euclidean"
-
-    Returns
-    -------
-    similarity : float
-        The similarity between the empirical and simulated FC matrices
-    """
-
-    # --------- Check that the input arguments are of the correct type
-    check_type(empFC, np.ndarray, 'empFC')
-    check_type(simFC, np.ndarray, 'simFC')
-    check_type(technique, str, 'technique')
-
-    # --------- Check that the input arguments are of the correct shape
-    if not empFC.shape == simFC.shape:
-        raise ValueError('The input simFC and empFC must have shape (number of oscillators, number of oscillators), empFC has shape ' + str(empFC.shape) + ', simFC has shape ' + str(simFC.shape))
-    
-    # --------- Determine the similarity
-    if technique == "Pearson":
-        similarity = stats.pearsonr(empFC.flatten(), simFC.flatten())[0]
-    elif technique == "Spearman":
-        similarity = stats.spearmanr(empFC.flatten(), simFC.flatten())[0]
-    elif technique == "Euclidean":
-        similarity = np.linalg.norm(empFC - simFC)
-    else:
-        raise ValueError('The input technique must be "Pearson", "Spearman", or "Euclidean", is ' + technique)
-
-    return float(similarity)
