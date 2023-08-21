@@ -515,7 +515,7 @@ def find_next_node_points_direction(direction, previous_node):
 
     # Convert the previous node and direction to a numpy array
     direction = direction.cpu().detach().numpy()
-    previous_node = previous_node.cpu().detach().numpy()
+    # previous_node = previous_node.cpu().detach().numpy()
 
     # Since the points direction is just the difference between the previous node and the next node, we can just
     # add the direction to the previous node to get the next node

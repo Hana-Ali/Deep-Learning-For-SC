@@ -651,7 +651,10 @@ def test_loop_nodes(brain_data, model, criterion, brain_name, streamline_arrays_
                 for point in range(streamlines.shape[node_idx] - 1):
 
                     # Get the current point from the streamline of all batches
-                    streamline_node = torch.round(streamlines[:, streamline, point])
+                    if point == 0:
+                        streamline_node = torch.round(streamlines[:, streamline, point])
+                    else:
+                        streamline_node = torch.round(torch.from_numpy(decoded_array[:, streamline, point - 1]))
                     
                     # Get the x, y, z coordinate into a list
                     curr_coord = [streamline_node[:, 0], streamline_node[:, 1], streamline_node[:, 2]]
@@ -697,7 +700,7 @@ def test_loop_nodes(brain_data, model, criterion, brain_name, streamline_arrays_
                             if point == 0:
                                 decoded_array[:, streamline, point] = streamlines[:, streamline, point]
                             else:
-                                predicted_node = find_next_node_points_direction(predicted_label, streamlines[:, streamline, point - 1])
+                                predicted_node = find_next_node_points_direction(predicted_label, decoded_array[:, streamline, point - 1])
                                 decoded_array[:, streamline, point] = predicted_node
 
                             # Find the angular error between prediction and label
@@ -758,7 +761,7 @@ def test_loop_nodes(brain_data, model, criterion, brain_name, streamline_arrays_
         # Make folder for the predictions
         folder_name = "test_sep" if separate_hemisphere else "test"
         predictions_folder = os.path.join(streamline_arrays_path, str(model.__class__.__name__), 
-                                          folder_name, "brain_{}".format(brain_name), "{}".format(training_task))
+                                          folder_name, "brain_{}_NOHELP".format(brain_name), "{}".format(training_task))
         check_output_folders(predictions_folder, "predictions folder", wipe=False)
 
         # Define the extension depending on the task (the output is either a npy file or a trk/tck file)
@@ -803,15 +806,16 @@ def test_loop_nodes(brain_data, model, criterion, brain_name, streamline_arrays_
                 # Convert into tractogram and save
                 decoded_streamlines_array = nib.streamlines.Tractogram(decoded_array[batch], affine_to_rasmm=np.eye(4))
                 nib.streamlines.save(decoded_streamlines_array, decoded_prediction_trk_filename, header=header)
+                print("Saved new streamlines to {}".format(decoded_prediction_trk_filename))
 
-                # For every streamline in the batch, invert the streamline
-                inverted_streamlines = []
-                for streamline in range(decoded_array.shape[streamline_idx]):
-                    inverted_streamlines.append(apply_affine(affine, decoded_array[batch, streamline]))
-                # Convert into tractogram and save
-                inverted_tractogram = nib.streamlines.Tractogram(inverted_streamlines, affine_to_rasmm=np.eye(4))
-                nib.streamlines.save(inverted_tractogram, decoded_prediction_trk_inverted_filename, header=header)
-                print("Saved new streamlines to {}".format(decoded_prediction_trk_inverted_filename))
+                # # For every streamline in the batch, invert the streamline
+                # inverted_streamlines = []
+                # for streamline in range(decoded_array.shape[streamline_idx]):
+                #     inverted_streamlines.append(apply_affine(affine, decoded_array[batch, streamline]))
+                # # Convert into tractogram and save
+                # inverted_tractogram = nib.streamlines.Tractogram(inverted_streamlines, affine_to_rasmm=np.eye(4))
+                # nib.streamlines.save(inverted_tractogram, decoded_prediction_trk_inverted_filename, header=header)
+                # print("Saved new streamlines to {}".format(decoded_prediction_trk_inverted_filename))
 
             # Else, save the predicted stuff as a numpy array
             else:

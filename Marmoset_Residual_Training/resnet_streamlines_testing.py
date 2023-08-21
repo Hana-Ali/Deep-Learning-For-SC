@@ -18,7 +18,7 @@ args = parser.parse_args()
 
 hpc = False
 labs = False
-paperspace = True
+paperspace = False
 
 if hpc:
     main_data_path = "/rds/general/user/hsa22/ephemeral/Brain_MINDS/model_data"
@@ -30,8 +30,8 @@ elif paperspace:
     main_data_path = "/storage/model_data_w_resize"
     main_logs_path = "/notebooks/predicted_streamlines"
 else:
-    main_data_path = "D:\\Brain-MINDS\\model_data"
-    main_logs_path = "D:\\Brain-MINDS\\predicted_streamlines"
+    main_data_path = "/mnt/d/Brain-MINDS/model_data_w_resize"
+    main_logs_path = "/mnt/d/Brain-MINDS/predicted_streamlines"
 
 # Define the main name
 pred_name = "resnet"
