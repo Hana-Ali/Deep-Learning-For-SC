@@ -24,7 +24,7 @@ def connectome_creation(tck_file, atlas_dictionary):
         check_output_folders(region_folder, "region", wipe=False)
             
         # Create the connectome file name
-        connectome_name = tck_file.split(os.sep)[-1].replace(".tck", "_track.csv")
+        connectome_name = tck_file.split(os.sep)[-1].replace(".tck", "_path_length.csv")
 
         # Create the connectome file path
         connectome_path = os.path.join(region_folder, connectome_name)
@@ -33,7 +33,7 @@ def connectome_creation(tck_file, atlas_dictionary):
         if not os.path.exists(connectome_path):
 
             # Connectivity matrix command
-            CONNECTIVITY_COMMAND = "tck2connectome {input} {atlas} {output} -zero_diagonal -symmetric \
+            CONNECTIVITY_COMMAND = "tck2connectome {input} {atlas} {output} -zero_diagonal -symmetric -scale_length \
                 -assignment_all_voxels -force".format(input=tck_file, atlas=atlas_path, output=connectome_path)
             
             # Run the command
@@ -48,16 +48,16 @@ def main():
     if hpc:
         tck_path = "/rds/general/ephemeral/user/hsa22/ephemeral/Brain_MINDS/processed_dMRI/MRTRIX"
     else:
-        tck_path = "/media/hsa22/Expansion/Brain-MINDS/BMCR_core_data/meta_data"
-        mrtrix_path = "/media/hsa22/Expansion/Brain-MINDS/processed_dMRI/MRTRIX"
-        atlas_reg_path = "/media/hsa22/Expansion/Brain-MINDS/BMCR_STPT_template/Atlases"
+        tck_path = "/mnt/d/Brain-MINDS/BMCR_core_data/meta_data"
+        connectomes_path = "/mnt/d/Brain-MINDS/connectomes"
+        atlas_reg_path = "/mnt/d/Brain-MINDS/BMCR_STPT_template/Atlases"
 
     # Grab all the tck files
     tck_files = glob_files(tck_path, "tck")
 
     # Filter out for the tracer streamline ones
-    # tck_files = [tck for tck in tck_files if "tracer" in tck and "sharp" not in tck]
-    tck_files = [tck for tck in tck_files if "track" in tck]
+    tck_files = [tck for tck in tck_files if "tracer" in tck and "sharp" not in tck]
+    # tck_files = [tck for tck in tck_files if "track" in tck]
 
     # Grab all the nii.gz files (atlas)
     atlas_reg_paths = glob_files(atlas_reg_path, "nii.gz")
@@ -70,16 +70,16 @@ def main():
                       and "Paxinos" in atlas][0]
     
     # Make connectome folders
-    BMA_folder = os.path.join(mrtrix_path, "BMA_connectomes")
-    MBCA_folder = os.path.join(mrtrix_path, "MBCA_connectomes")
-    MBM_folder = os.path.join(mrtrix_path, "MBM_connectomes")
+    BMA_folder = os.path.join(connectomes_path, "BMA_connectomes")
+    MBCA_folder = os.path.join(connectomes_path, "MBCA_connectomes")
+    MBM_folder = os.path.join(connectomes_path, "MBM_connectomes")
     check_output_folders(BMA_folder, "BMA", wipe=False)
     check_output_folders(MBCA_folder, "MBCA", wipe=False)
     check_output_folders(MBM_folder, "MBM", wipe=False)
 
     # Make a dictionary of the atlas paths and folders
     atlas_dictionary = {
-        "BMA": [BMA_atlas_path, BMA_folder],
+        # "BMA": [BMA_atlas_path, BMA_folder],
         "MBCA": [MBCA_atlas_path, MBCA_folder],
         "MBM": [MBM_atlas_path, MBM_folder]
     }
