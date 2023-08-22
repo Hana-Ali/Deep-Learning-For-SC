@@ -14,6 +14,14 @@ def register_fmri(fmri_file, output_path, atlas_path):
     fmri_folder = os.path.join(output_path, fmri_name)
     check_output_folders(fmri_folder, "fmri output", wipe=False)
 
+    # Slices folder
+    slices_folder = os.path.join(fmri_folder, "slices")
+    check_output_folders(slices_folder, "slices output", wipe=False)
+
+    # Registration folder
+    registration_folder = os.path.join(fmri_folder, "registration")
+    check_output_folders(registration_folder, "registration output", wipe=False)
+
     # Load the fmri file
     fmri_img = nib.load(fmri_file)
 
@@ -26,13 +34,44 @@ def register_fmri(fmri_file, output_path, atlas_path):
         # Get the volume
         fmri_slice = fmri_img.slicer[:, :, :, vol_idx]
 
-        # Get the file path
-        filepath = os.path.join(fmri_folder, "{name}_slice_{idx}".format(name=fmri_name, idx=vol_idx))
+        # Get the file path for slices
+        slices_filepath = os.path.join(slices_folder, "slice_{idx}".format(idx=vol_idx))
+        slices_filepath_with_ext = slices_filepath + ".nii.gz"
 
-        # Save the slice
-        nib.save(fmri_slice, filepath)
+        # Get the file path for registration
+        registration_filepath = os.path.join(registration_folder, "slice_{idx}".format(idx=vol_idx))
 
-        print("Saved slice {}".format(vol_idx))
+        # Save the slice if it doesn't exist
+        if not os.path.exists(slices_filepath_with_ext):
+            nib.save(fmri_slice, slices_filepath_with_ext)
+            print("Saved slice {}".format(vol_idx))
+
+        # Run the registration if the file doesn't exist
+        if not os.path.exists(registration_filepath):
+            # Register the slice to the atlas using the flirt command
+            FLIRT_CMD = "flirt -in {fmri} -ref {atlas} -out {filepath} -omat {filepath}.mat".format(
+                fmri=slices_filepath_with_ext, atlas=atlas_path, filepath=registration_filepath
+            )
+            # Run the command
+            print("Running flirt command for slice {}".format(vol_idx))
+            subprocess.run(FLIRT_CMD, shell=True)
+
+
+    # Grab all the slices in the registration
+    registered_slices = glob_files(registration_folder, "nii.gz")
+
+    # Define all slices in one string
+    registered_slices_str = " ".join(registered_slices)
+
+    # Define the output file path
+    output_filepath = os.path.join(fmri_folder, "registered_fmri.nii.gz")
+
+    # Merge the slices into one file if it doesn't exist
+    if not os.path.exists(output_filepath):
+        CONCAT_CMD = "mrcat {slices} {output}".format(slices=registered_slices_str, output=output_filepath)
+        # Run the command
+        print("Running concat command")
+        subprocess.run(CONCAT_CMD, shell=True)
 
         # # Register the slice to the atlas using the flirt command
         # FLIRT_CMD = "flirt -in {fmri} -ref {atlas} -out {filepath} -omat {filepath}.mat".format(
@@ -57,6 +96,9 @@ def main():
 
     # Grab all the nii.gz files
     nii_gz_files = glob_files(data_path, "nii.gz")
+
+    # Filter for the non-slices 
+    nii_gz_files = [file for file in nii_gz_files if "slices" not in file]
 
     print("Found {} nii files".format(len(nii_gz_files)))
 
