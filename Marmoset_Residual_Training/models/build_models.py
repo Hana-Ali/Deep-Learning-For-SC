@@ -179,7 +179,7 @@ def get_model(model_name, input_nc, output_nc=None, ngf=None, num_blocks=3, norm
                     raise ValueError("Task {} not found".format(task))
             else:
                 assert output_size == 256
-
+                
             # Return the Baseline MLP
             model = Baseline_MLP(cnn_flattened_size=flattened_mlp_size,
                                 hidden_size=hidden_size,

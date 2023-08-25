@@ -16,10 +16,10 @@ class TwoInputMLP(nn.Module):
         self.neurons = 32
         self.output_size = output_size
 
-        print("Previous predictions size", self.previous_predictions_size)
-        print("cnn_flattened_sizesize", self.cnn_flattened_size)
-        print("Neurons", self.neurons)
-        print("Output size", self.output_size)
+        # print("Previous predictions size", self.previous_predictions_size)
+        # print("cnn_flattened_sizesize", self.cnn_flattened_size)
+        # print("Neurons", self.neurons)
+        # print("Output size", self.output_size)
 
         self.prev_pred_FC = [nn.Linear(previous_predictions_size, neurons),  # First MLP for input of size [batch_size, 6]
                             nn.ReLU(inplace=True)]
@@ -29,7 +29,7 @@ class TwoInputMLP(nn.Module):
             self.prev_pred_FC.append(nn.GroupNorm(1, neurons))
         self.prev_pred_FC = nn.Sequential(*self.prev_pred_FC)
 
-        self.cnn_output_FC = [nn.Linear(5625, neurons),  # Second MLP for input of size [batch_size, 3]
+        self.cnn_output_FC = [nn.Linear(cnn_flattened_size, neurons),  # Second MLP for input of size [batch_size, 3]
                               nn.ReLU(inplace=True)]
         if batch_norm:
             self.cnn_output_FC.append(nn.BatchNorm1d(neurons))

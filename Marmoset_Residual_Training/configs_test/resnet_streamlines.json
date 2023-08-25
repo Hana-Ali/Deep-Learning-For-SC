@@ -8,13 +8,13 @@
     "input_nc": 1,
     "library_opt": true,
     "loss": "negative_log_likelihood_loss",
-    "main_data_path": "/mnt/d/Brain-MINDS/model_data_w_resize",
-    "model_filename": "/mnt/d/Brain-MINDS/predicted_streamlines/models/resnet_regression_points_directions/resnet_streamlines.h5",
+    "main_data_path": "/storage/model_data_w_resize",
+    "model_filename": "/notebooks/predicted_streamlines/models/resnet_regression_points_directions/resnet_streamlines.h5",
     "model_name": "resnet_streamlines",
     "previous": true,
     "separate_hemisphere": false,
-    "streamline_arrays_path": "/mnt/d/Brain-MINDS/predicted_streamlines/streamline_predictions/resnet_regression_points_directions",
+    "streamline_arrays_path": "/notebooks/predicted_streamlines/streamline_predictions/resnet_regression_points_directions",
     "task": "regression_points_directions",
     "tck_type": "trk",
-    "testing_log_path": "/mnt/d/Brain-MINDS/predicted_streamlines/testing_logs_regression_points_directions/resnet_streamlines.csv"
+    "testing_log_path": "/notebooks/predicted_streamlines/testing_logs_regression_points_directions/resnet_streamlines.csv"
 }

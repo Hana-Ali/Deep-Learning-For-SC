@@ -228,11 +228,12 @@ class StreamlineDataset(torch.utils.data.Dataset):
         # Read the header
         header = tractogram.header
 
-        # Get a random range of streamlines
-        streamlines_range = self.choose_random_streamlines_range(streamlines)
-
-        # Get the streamlines from the range
-        streamlines = streamlines[streamlines_range]
+        # If the number of streamlines is not -1
+        if self.num_streamlines != -1:
+            # Get a random range of streamlines
+            streamlines_range = self.choose_random_streamlines_range(streamlines)
+            # Get the streamlines from the range
+            streamlines = streamlines[streamlines_range]
         
         # Round the streamlines
         streamlines = np.round(streamlines, decimals=2)
@@ -246,11 +247,12 @@ class StreamlineDataset(torch.utils.data.Dataset):
         # Read the npy file
         npy = np.load(npy_path, allow_pickle=True)
 
-        # Get a random range of streamlines
-        streamlines_range = self.choose_random_streamlines_range(npy)
-
-        # Get the npy files that correspond to the streamlines range
-        npy = npy[streamlines_range]
+        # If the number of streamlines is not -1
+        if self.num_streamlines != -1:
+            # Get a random range of streamlines
+            streamlines_range = self.choose_random_streamlines_range(npy)
+            # Get the npy files that correspond to the streamlines range
+            npy = npy[streamlines_range]
 
         # Return the npy
         return npy
@@ -279,9 +281,16 @@ class StreamlineDataset(torch.utils.data.Dataset):
         else: # Set the label to be the coordinate floats
             label_array = streamlines_list
             
-        # print("Self.task is", self.task)
-        # print("Label array shape is", label_array.shape)
-        # print(label_array[0])
+        # If the number of streamlines is -1, we need to sample a fixed number in every get item
+        if self.num_streamlines == -1:
+            print(len(streamlines_list))
+            # Get the entire range of streamlines rn
+            random_range = np.arange(len(streamlines_list))
+            # Randomly sample 500 of the indices from the list
+            random_range = np.random.choice(random_range, 5000)
+            # Grab the samples streamlines and labels
+            streamlines_list = streamlines_list[random_range]
+            label_array = label_array[random_range]
                     
         # Define a dictionary to store the images
         sample = {

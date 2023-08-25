@@ -2,26 +2,6 @@ from utils import *
 from models import *
 from training import *
 
-import argparse
-
-parser = argparse.ArgumentParser(description="Define the type of training")
-parser.add_argument("-t", "--task", help="what task to run", 
-			default="classification", required=True,
-			type=str)
-parser.add_argument("-c", "--contrastive", help="what type of contrastive to run if running contrastive",
-			default="",
-			type=str)
-parser.add_argument("-d", "--depthwise", help="depthwise conv or not",
-                    action='store_true')
-parser.add_argument("-lr", "--learning_rate", help="initial learning rate",
-			default=0.05,
-			type=float)
-parser.add_argument("-b", "--batch_size", help="batchsize",
-			default=32,
-			type=int)
-
-args = parser.parse_args()
-
 hpc = False
 labs = False
 paperspace = True
@@ -33,46 +13,23 @@ elif labs:
     main_data_path = "/media/hsa22/Expansion/Brain_MINDS/model_data"
     main_logs_path = "/media/hsa22/Expansion//Brain_MINDS/predicted_streamlines"
 elif paperspace:
-    main_data_path = "/storage/model_data_w_resize"
+    main_data_path = "/notebooks/model_data_w_resize"
     main_logs_path = "/notebooks/predicted_streamlines"
 else:
-    main_data_path = "D:\\Brain-MINDS\\model_data"
-    main_logs_path = "D:\\Brain-MINDS\\predicted_streamlines"
+    main_data_path = "/mnt/d/Brain-MINDS/model_data_w_resize"
+    main_logs_path = "/mnt/d/Brain-MINDS/predicted_streamlines"
 
-# Define the main name
-pred_name = "baseline_mlp"
-train_name = "training_logs"
-
-# Parse arguments
-task = args.task
-contrastive = args.contrastive
-depthwise = args.depthwise
-init_lr = args.learning_rate
-batch_size = args.batch_size
-
-print("depthwise is", depthwise)
-
-# If contrastive is "", set to False
-if contrastive == "":
-    contrastive = False
-
-# Append task and contrastive to name
-pred_name = pred_name + "_" + task
-train_name = train_name + "_" + task
-if contrastive != False:
-    pred_name = pred_name + "_" + contrastive
-    train_name = train_name + "_" + contrastive
-
-streamline_arrays_path = os.path.join(main_logs_path, "streamline_predictions", pred_name)
-training_log_folder = os.path.join(main_logs_path, train_name)
-model_folder = os.path.join(main_logs_path, "models", pred_name)
+streamline_arrays_path = os.path.join(main_logs_path, "streamline_predictions", "baseline_mlp_contrastive")
+training_log_folder = os.path.join(main_logs_path, "training_logs_contrastive")
+model_folder = os.path.join(main_logs_path, "models", "baseline_mlp_contrastive")
 
 check_output_folders(streamline_arrays_path, "streamline arrays", wipe=False)
 check_output_folders(training_log_folder, "training_log_folder", wipe=False)
 check_output_folders(model_folder, "model_folder", wipe=False)
 
-training_log_path = os.path.join(training_log_folder, "baseline_mlp_streamlines.csv")
-model_filename = os.path.join(model_folder, "baseline_mlp_streamlines.h5")
+training_log_path = os.path.join(training_log_folder, "baseline_mlp.csv")
+model_filename = os.path.join(model_folder, "baseline_mlp.h5")
+
 
 # Create the configs dictionary
 configs = {
@@ -81,13 +38,12 @@ configs = {
     "model_name" : "baseline_mlp", # Model name
     "input_nc" : 45,
     "combination" : True, # Combination
-    "task" : task, # Task
-    "hidden_size" : 100, # number of neurons
-    "depthwise_conv" : depthwise, # Depthwise convolution
+    "task" : "classification", # Task
+    "hidden_size" : 32, # number of neurons
+    "depthwise_conv" : True, # Depthwise convolution
     "library_opt" : True, # Use stuff from torch_optim
-    "contrastive" : contrastive, # Contrastive
-    "previous" : True, # Whether or not to include previous predictions
-    
+    "contrastive" : "npair", # Contrastive
+
     ####### Training #######
     "n_epochs" : 50, # Number of epochs
     "loss" : "negative_log_likelihood_loss", # Loss function
@@ -104,15 +60,15 @@ configs = {
     "training_log_path" : training_log_path, # Training log path
     "model_filename" : model_filename, # Model filename
     "streamline_arrays_path" : streamline_arrays_path, # Path to the streamlines array
-    "batch_size" : batch_size, # Batch size
-    "validation_batch_size" : batch_size, # Validation batch size
-    "num_streamlines" : -1, # Number of streamlines to consider from each site
+    "batch_size" : 32, # Batch size
+    "validation_batch_size" : 32, # Validation batch size
+    "num_streamlines" : 70, # Number of streamlines to consider from each site
     
     ####### Parameters #######
-    "initial_learning_rate" : init_lr, # Initial learning rate
-    "early_stopping_patience": 50, # Early stopping patience
-    "decay_patience": 20, # Learning rate decay patience
-    "decay_factor": 0.5, # Learning rate decay factor
+    "initial_learning_rate" : 0.1, # Initial learning rate
+    "early_stopping_patience": None, # Early stopping patience
+    "decay_patience": None, # Learning rate decay patience
+    "decay_factor": None, # Learning rate decay factor
     "min_learning_rate": 1e-08, # Minimum learning rate
     "save_last_n_models": 10, # Save last n models
 

@@ -16,34 +16,18 @@ class Baseline_MLP(nn.Module):
         
         # Define the task
         self.task = task
-        
-        # Get the output size
+
+        # Define the output size (different depending on task)
         self.output_size = output_size
 
-        # Assert that the number of classes matches the task
-        if not contrastive:
-            if self.task == "classification":
-                assert self.output_size == 27, "Number of classes must be 27 for classification task"
-            elif self.task == "regression_angles":
-                assert self.output_size == 3, "Number of classes must be 3 for regression angles task"
-            elif self.task == "regression_coords":
-                assert self.output_size == 3, "Number of classes must be 3 for regression coordinates task"
-            elif self.task == "regression_points_directions":
-                assert self.output_size == 3, "Number of classes must be 3 for regression points direction task"
-            else:
-                raise NotImplementedError("Task {} is not implemented".format(self.task))
-        else:
-            assert self.output_size == 256, "Number of classes must be 256 for contrastive task"
-        
         # Define the number of neurons
         self.neurons = hidden_size
-
-        # Define the input size of the previous predictions MLP - will always be output * 2
-        self.previous_predictions_size = self.output_size * 2
-                
+        
         # Define the flattened size
         self.cnn_flattened_size = cnn_flattened_size
         
+        # print("cnn flattened size in baseline mlp is", cnn_flattened_size)
+
         # Define the input size of the previous predictions MLP - will always be output * 2
         self.previous_predictions_size = self.output_size * 2
         
@@ -51,12 +35,11 @@ class Baseline_MLP(nn.Module):
         self.task = task
         
         # The flattened size and final activation depends on the task
-        if not contrastive:
-            if self.task == "classification":
-                self.final_activation = nn.LogSoftmax(dim=1)
-            elif self.task == "regression_coords" or self.task == "regression_angles" or self.task == "regression_points_directions":
-                self.final_activation = nn.Sigmoid()
-        else:
+        if self.task == "classification" and not contrastive:
+            self.final_activation = nn.LogSoftmax(dim=1)
+        elif self.task == "regression_coords" or self.task == "regression_angles" and not contrastive:
+            self.final_activation = nn.Sigmoid()
+        elif contrastive:
             self.final_activation = None
         
         # Define the combination MLP

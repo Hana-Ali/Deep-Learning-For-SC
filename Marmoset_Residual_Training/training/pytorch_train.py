@@ -86,7 +86,9 @@ def run_training(config, metric_to_monitor="train_loss", bias=None):
                               num_blocks=in_config("num_blocks", config, 3), depthwise_conv=in_config("depthwise_conv", config, False),
                               encoder_filename=config["encoder_filename"], freeze_bias=in_config("freeze_bias", config, False), n_gpus=n_gpus)
         
-    print("Encoder is: {}".format(encoder.__class__.__name__))
+        print("Encoder is: {}".format(encoder.__class__.__name__))
+    else:
+        encoder = None
         
     # Build or load the model depending on streamline or dwi training, and build dataset differently
     if config["training_type"] == "streamline" or config["training_type"] == "autoencoder":
