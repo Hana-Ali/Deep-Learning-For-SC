@@ -85,11 +85,9 @@ def define_paths(hpc=False, wbm_type="kuramoto"):
         # Ensure that the write and config folders exist
         check_output_folders(write_folder, "Write folder", wipe=False)
         check_output_folders(config_folder, "Config folder", wipe=False)
-        # Defining the json config path
-        config_path = os.path.join(config_folder, "config.json")
 
     # Return the paths
-    return (SC_root_path, FC_root_path, write_folder, config_path)
+    return (SC_root_path, FC_root_path, write_folder, config_folder)
 
 # Check that output folders with subfolders are in suitable shape
 def check_output_folders(folder, name, wipe=True, verbose=False):
