@@ -1,32 +1,49 @@
 import sys
+import os
 from py_helpers.general_helpers import *
 import nibabel as nib
-
 import numpy as np
-
 import subprocess
+import glob
 
 # Function to concatenate the files
 def concat_files(data_path, nii_gz_files):
-
     """Concatenate NIfTI files using mrcat from MRtrix3."""
 
-    # Create new file path
-    registered_fmri_path = os.path.join(data_path, "concat_registered_fmri.nii.gz")
-    
-    # Start by initializing the output file with the first image
-    subprocess.run(['cp', nii_gz_files[0], registered_fmri_path])
+    # Define the starting index
+    starting_index = 0
+
+    # Grab all the registered files
+    registered_files = glob.glob(os.path.join(data_path, "concat_registered_fmri_*.nii.gz"))
+
+    print("Found {} registered files".format(len(registered_files)))
+
+    if registered_files:
+        # Extract the index of the last concatenated file
+        starting_index = max([int(f.split("_")[-1].split(".")[0]) for f in registered_files]) + 1
+
+    print("Starting from index {}".format(starting_index))
+
+    # If starting from the beginning
+    if starting_index == 0:
+        registered_fmri_path = os.path.join(data_path, f"concat_registered_fmri_{starting_index}.nii.gz")
+        subprocess.run(['cp', nii_gz_files[0], registered_fmri_path])
+        starting_index += 1
 
     # Now, for each subsequent file, concatenate it with the output file
-    for i in range(1, len(nii_gz_files)):
+    for i in range(starting_index, len(nii_gz_files)):
         print("-"*50)
         print("Concatenating file {} of {}".format(i, len(nii_gz_files)))
+        registered_fmri_path = os.path.join(data_path, f"concat_registered_fmri_{i}.nii.gz")
         temp_output = f'temp_concat_{i}.nii.gz'
-        subprocess.run(['mrcat', registered_fmri_path, nii_gz_files[i], temp_output, '-force'])
+        subprocess.run(['mrcat', os.path.join(data_path, f"concat_registered_fmri_{i-1}.nii.gz"), nii_gz_files[i], temp_output, '-force'])
         
         # Move the temporary output file to the main output file
         subprocess.run(['mv', temp_output, registered_fmri_path])
-    
+
+        # Remove the older file to save space
+        if i > 0:
+            os.remove(os.path.join(data_path, f"concat_registered_fmri_{i-1}.nii.gz"))
 
 # Main function
 def main():
@@ -51,8 +68,6 @@ def main():
 
     # Perform the concatenation
     concat_files(data_path, nii_gz_files)
-
-
 
 if __name__ == "__main__":
     main()
