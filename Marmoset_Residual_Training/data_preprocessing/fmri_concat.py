@@ -45,6 +45,11 @@ def concat_files(data_path, nii_gz_files):
         if i > 0:
             os.remove(os.path.join(data_path, f"concat_registered_fmri_{i-1}.nii.gz"))
 
+        # Remove the temporary file
+        if os.path.exists(temp_output):
+            os.remove(temp_output)
+
+
 # Main function
 def main():
     # Define the path to the data
