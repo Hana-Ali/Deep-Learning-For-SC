@@ -49,10 +49,13 @@ def concat_files(data_path, nii_gz_files):
 def main():
     # Define the path to the data
     hpc = int(sys.argv[1])
+    labs = int(sys.argv[2])
     if hpc:
         data_path = "/rds/general/user/hsa22/ephemeral/MBM_fmri/sub-NIHm32/ses-01/fmri_slices/sub-NIHm32_ses-01_task-rest_run-LR-2"
-    else:
+    elif labs:
         data_path = "/media/hsa22/Expansion/MBM_fmri/sub-NIHm32/ses-01/fmri_slices/sub-NIHm32_ses-01_task-rest_run-LR-2"
+    else:
+        data_path = "/mnt/d/MBM_fmri/sub-NIHm32/ses-01/fmri_slices/sub-NIHm32_ses-01_task-rest_run-LR-2"
 
     # Define the folder with the registered slices
     registration_folder = os.path.join(data_path, "registration")
