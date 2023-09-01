@@ -3,7 +3,7 @@ from py_helpers import *
 import numpy as np
 import time
 
-hpc = True
+hpc=False
 
 def wilson_simulator(coupling_strength, delay):
     """"
@@ -32,12 +32,12 @@ def wilson_simulator(coupling_strength, delay):
     print('----------------- In wilson_electrical_sim -----------------')
 
     # --------- Get the main paths
-    (SC_FC_root, write_folder, config_path, NUMPY_root_path, 
-     SC_numpy_root, FC_numpy_root) = define_paths(hpc, wbm_type="wilson")
+    (SC_root_path, FC_root_path, write_folder, 
+     config_folder) = define_paths(hpc, wbm_type="wilson")
 
     # --------- Read the config file
     print('Reading config file...')
-    config = read_json_config(config_path)
+    config, config_path = read_json_config_wilson(config_folder)
 
     # --------- Extract the parameters
     print('Extracting parameters...')
@@ -188,7 +188,7 @@ def wilson_simulator(coupling_strength, delay):
 
     # --------- Calculate simFC <-> empFC correlation
     print("Calculating simFC <-> empFC correlation...")
-    empFC_simFC_corr = determine_similarity(emp_FC, sim_FC)
+    empFC_simFC_corr = determine_similarity(FC_matrix, sim_FC)
 
     print('----------------- Saving results -----------------')
 
@@ -214,7 +214,7 @@ def wilson_simulator(coupling_strength, delay):
     # bold_filter_path = os.path.join(bold_path_main, "bold_filter.csv")
     # bold_down2_path = os.path.join(bold_path_main, "bold_down2.csv")
     FC_path = os.path.join(FC_path_main, "sim_FC.csv")
-    emp_FC_img_path = os.path.join(FC_path_main, "emp_FC.png")
+    FC_matrix_img_path = os.path.join(FC_path_main, "emp_FC.png")
     sim_FC_img_path = os.path.join(FC_path_main, "sim_FC.png")
     empFC_simFC_corr_path = os.path.join(empFC_simFC_corr_path_main, "empFC_simFC_corr.txt")
 
@@ -228,8 +228,8 @@ def wilson_simulator(coupling_strength, delay):
     np.savetxt(empFC_simFC_corr_path, np.array([empFC_simFC_corr]), fmt="% .8f")
 
     plt.figure()
-    plt.imshow(emp_FC)
-    plt.savefig(emp_FC_img_path)
+    plt.imshow(FC_matrix)
+    plt.savefig(FC_matrix_img_path)
     plt.figure()
     plt.imshow(sim_FC)
     plt.savefig(sim_FC_img_path)

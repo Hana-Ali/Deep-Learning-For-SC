@@ -5,19 +5,16 @@ import numpy
 simulation_mod = Extension('simulations',
                               sources = ['simulation_models.cpp'],
                               language="c++",
-                              include_dirs=[numpy.get_include(),
-                                "C:\\src\\vcpkg\\installed\\x64-windows\\include",
-                                "C:\\cpp_libs\\include\\bayesopt\\include"
+                              include_dirs=[
+                                numpy.get_include(),
+                                "C:\\src\\vcpkg\\installed\\x64-windows\\include"
                               ],
                               library_dirs=[
-                                  "C:\\src\\vcpkg\\installed\\x64-windows\\lib",
-                                  "C:\\cpp_libs\\include\\bayesopt\\build\\lib\\Release"
+                                  "C:\\src\\vcpkg\\installed\\x64-windows\\lib"
                               ],
                               libraries=[
                               "gsl",
-                              "gslcblas",
-                              "bayesopt",
-                              "nlopt"
+                              "gslcblas"
                               ]
                             )
 

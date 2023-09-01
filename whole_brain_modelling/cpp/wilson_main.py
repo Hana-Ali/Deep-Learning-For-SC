@@ -5,18 +5,26 @@ import os
 
 import argparse
 
+# Define allowed types for the streamline_type argument
+allowed_streamline_types = ["model", "traditional", "tracer"]
+# Define allowed types for the species argument
+allowed_species = ["marmoset"]
+# Define allowed types for the atlas_type argument
+allowed_atlas_types = ["MBM"]
+
 parser = argparse.ArgumentParser(description="Define stuff for running the model")
 parser.add_argument("-st", "--streamline_type", help="whether to do WBM for model, traditional tractography or tracer streamlines",
                     default="tracer", required=True,
-                    type=str)
+                    type=str,
+                    choices=allowed_streamline_types)
 parser.add_argument("-s", "--species", help="what species we're predicting for", 
                     default="marmoset", required=False,
-                    type=str)
-parser.add_argument("-h", "--hpc", help="whether to run on HPC or not",
-                    action='store_true')
-parser.add_argument("-c", "--connectome_type", help="what type of atlas to use", 
+                    type=str,
+                    choices=allowed_species)
+parser.add_argument("-a", "--atlas_type", help="what type of atlas to use", 
                     default="MBCA", required=True,
-                    type=str)
+                    type=str,
+                    choices=allowed_atlas_types)
 parser.add_argument("-sym", "--symmetric", help="whether to use symmetric SC matrix or not",
                     action='store_true')
 
@@ -24,13 +32,13 @@ args = parser.parse_args()
 
 streamline_type = args.streamline_type
 species = args.species
-hpc = args.hpc
-connectome_type = args.connectome_type
+atlas_type = args.atlas_type
 symmetric = args.symmetric
+
+hpc=False
 
 if not hpc:
     os.add_dll_directory(r"C:\src\vcpkg\installed\x64-windows\bin")
-    os.add_dll_directory(r"C:\cpp_libs\include\bayesopt\build\bin\Release")
     
 from py_helpers import *
 from interfaces import *
@@ -113,8 +121,7 @@ if __name__ == "__main__":
 
     # Get the main paths
     (SC_root_path, FC_root_path, write_folder, 
-     config_path) = define_paths(hpc, wbm_type="wilson", species_type=species,
-                                 streamline_type=streamline_type, connectome_type=connectome_type)
+     config_folder) = define_paths(hpc, wbm_type="wilson")
 
     # Derive some parameters for simulation
     number_integration_steps = int(time_simulated / integration_step_size)
@@ -150,18 +157,18 @@ if __name__ == "__main__":
         TR, # 24
         species, # 25
         streamline_type, # 26
-        connectome_type, # 27
+        atlas_type, # 27
         symmetric # 28
     ]
 
     print('Create initial config of parameters...')
-    write_initial_config_wilson(wilson_params, config_path)
+    config_path = write_initial_config_wilson(wilson_params, config_folder)
 
     # Choose current subject to do processing for
     (SUBJECT_SC_PATH, SUBJECT_FC_PATH,
      SUBJECT_LENGTH_PATH) = get_subject_matrices(SC_root_path, FC_root_path, write_folder, 
                                                  streamline_type=streamline_type, 
-                                                 connectome_type=connectome_type)
+                                                 atlas_type=atlas_type)
 
     # Getting the SC matrix just to get number of oscillators
     SC_matrix = get_empirical_SC(SUBJECT_SC_PATH, HPC=hpc, species_type=species, symmetric=symmetric)
@@ -170,27 +177,6 @@ if __name__ == "__main__":
     # Append the SC and FC matrix paths to the config file
     wilson_params = [number_of_oscillators, SUBJECT_SC_PATH, SUBJECT_FC_PATH, SUBJECT_LENGTH_PATH]
     append_SC_FC_to_config(wilson_params, config_path)
-
-
-    #%% Check number of available threads - multiprocessing tingz
-
-    # # Get number of available threads
-    # number_threads_available = mp.cpu_count()
-
-    # # Check if number of threads is greater than available threads
-    # if number_threads_needed > number_threads_available:
-    #     # If so, set number of threads to available threads
-    #     number_threads_needed = number_threads_available
-    #     # Print message to confirm
-    #     print('Number of threads needed is greater than available threads. Setting number of threads to available threads.')
-    #     print('Number of threads needed: ' + str(number_threads_needed))
-    #     print('Number of threads available: ' + str(number_threads_available))
-    # else:
-    #     # Otherwise, print message to confirm
-    #     print('Number of threads needed is less than or equal to available threads. Setting number of threads to number of threads needed.')
-    #     print('Number of threads needed: ' + str(number_threads_needed))
-    #     print('Number of threads available: ' + str(number_threads_available))
-
 
     #%% Run the simulation and get results
     

@@ -1,45 +1,43 @@
 import json
-from .general_helpers import check_all_types
+from .general_helpers import check_all_types, check_output_folders
 import os
 
 # Function to create the JSON config file
-def write_initial_config_wilson(params, config_path):
+def write_initial_config_wilson(params, config_folder):
 
     # Get the parameters
-    number_oscillators = params[0]
-    c_ee = params[1]
-    c_ei = params[2]
-    c_ie = params[3]
-    c_ii = params[4]
-    tau_e = params[5]
-    tau_i = params[6]
-    r_e = params[7]
-    r_i = params[8]
-    alpha_e = params[9]
-    alpha_i = params[10]
-    theta_e = params[11]
-    theta_i = params[12]
-    external_e = params[13]
-    external_i = params[14]
-    number_integration_steps = params[15]
-    integration_step_size = params[16]
-    start_save_idx = params[17]
-    downsampling_rate = params[18]
-    noise_type = params[19]
-    noise_amplitude = params[20]
-    write_folder = params[21]
-    order = params[22]
-    cutoffLow = params[23]
-    cutoffHigh = params[24]
-    TR = params[25]
-    species = params[26]
-    streamline_type = params[27]
-    connectome_type = params[28]
-    symmetric = params[29]
+    c_ee = params[0]
+    c_ei = params[1]
+    c_ie = params[2]
+    c_ii = params[3]
+    tau_e = params[4]
+    tau_i = params[5]
+    r_e = params[6]
+    r_i = params[7]
+    alpha_e = params[8]
+    alpha_i = params[9]
+    theta_e = params[10]
+    theta_i = params[11]
+    external_e = params[12]
+    external_i = params[13]
+    number_integration_steps = params[14]
+    integration_step_size = params[15]
+    start_save_idx = params[16]
+    downsampling_rate = params[17]
+    noise_type = params[18]
+    noise_amplitude = params[19]
+    write_folder = params[20]
+    order = params[21]
+    cutoffLow = params[22]
+    cutoffHigh = params[23]
+    TR = params[24]
+    species = params[25]
+    streamline_type = params[26]
+    connectome_type = params[27]
+    symmetric = params[28]
 
     # Check that the input arguments are of the correct type
     check_all_types([
-        (number_oscillators, int, 'number_oscillators'),
         (c_ee, float, 'c_ee'),
         (c_ei, float, 'c_ei'),
         (c_ie, float, 'c_ie'),
@@ -73,7 +71,6 @@ def write_initial_config_wilson(params, config_path):
 
     # Create the dictionary
     config = {
-        "number_oscillators": number_oscillators,
         "c_ee": c_ee,
         "c_ei": c_ei,
         "c_ie": c_ie,
@@ -108,9 +105,22 @@ def write_initial_config_wilson(params, config_path):
     # Dump as a string
     config_string = json.dumps(config, indent=4)
 
+    # Define the symmetric string
+    symmetric_str = "symm" if symmetric else "half"
+
+    # Add to the config folder the species, streamline_type, connectome_type, and symmetric
+    config_folder = os.path.join(config_folder, species, streamline_type, connectome_type, symmetric_str)
+    check_output_folders(config_folder, "config folder", wipe=False)
+
+    # Define the config path
+    config_path = os.path.join(config_folder, "config.json")
+
     # Write the dictionary to a JSON file
     with open(config_path, 'w') as outfile:
         outfile.write(config_string)
+
+    # Return the config path
+    return config_path
 
 # Function to create the JSON config file - Kuramoto
 def write_initial_config_kura(params, config_path):
@@ -174,7 +184,25 @@ def write_initial_config_kura(params, config_path):
         outfile.write(config_string)
 
 # Function to read the JSON config file
-def read_json_config_wilson(config_path):
+def read_json_config_wilson(config_folder):
+
+    # Grab the json files in the config folder
+    json_files = []
+    for root, dirs, files in os.walk(config_folder):
+        for file in files:
+            if file.endswith(".json"):
+                json_files.append(os.path.join(root, file))
+
+    # Check that there are JSON files in the config folder
+    if not json_files:
+        raise ValueError("No JSON files found in the provided directory and its subdirectories.")
+
+    # Sort the JSON files based on modification time and get the most recent one
+    try:
+        json_files.sort(key=os.path.getmtime)
+        config_path = json_files[-1]
+    except Exception as e:
+        print(f"Error while sorting or accessing the JSON files: {e}")
     
     # Check that config path exists
     if not os.path.exists(config_path):
@@ -221,7 +249,7 @@ def read_json_config_wilson(config_path):
         (config["symmetric"], bool, 'symmetric')
     ])
 
-    return config
+    return config, config_path
 
 # Function to read the JSON config file - Kuramoto
 def read_json_config_kura(config_path):

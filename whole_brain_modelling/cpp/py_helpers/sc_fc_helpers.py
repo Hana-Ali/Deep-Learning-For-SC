@@ -48,14 +48,17 @@ def get_empirical_FC(path, config_path=None, HPC=False, species_type="marmoset")
     return FC_array
 
 # Function to get the length matrices
-def get_empirical_LENGTH(path, HPC=False, species_type="marmoset"):
+def get_empirical_LENGTH(path, HPC=False, species_type="marmoset", symmetric=True):
 
     # The length is different depending on path
     if HPC:
         LENGTH_array = get_empirical_LENGTH_HPC(path)
     else:
         if species_type == "marmoset":
-            LENGTH_array = get_empirical_LENGTH_BrainMinds(path)
+            if symmetric:
+                _, _, _, LENGTH_array = get_empirical_LENGTH_BrainMinds(path)
+            else:
+                _, LENGTH_array, _, _ = get_empirical_LENGTH_BrainMinds(path)
         elif species_type == "human":
             LENGTH_array = get_empirical_LENGTH_CAMCAN(path)
         else:
@@ -74,8 +77,17 @@ def get_empirical_LENGTH_BrainMinds(path):
     # Load the length
     length = np.genfromtxt(path, delimiter=",")
 
-    # Return the length
-    return length
+    # Log the length
+    log_length = np.log(length + 1)
+
+    # Symmetrize the length
+    symmetrized_length = flip_matrix(length)
+
+    # Symmetrize the log length
+    symmetrized_log_length = flip_matrix(log_length)
+    
+    # Return the lengths
+    return length, log_length, symmetrized_length, symmetrized_log_length
 
 # Function to get the empirical length CAMCAN
 def get_empirical_LENGTH_CAMCAN(path):
@@ -159,8 +171,8 @@ def get_empirical_SC_BrainMinds(path):
 # Function to get empirical FC - BrainMinds
 def get_empirical_FC_BrainMinds(path):
 
-    # Load the FC
-    FC = np.genfromtxt(path, delimiter=",")
+    # Load the FC - it's a numpy array
+    FC = np.load(path)
 
     # Return the FC
     return FC

@@ -3,7 +3,7 @@ from py_helpers import *
 import numpy as np
 import time
 
-hpc = False
+hpc=False
 
 def kuramoto_simulator(coupling_strength, delay):
     """"
