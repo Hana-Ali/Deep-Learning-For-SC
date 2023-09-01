@@ -63,8 +63,6 @@ def check_output_folders(folder, name, wipe=False, verbose=False):
 # Function to define paths, based on hpc
 def define_paths(hpc=True, wbm_type="kuramoto", species_type="marmoset", streamline_type="tracer",
                  connectome_type="MBCA"):
-
-    print("hpc is ", hpc)
     
     # Defining paths
     if hpc:

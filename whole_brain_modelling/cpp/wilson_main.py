@@ -6,7 +6,7 @@ import os
 import argparse
 
 parser = argparse.ArgumentParser(description="Define stuff for running the model")
-parser.add_argument("-st", "--streamline_type", help="whether to do WBM for tracks or tracer streamlines",
+parser.add_argument("-st", "--streamline_type", help="whether to do WBM for model, traditional tractography or tracer streamlines",
                     default="tracer", required=True,
                     type=str)
 parser.add_argument("-s", "--species", help="what species we're predicting for", 
