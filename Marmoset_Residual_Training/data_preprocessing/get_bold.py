@@ -5,17 +5,7 @@ from nilearn.input_data import NiftiLabelsMasker
 import numpy as np
 
 # Function to concatenate the files
-def get_bold(nii_file, data_path, MBM_path, MBCA_path):
-
-    # Define the output directory
-    output_folder = os.path.join(data_path, "BOLD_slices")
-    check_output_folders(output_folder, "BOLD output", wipe=False)
-
-    # Define the output folders for each atlas
-    MBM_output = os.path.join(output_folder, "MBM")
-    MBCA_output = os.path.join(output_folder, "MBCA")
-    check_output_folders(MBM_output, "MBM output", wipe=False)
-    check_output_folders(MBCA_output, "MBCA output", wipe=False)
+def get_bold(nii_file, MBM_output, MBCA_output, MBM_path, MBCA_path):
 
     # For both atlases
     for atlas_path in [MBM_path, MBCA_path]:
@@ -43,8 +33,8 @@ def get_bold(nii_file, data_path, MBM_path, MBCA_path):
 def main():
 
     # Define the path to the data
-    hpc = False
-    labs = True
+    hpc = int(sys.argv[1])
+    labs = int(sys.argv[2])
     if hpc:
         data_path = "/rds/general/user/hsa22/ephemeral/MBM_fmri/sub-NIHm32/ses-01/fmri_slices/sub-NIHm32_ses-01_task-rest_run-LR-2"
         MBM_path = "/rds/general/ephemeral/user/hsa22/ephemeral/Brain_MINDS/BMCR_STPT_template/Atlases/MBM_mapped/MBM_cortex_vM_80um_TC_std.nii.gz"
@@ -67,13 +57,23 @@ def main():
     # Print the number of files
     print("Found {} nii files".format(len(nii_gz_files)))
 
+    # Define the output directory
+    output_folder = os.path.join(data_path, "BOLD_slices")
+    check_output_folders(output_folder, "BOLD output", wipe=False)
+
+    # Define the output folders for each atlas
+    MBM_output = os.path.join(output_folder, "MBM")
+    MBCA_output = os.path.join(output_folder, "MBCA")
+    check_output_folders(MBM_output, "MBM output", wipe=False)
+    check_output_folders(MBCA_output, "MBCA output", wipe=False)
+
     # Run the commands
     if hpc:
-        file_idx = int(sys.argv[2])
-        get_bold(nii_gz_files[file_idx], data_path, MBM_path, MBCA_path)
+        file_idx = int(sys.argv[3])
+        get_bold(nii_gz_files[file_idx], MBM_output, MBCA_output, MBM_path, MBCA_path)
     else:
         for file_idx in range(len(nii_gz_files)):
-            get_bold(nii_gz_files[file_idx], data_path, MBM_path, MBCA_path)
+            get_bold(nii_gz_files[file_idx], data_path, MBM_output, MBCA_output, MBM_path, MBCA_path)
 
     # Get the BOLD for each
 
