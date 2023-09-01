@@ -230,9 +230,11 @@ def wilson_simulator(coupling_strength, delay):
     plt.figure()
     plt.imshow(FC_matrix)
     plt.savefig(FC_matrix_img_path)
+    plt.close()
     plt.figure()
     plt.imshow(sim_FC)
     plt.savefig(sim_FC_img_path)
+    plt.close()
 
 
     # Return the correlation
