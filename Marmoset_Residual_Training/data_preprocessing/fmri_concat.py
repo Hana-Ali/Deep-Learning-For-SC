@@ -20,8 +20,12 @@ def concat_files(data_path, nii_gz_files):
 
     if registered_files:
         # Extract the index of the last concatenated file
-        starting_index = max([int(f.split("_")[-1].split(".")[0]) for f in registered_files]) + 1
-
+        starting_index = max([int(f.split("_")[-1].split(".")[0]) for f in registered_files])
+        
+        # Start from the index right before the most recent
+        if starting_index > 0:
+            starting_index -= 1
+            
     print("Starting from index {}".format(starting_index))
 
     # If starting from the beginning
@@ -41,9 +45,11 @@ def concat_files(data_path, nii_gz_files):
         # Move the temporary output file to the main output file
         subprocess.run(['mv', temp_output, registered_fmri_path])
 
-        # Remove the older file to save space
-        if i > 0:
-            os.remove(os.path.join(data_path, f"concat_registered_fmri_{i-1}.nii.gz"))
+        # Remove the older file to save space, but keep the last two
+        old_file_path = os.path.join(data_path, f"concat_registered_fmri_{i-2}.nii.gz")
+        if i - starting_index > 2 and os.path.exists(old_file_path):
+            print("Removing file {}".format(old_file_path))
+            os.remove(old_file_path)
 
         # Remove the temporary file
         if os.path.exists(temp_output):
