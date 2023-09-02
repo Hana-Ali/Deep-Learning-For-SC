@@ -111,7 +111,7 @@ cutoffHigh = 0.1
 TR = 0.7
 
 # Defining Bayesian Optimization parameters
-n_iterations = 50
+n_iterations = 300
 
 
 #%% Start main program

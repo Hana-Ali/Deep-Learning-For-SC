@@ -194,6 +194,8 @@ def wilson_simulator(coupling_strength, delay):
 
     # --------- Define folder path for all simulations
     print("Creating folders...")
+    symmetric_str = "symmetric" if symmetric else "asymmetric"
+    write_folder = os.path.join(write_folder, species, connectome_type, streamline_type, symmetric_str)
     if not os.path.exists(write_folder):
         os.makedirs(write_folder)
 
