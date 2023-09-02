@@ -83,10 +83,10 @@ noise_type = 1
 noise_amplitude = 0.001
 
 # Defining filter parameters
-order = 2
+order = 6
 cutoffLow = 0.01
 cutoffHigh = 0.1
-TR = 0.7
+TR = 2.0
 
 # Defining Bayesian Optimization parameters
 n_iterations = 300
