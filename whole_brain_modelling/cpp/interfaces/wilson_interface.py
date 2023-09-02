@@ -196,20 +196,19 @@ def wilson_simulator(coupling_strength, delay):
     print("Creating folders...")
     symmetric_str = "symmetric" if symmetric else "asymmetric"
     write_folder = os.path.join(write_folder, species, connectome_type, streamline_type, symmetric_str)
-    if not os.path.exists(write_folder):
-        os.makedirs(write_folder)
+    check_output_folders(write_folder, "wilson write path", wipe=False)
 
     folder_name = "Coupling {:.4f}, Delay{:.4f}\\".format(coupling_strength, delay)
     # bold_path_main = os.path.join(write_folder, folder_name)
     FC_path_main = os.path.join(write_folder, folder_name)
     empFC_simFC_corr_path_main = os.path.join(write_folder, folder_name)
 
+    # Make sure folders exist
+    check_output_folders(FC_path_main, "FC path", wipe=False)
+    check_output_folders(empFC_simFC_corr_path_main, "empFC_simFC_corr path", wipe=False)
     # if not os.path.exists(bold_path_main):
     #     os.makedirs(bold_path_main)
-    if not os.path.exists(FC_path_main):
-        os.makedirs(FC_path_main)
-    if not os.path.exists(empFC_simFC_corr_path_main):
-        os.makedirs(empFC_simFC_corr_path_main)
+
 
     # raw_bold_path = os.path.join(bold_path_main, "raw_bold.csv")
     # bold_down1_path = os.path.join(bold_path_main, "bold_down1.csv")

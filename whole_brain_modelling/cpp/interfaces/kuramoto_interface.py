@@ -27,12 +27,12 @@ def kuramoto_simulator(coupling_strength, delay):
     print('----------------- In Kuramoto Simulator -----------------')
 
     # --------- Get the main paths
-    (SC_FC_root, WBM_main_path, WBM_results_path, config_path, NUMPY_root_path, 
-     SC_numpy_root, FC_numpy_root) = define_paths(hpc, wbm_type="kuramoto")
+    (SC_root_path, FC_root_path, write_folder, 
+     config_folder) = define_paths(hpc, wbm_type="kuramoto")
 
-    # --------- Read the config file
+     # --------- Read the config file
     print('Reading config file...')
-    config = read_json_config_kura(config_path)
+    config, config_path = read_json_config_kuramoto(config_folder)
 
     # --------- Extract the parameters
     print('Extracting parameters...')
@@ -42,28 +42,38 @@ def kuramoto_simulator(coupling_strength, delay):
     integration_step_size = config['integration_step_size']
     start_save_idx = config['start_save_idx']
     downsampling_rate = config['downsampling_rate']
-    noise_type = config['noise_type']
-    noise_amplitude = config['noise_amplitude']
-    write_path = config['write_path']
     SC_path = config['SC_path']
     FC_path = config['FC_path']
+    LENGTH_path = config['LENGTH_path']
+    noise_type = config['noise_type']
+    noise_amplitude = config['noise_amplitude']
+    write_folder = config['write_folder']
+    order = config['order']
+    cutoffLow = config['cutoffLow']
+    cutoffHigh = config['cutoffHigh']
+    TR = config['TR']
+    species = config['species']
+    streamline_type = config['streamline_type']
+    connectome_type = config['connectome_type']
+    symmetric = config['symmetric']
 
     # --------- Get the SC and FC matrices
     print('Getting SC and FC matrices...')
-    SC = np.load(SC_path, allow_pickle=True)
-    emp_FC = np.load(FC_path, allow_pickle=True)
+    SC_matrix = get_empirical_SC(SC_path, HPC=hpc, species_type=species, symmetric=symmetric)
+    FC_matrix = get_empirical_FC(FC_path, config_path, HPC=hpc, species_type=species)
+    LENGTH_matrix = get_empirical_LENGTH(LENGTH_path, HPC=hpc, species_type=species)
 
     # --------- Check the shape of the SC and FC matrices
     inputs = [
-        (SC, (number_oscillators, number_oscillators), 'SC'),
-        (emp_FC, (number_oscillators, number_oscillators), 'FC')
+        (SC_matrix, (number_oscillators, number_oscillators), 'SC'),
+        (FC_matrix, (number_oscillators, number_oscillators), 'FC')
     ]
     check_all_shapes(inputs)
 
     # --------- Check the type of data in the SC and FC matrices
     inputs = [
-        (SC[0, 0], np.float64, 'SC[0, 0]'),
-        (emp_FC[0, 0], np.float64, 'FC[0, 0]')
+        (SC_matrix[0, 0], np.float64, 'SC[0, 0]'),
+        (FC_matrix[0, 0], np.float64, 'FC[0, 0]')
     ]
     check_all_types(inputs)
 
@@ -82,9 +92,10 @@ def kuramoto_simulator(coupling_strength, delay):
     # --------- Defining the coupling and delay matrices
     print('Defining coupling and delay matrices...')
     # COUPLING is just * SC here
-    coupling_matrix = coupling_strength * SC    
+    coupling_matrix = coupling_strength * SC_matrix    
     # DELAY is either 0, if local coupling, or delay * path lengths, if global coupling
-    delay_matrix = delay * SC
+    delay_matrix = delay * LENGTH_matrix
+    delay_matrix += (np.diag(np.zeros((number_oscillators,))))
 
     # --------- Define the index matrices for integration (WHAT IS THIS)
     print('Defining index matrices...')
@@ -100,7 +111,7 @@ def kuramoto_simulator(coupling_strength, delay):
     raw_phi = sim.parsing_kuramoto_inputs(
         coupling_strength,
         delay,
-        SC,
+        SC_matrix,
         number_oscillators,
         number_integration_steps,
         integration_step_size,
@@ -133,43 +144,44 @@ def kuramoto_simulator(coupling_strength, delay):
 
     # --------- Calculate simFC <-> empFC correlation
     print("Calculating simFC <-> empFC correlation...")
-    empFC_simFC_corr = determine_similarity(emp_FC, sim_FC)
+    empFC_simFC_corr = determine_similarity(FC_matrix, sim_FC)
 
     print('----------------- Saving results -----------------')
 
     # --------- Define folder path for all simulations
     print("Creating folders...")
-    check_output_folders(write_path, "kuramoto write path", wipe=False)
+    symmetric_str = "symmetric" if symmetric else "asymmetric"
+    write_folder = os.path.join(write_folder, species, connectome_type, streamline_type, symmetric_str)
+    check_output_folders(write_folder, "kuramoto write path", wipe=False)
 
-    # Define the main results folder
-    main_results_folder_name = "Coupling {:.4f}, Delay{:.4f}\\".format(coupling_strength, delay)
-    main_results_folder = os.path.join(write_path, main_results_folder_name)
-    check_output_folders(main_results_folder, "Main results folder", wipe=False)
+    folder_name = "Coupling {:.4f}, Delay{:.4f}\\".format(coupling_strength, delay)
+    # bold_path_main = os.path.join(write_folder, folder_name)
+    FC_path_main = os.path.join(write_folder, folder_name)
+    empFC_simFC_corr_path_main = os.path.join(write_folder, folder_name)
 
-    # Define the correlation results folder
-    corr_results_folder = os.path.join(main_results_folder, "correlation")
-    check_output_folders(corr_results_folder, "Correlation results folder", wipe=False)
+    # Make sure folders exist
+    check_output_folders(FC_path_main, "FC path", wipe=False)
+    check_output_folders(empFC_simFC_corr_path_main, "empFC_simFC_corr path", wipe=False)
+
+    FC_path = os.path.join(FC_path_main, "sim_FC.csv")
+    FC_matrix_img_path = os.path.join(FC_path_main, "emp_FC.png")
+    sim_FC_img_path = os.path.join(FC_path_main, "sim_FC.png")
+    empFC_simFC_corr_path = os.path.join(empFC_simFC_corr_path_main, "empFC_simFC_corr.txt")
     
-    # Save the simulated FC in the main results folder
-    sim_FC_path = os.path.join(main_results_folder, "sim_FC.csv")
-
-    # Save the correlation results in the correlation results folder
-    emp_FC_img_path = os.path.join(corr_results_folder, "emp_FC.png")
-    sim_FC_img_path = os.path.join(corr_results_folder, "sim_FC.png")
-    empFC_simFC_corr_path = os.path.join(corr_results_folder, "empFC_simFC_corr.txt")
-
     # Save the results
     print("Saving the results...")
-    np.savetxt(sim_FC_path, sim_FC, fmt="% .8f", delimiter=",")
+    np.savetxt(FC_path, sim_FC, fmt="% .8f", delimiter=",")
     np.savetxt(empFC_simFC_corr_path, np.array([empFC_simFC_corr]), fmt="% .8f")
 
     # Create and save images
     plt.figure()
-    plt.imshow(emp_FC)
-    plt.savefig(emp_FC_img_path)
+    plt.imshow(FC_matrix)
+    plt.savefig(FC_matrix_img_path)
+    plt.close()
     plt.figure()
     plt.imshow(sim_FC)
     plt.savefig(sim_FC_img_path)
+    plt.close()
 
     # Return the correlation
     return empFC_simFC_corr

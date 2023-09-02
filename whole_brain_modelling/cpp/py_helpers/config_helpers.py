@@ -123,7 +123,7 @@ def write_initial_config_wilson(params, config_folder):
     return config_path
 
 # Function to create the JSON config file - Kuramoto
-def write_initial_config_kura(params, config_path):
+def write_initial_config_kura(params, config_folder):
     # Get the parameters
     number_integration_steps = params[0]
     integration_step_size = params[1]
@@ -131,14 +131,15 @@ def write_initial_config_kura(params, config_path):
     downsampling_rate = params[3]
     noise_type = params[4]
     noise_amplitude = params[5]
-    order = params[6]
-    cutoffLow = params[7]
-    cutoffHigh = params[8]
-    TR = params[9]
-    species = params[10]
-    streamline_type = params[11]
-    connectome_type = params[12]
-    symmetric = params[13]
+    write_folder = params[6]
+    order = params[7]
+    cutoffLow = params[8]
+    cutoffHigh = params[9]
+    TR = params[10]
+    species = params[11]
+    streamline_type = params[12]
+    connectome_type = params[13]
+    symmetric = params[14]
 
     # Check that the input arguments are of the correct type
     check_all_types([
@@ -148,6 +149,7 @@ def write_initial_config_kura(params, config_path):
         (downsampling_rate, int, 'downsampling_rate'),
         (noise_type, int, 'noise_type'),
         (noise_amplitude, float, 'noise_amplitude'),
+        (write_folder, str, 'write_folder'),
         (order, int, 'order'),
         (cutoffLow, float, 'cutoffLow'),
         (cutoffHigh, float, 'cutoffHigh'),
@@ -166,6 +168,7 @@ def write_initial_config_kura(params, config_path):
         "downsampling_rate": downsampling_rate,
         "noise_type": noise_type,
         "noise_amplitude": noise_amplitude,
+        "write_folder": write_folder,
         "order": order,
         "cutoffLow": cutoffLow,
         "cutoffHigh": cutoffHigh,
@@ -179,9 +182,22 @@ def write_initial_config_kura(params, config_path):
     # Dump as a string
     config_string = json.dumps(config, indent=4)
 
+    # Define the symmetric string
+    symmetric_str = "symm" if symmetric else "half"
+
+    # Add to the config folder the species, streamline_type, connectome_type, and symmetric
+    config_folder = os.path.join(config_folder, species, streamline_type, connectome_type, symmetric_str)
+    check_output_folders(config_folder, "config folder", wipe=False)
+
+    # Define the config path
+    config_path = os.path.join(config_folder, "config.json")
+
     # Write the dictionary to a JSON file
     with open(config_path, 'w') as outfile:
         outfile.write(config_string)
+
+    # Return the config path
+    return config_path
 
 # Function to read the JSON config file
 def read_json_config_wilson(config_folder):
@@ -252,8 +268,26 @@ def read_json_config_wilson(config_folder):
     return config, config_path
 
 # Function to read the JSON config file - Kuramoto
-def read_json_config_kura(config_path):
+def read_json_config_kuramoto(config_folder):
 
+    # Grab the json files in the config folder
+    json_files = []
+    for root, dirs, files in os.walk(config_folder):
+        for file in files:
+            if file.endswith(".json"):
+                json_files.append(os.path.join(root, file))
+
+    # Check that there are JSON files in the config folder
+    if not json_files:
+        raise ValueError("No JSON files found in the provided directory and its subdirectories.")
+
+    # Sort the JSON files based on modification time and get the most recent one
+    try:
+        json_files.sort(key=os.path.getmtime)
+        config_path = json_files[-1]
+    except Exception as e:
+        print(f"Error while sorting or accessing the JSON files: {e}")
+    
     # Check that config path exists
     if not os.path.exists(config_path):
         raise ValueError('The input config_path does not exist')
@@ -285,7 +319,7 @@ def read_json_config_kura(config_path):
         (config["symmetric"], bool, 'symmetric')
     ])
 
-    return config
+    return config, config_path
 
 # Function to add SC and FC to the JSON config file
 def append_SC_FC_to_config(params, config_path):

@@ -3,19 +3,48 @@
 #%% Import libraries
 import os
 
-hpc = False
+import argparse
 
-if hpc == False:
+# Define allowed types for the streamline_type argument
+allowed_streamline_types = ["model", "traditional", "tracer"]
+# Define allowed types for the species argument
+allowed_species = ["marmoset"]
+# Define allowed types for the atlas_type argument
+allowed_atlas_types = ["MBM"]
+
+parser = argparse.ArgumentParser(description="Define stuff for running the model")
+parser.add_argument("-st", "--streamline_type", help="whether to do WBM for model, traditional tractography or tracer streamlines",
+                    default="tracer", required=True,
+                    type=str,
+                    choices=allowed_streamline_types)
+parser.add_argument("-s", "--species", help="what species we're predicting for", 
+                    default="marmoset", required=False,
+                    type=str,
+                    choices=allowed_species)
+parser.add_argument("-a", "--atlas_type", help="what type of atlas to use", 
+                    default="MBCA", required=True,
+                    type=str,
+                    choices=allowed_atlas_types)
+parser.add_argument("-sym", "--symmetric", help="whether to use symmetric SC matrix or not",
+                    action='store_true')
+
+args = parser.parse_args()
+
+streamline_type = args.streamline_type
+species = args.species
+atlas_type = args.atlas_type
+symmetric = args.symmetric
+
+hpc=False
+
+if not hpc:
     os.add_dll_directory(r"C:\src\vcpkg\installed\x64-windows\bin")
-    os.add_dll_directory(r"C:\cpp_libs\include\bayesopt\build\bin\Release")
     
 from py_helpers import *
 from interfaces import *
 
 from collections import OrderedDict
-import multiprocessing as mp
 import numpy as np
-import time
 
 try:
     np.distutils.__config__.blas_opt_info = np.distutils.__config__.blas_ilp64_opt_info
@@ -24,7 +53,9 @@ except Exception:
 
 np.bool = np.bool_
 
-# Bayesian Optimization
+import time
+
+
 from pyGPGO.GPGO import GPGO
 from pyGPGO.acquisition import Acquisition
 from pyGPGO.surrogates.GaussianProcess import GaussianProcess
@@ -58,7 +89,7 @@ cutoffHigh = 0.1
 TR = 0.7
 
 # Defining Bayesian Optimization parameters
-n_iterations = 50
+n_iterations = 300
 
 
 #%% Start main program
@@ -67,9 +98,8 @@ if __name__ == "__main__":
     # %% Initial operations - making config file, starting timer, etc.
 
     # Get the main paths
-    hpc = False
-    (SC_FC_root, WBM_main_path, WBM_results_path, config_path, NUMPY_root_path, 
-     SC_numpy_root, FC_numpy_root) = define_paths(hpc, wbm_type="kuramoto")
+    (SC_root_path, FC_root_path, write_folder, 
+     config_folder) = define_paths(hpc, wbm_type="kuramoto")
 
     # Derive some parameters for simulation
     number_integration_steps = int(time_simulated / integration_step_size)
@@ -77,60 +107,39 @@ if __name__ == "__main__":
 
     # Write the initial parameters for the JSON file
     kuramoto_params = [
-        number_integration_steps,
-        integration_step_size,
-        start_save_idx,
-        downsampling_rate,
-        noise_type,
-        noise_amplitude,
-        order,
-        cutoffLow,
-        cutoffHigh,
-        TR
+        number_integration_steps, # 0
+        integration_step_size, # 1
+        start_save_idx, # 2
+        downsampling_rate, # 3
+        noise_type, # 4
+        noise_amplitude, # 5
+        write_folder, # 6
+        order, # 7
+        cutoffLow, # 8
+        cutoffHigh, # 9
+        TR, # 10
+        species, # 11
+        streamline_type, # 12
+        atlas_type, # 13
+        symmetric # 14
     ]
 
     print('Create initial config of parameters...')
-    write_initial_config_kura(kuramoto_params, config_path)
+    config_path = write_initial_config_kura(kuramoto_params, config_folder)
 
     # Choose current subject to do processing for
-    (SUBJECT_SC_PATH, SUBJECT_FC_PATH) = choose_random_subject(SC_FC_root, NUMPY_root_path)
+    (SUBJECT_SC_PATH, SUBJECT_FC_PATH,
+     SUBJECT_LENGTH_PATH) = get_subject_matrices(SC_root_path, FC_root_path, write_folder, 
+                                                 streamline_type=streamline_type, 
+                                                 atlas_type=atlas_type)
 
-    # Get the SC and FC matrices
-    (SC_matrix, SC_type) = get_empirical_SC(SUBJECT_SC_PATH, HCP=False)
-    FC_matrix = get_empirical_FC(SUBJECT_FC_PATH, config_path, HCP=False)
-
-    # Get the write path
-    write_path = get_write_path(SUBJECT_SC_PATH, SC_type, wbm_type="kuramoto")
-
-    # Get the number of oscillators
-    number_oscillators = SC_matrix.shape[0]
-
-    # Store the numpy matrices in the numpy arrays folder
-    (SC_matrix_path, FC_matrix_path) = store_subject_numpy_arrays(SC_matrix, FC_matrix, SUBJECT_SC_PATH, NUMPY_root_path)
+    # Getting the SC matrix just to get number of oscillators
+    SC_matrix = get_empirical_SC(SUBJECT_SC_PATH, HPC=hpc, species_type=species, symmetric=symmetric)
+    number_of_oscillators = SC_matrix.shape[0]
 
     # Append the SC and FC matrix paths to the config file
-    kuramoto_params = [number_oscillators, write_path, SC_matrix_path, FC_matrix_path]
+    kuramoto_params = [number_of_oscillators, SUBJECT_SC_PATH, SUBJECT_FC_PATH, SUBJECT_LENGTH_PATH]
     append_SC_FC_to_config(kuramoto_params, config_path)
-
-    #%% Check number of available threads - multiprocessing tingz
-
-    # Get number of available threads
-    # number_threads_available = mp.cpu_count()
-
-    # # Check if number of threads is greater than available threads
-    # if number_threads_needed > number_threads_available:
-    #     # If so, set number of threads to available threads
-    #     number_threads_needed = number_threads_available
-    #     # Print message to confirm
-    #     print('Number of threads needed is greater than available threads. Setting number of threads to available threads.')
-    #     print('Number of threads needed: ' + str(number_threads_needed))
-    #     print('Number of threads available: ' + str(number_threads_available))
-    # else:
-    #     # Otherwise, print message to confirm
-    #     print('Number of threads needed is less than or equal to available threads. Setting number of threads to number of threads needed.')
-    #     print('Number of threads needed: ' + str(number_threads_needed))
-    #     print('Number of threads available: ' + str(number_threads_available))
-
 
     #%% Run the simulation and get results
     
@@ -162,16 +171,7 @@ if __name__ == "__main__":
     gpgo.run(max_iter=n_iterations)
 
     print("Get results...")
-    best_result = gpgo.getResult()
-    
-    # Print best result
-    print("Best result: " + str(best_result))
-
-    # Save the best result to a file
-    print("Save best result to file...")
-    best_result_txt = os.path.join(write_path, "best_result.txt")
-    with open(best_result_txt, "w") as best_result_file:
-        best_result_file.write(str(best_result))
+    print(gpgo.getResult())
 
     # Define end time after simulation
     end_time = time.time()
