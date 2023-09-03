@@ -86,7 +86,7 @@ noise_amplitude = 0.001
 order = 6
 cutoffLow = 0.01
 cutoffHigh = 0.1
-TR = 2.0
+TR = 0.72
 
 # Defining Bayesian Optimization parameters
 n_iterations = 300

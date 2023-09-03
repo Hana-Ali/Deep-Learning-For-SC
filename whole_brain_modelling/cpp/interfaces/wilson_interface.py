@@ -169,18 +169,18 @@ def wilson_simulator(coupling_strength, delay):
     check_shape(raw_sim_bold, (number_oscillators, number_integration_steps), 'wilson_sim_bold')
     
     # --------- Ignore initialization
-    print("Ignoring initialization and downsampling...")
+    print("Ignoring initialization...")
     bold_down1 = raw_sim_bold[:, start_save_idx - downsampling_rate + 1 :]
-
-    # --------- Determine the R order for the BOLD signal
-    order_mean, order_std = determine_order_R(bold_down1, number_oscillators, 
-                                              start_index=int(1 / integration_step_size))
 
     # --------- Calculate FC
     print("Calculating filtered BOLD and FC...")
     bold_filter = process_BOLD(bold_down1, order, TR, cutoffLow, cutoffHigh)
     sim_FC = np.corrcoef(bold_filter)
     np.fill_diagonal(sim_FC, 0.0)
+    
+    # --------- Determine the R order for the BOLD signal
+    order_mean, order_std = determine_order_R(bold_filter, number_oscillators, 
+                                              start_index=int(1 / integration_step_size))
 
     # --------- Check the shape of the simulated FC matrix
     print("Checking simulated FC shape...")

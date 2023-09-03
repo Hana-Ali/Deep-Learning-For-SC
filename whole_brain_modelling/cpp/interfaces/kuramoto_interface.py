@@ -128,9 +128,11 @@ def kuramoto_simulator(coupling_strength, delay):
     # End simulation time
     end_sim_time = time.time()
     print('Simulation time: ' + str(end_sim_time - start_sim_time), 'seconds')
+
+    print('----------------- BOLD and FC processing -----------------')
     
-    # --------- Ignore initialization (and downsample?)
-    print("Ignoring initialization and downsampling...")
+    # --------- Ignore initialization
+    print("Ignoring initialization...")
     downsample_phi = raw_phi[:, start_save_idx - downsampling_rate + 1 :]
 
     # --------- Calculate FC
@@ -138,6 +140,10 @@ def kuramoto_simulator(coupling_strength, delay):
     bold_filtered = process_BOLD_osc(downsample_phi)
     sim_FC = np.corrcoef(bold_filtered)
     np.fill_diagonal(sim_FC, 0.0)
+
+     # --------- Determine the R order for the BOLD signal
+    order_mean, order_std = determine_order_R(bold_filtered, number_oscillators, 
+                                              start_index=int(1 / integration_step_size))
 
     # --------- Check the shape of the simulated FC matrix
     print("Checking simulated FC shape...")
@@ -156,23 +162,24 @@ def kuramoto_simulator(coupling_strength, delay):
     check_output_folders(write_folder, "kuramoto write path", wipe=False)
 
     folder_name = "Coupling {:.4f}, Delay{:.4f}\\".format(coupling_strength, delay)
-    # bold_path_main = os.path.join(write_folder, folder_name)
-    FC_path_main = os.path.join(write_folder, folder_name)
-    empFC_simFC_corr_path_main = os.path.join(write_folder, folder_name)
+    results_path_main = os.path.join(write_folder, folder_name)
 
     # Make sure folders exist
-    check_output_folders(FC_path_main, "FC path", wipe=False)
-    check_output_folders(empFC_simFC_corr_path_main, "empFC_simFC_corr path", wipe=False)
+    check_output_folders(results_path_main, "results_path_main", wipe=False)
 
-    FC_path = os.path.join(FC_path_main, "sim_FC.csv")
-    FC_matrix_img_path = os.path.join(FC_path_main, "emp_FC.png")
-    sim_FC_img_path = os.path.join(FC_path_main, "sim_FC.png")
-    empFC_simFC_corr_path = os.path.join(empFC_simFC_corr_path_main, "empFC_simFC_corr.txt")
-    
+    FC_path = os.path.join(results_path_main, "sim_FC.csv")
+    FC_matrix_img_path = os.path.join(results_path_main, "emp_FC.png")
+    sim_FC_img_path = os.path.join(results_path_main, "sim_FC.png")
+    empFC_simFC_corr_path = os.path.join(results_path_main, "empFC_simFC_corr.txt")
+    bold_path = os.path.join(results_path_main, "bold_filtered.csv")
+    order_data_path = os.path.join(results_path_main, "order_data.txt")
+
     # Save the results
     print("Saving the results...")
     np.savetxt(FC_path, sim_FC, fmt="% .8f", delimiter=",")
     np.savetxt(empFC_simFC_corr_path, np.array([empFC_simFC_corr]), fmt="% .8f")
+    np.savetxt(order_data_path, np.array([order_mean, order_std]), fmt="% .8f")
+    np.savetxt(bold_path, bold_filtered, fmt="% .8f", delimiter=",")
 
     # Create and save images
     plt.figure()
