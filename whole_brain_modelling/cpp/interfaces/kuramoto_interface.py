@@ -135,7 +135,8 @@ def kuramoto_simulator(coupling_strength, delay):
 
     # --------- Calculate FC
     print("Calculating FC...")
-    sim_FC = np.corrcoef(downsample_phi)
+    bold_filtered = process_BOLD_osc(downsample_phi)
+    sim_FC = np.corrcoef(bold_filtered)
     np.fill_diagonal(sim_FC, 0.0)
 
     # --------- Check the shape of the simulated FC matrix

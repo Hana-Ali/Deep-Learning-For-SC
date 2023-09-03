@@ -323,3 +323,15 @@ def process_BOLD(BOLD_signal, order, TR, cutoffLow, cutoffHigh):
     BOLD_z_score = stats.zscore(BOLD_butter)
 
     return BOLD_z_score
+
+# Function to process the BOLD signal for the oscillator
+def process_BOLD_osc(BOLD_signal):
+
+    # Apply cosine to the data
+    BOLD_cosine = np.cos(BOLD_signal)
+
+    # Apply z-score to the data
+    BOLD_z_score = stats.zscore(BOLD_cosine)
+
+    # Return the z-scored cosine
+    return BOLD_z_score
