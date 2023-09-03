@@ -168,19 +168,19 @@ def wilson_simulator(coupling_strength, delay):
     print("Checking raw BOLD output shape...")
     check_shape(raw_sim_bold, (number_oscillators, number_integration_steps), 'wilson_sim_bold')
     
-    # --------- Ignore initialization (and downsample?)
+    # --------- Ignore initialization
     print("Ignoring initialization and downsampling...")
     bold_down1 = raw_sim_bold[:, start_save_idx - downsampling_rate + 1 :]
+
+    # --------- Determine the R order for the BOLD signal
+    order_mean, order_std = determine_order_R(bold_down1, number_oscillators, 
+                                              start_index=int(1 / integration_step_size))
 
     # --------- Calculate FC
     print("Calculating filtered BOLD and FC...")
     bold_filter = process_BOLD(bold_down1, order, TR, cutoffLow, cutoffHigh)
     sim_FC = np.corrcoef(bold_filter)
     np.fill_diagonal(sim_FC, 0.0)
-
-    # --------- Saving the downsampled BOLD only
-    print("Downsampling BOLD again?...")
-    bold_down2 = bold_filter[:, downsampling_rate - 1 :: downsampling_rate]
 
     # --------- Check the shape of the simulated FC matrix
     print("Checking simulated FC shape...")
@@ -199,34 +199,24 @@ def wilson_simulator(coupling_strength, delay):
     check_output_folders(write_folder, "wilson write path", wipe=False)
 
     folder_name = "Coupling {:.4f}, Delay{:.4f}\\".format(coupling_strength, delay)
-    # bold_path_main = os.path.join(write_folder, folder_name)
-    FC_path_main = os.path.join(write_folder, folder_name)
-    empFC_simFC_corr_path_main = os.path.join(write_folder, folder_name)
+    results_path_main = os.path.join(write_folder, folder_name)
 
     # Make sure folders exist
-    check_output_folders(FC_path_main, "FC path", wipe=False)
-    check_output_folders(empFC_simFC_corr_path_main, "empFC_simFC_corr path", wipe=False)
-    # if not os.path.exists(bold_path_main):
-    #     os.makedirs(bold_path_main)
+    check_output_folders(results_path_main, "results_path_main", wipe=False)
 
-
-    # raw_bold_path = os.path.join(bold_path_main, "raw_bold.csv")
-    # bold_down1_path = os.path.join(bold_path_main, "bold_down1.csv")
-    # bold_filter_path = os.path.join(bold_path_main, "bold_filter.csv")
-    # bold_down2_path = os.path.join(bold_path_main, "bold_down2.csv")
-    FC_path = os.path.join(FC_path_main, "sim_FC.csv")
-    FC_matrix_img_path = os.path.join(FC_path_main, "emp_FC.png")
-    sim_FC_img_path = os.path.join(FC_path_main, "sim_FC.png")
-    empFC_simFC_corr_path = os.path.join(empFC_simFC_corr_path_main, "empFC_simFC_corr.txt")
+    FC_path = os.path.join(results_path_main, "sim_FC.csv")
+    FC_matrix_img_path = os.path.join(results_path_main, "emp_FC.png")
+    sim_FC_img_path = os.path.join(results_path_main, "sim_FC.png")
+    empFC_simFC_corr_path = os.path.join(results_path_main, "empFC_simFC_corr.txt")
+    bold_path = os.path.join(results_path_main, "bold_filtered.csv")
+    order_data_path = os.path.join(results_path_main, "order_data.txt")
 
     # # Save the results
     print("Saving the results...")
-    # np.savetxt(raw_bold_path, raw_sim_bold, fmt="% .4f", delimiter=",")
-    # np.savetxt(bold_down1_path, bold_down1, fmt="% .4f", delimiter=",")
-    # np.savetxt(bold_filter_path, bold_filter, fmt="% .4f", delimiter=",")
-    # np.savetxt(bold_down2_path, bold_down2, fmt="% .4f", delimiter=",")
     np.savetxt(FC_path, sim_FC, fmt="% .8f", delimiter=",")
     np.savetxt(empFC_simFC_corr_path, np.array([empFC_simFC_corr]), fmt="% .8f")
+    np.savetxt(order_data_path, np.array([order_mean, order_std]), fmt="% .8f")
+    np.savetxt(bold_path, bold_filter, fmt="% .8f", delimiter=",")
 
     plt.figure()
     plt.imshow(FC_matrix)

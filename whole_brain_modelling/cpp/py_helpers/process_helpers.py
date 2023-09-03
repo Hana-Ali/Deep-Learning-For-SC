@@ -33,18 +33,16 @@ def determine_order_R(BOLD_signal, number_of_parcels, start_index):
     # --------- Check that the input arguments are of the correct type
     check_type(BOLD_signal, np.ndarray, 'BOLD_signal')
     check_type(number_of_parcels, int, 'number_of_parcels')
-    print('BOLD_signal', BOLD_signal)
+    check_type(start_index, int, 'start_index')
 
     # --------- Check that the input arguments are of the correct shape
     if not BOLD_signal.shape[0] == number_of_parcels:
         raise ValueError('The input BOLD_signal must have shape (number of oscillators, number of time points), has shape ' + str(BOLD_signal.shape))
 
     # --------- Calculate the order parameter R
-    # Process the simulated BOLD in the same way the empirical is processed
-    BOLD_processed = process_BOLD(BOLD_signal)
 
     # Apply the Hilbert transform to the data
-    BOLD_hilbert = signal.hilbert(BOLD_processed)
+    BOLD_hilbert = signal.hilbert(BOLD_signal)
     phase = np.angle(BOLD_hilbert)
     phase = phase[:, start_index:]
 
@@ -52,7 +50,7 @@ def determine_order_R(BOLD_signal, number_of_parcels, start_index):
     complex_phase = np.exp(1j * phase)
 
     # Calculate the order parameter R
-    R = np.mean(np.abs(complex_phase), axis=0)
+    R = np.abs(np.mean(complex_phase, axis=0))
 
     # Calculate the mean and standard deviation of the order parameter R
     R_mean = np.mean(R)
