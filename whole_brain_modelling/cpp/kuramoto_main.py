@@ -27,6 +27,8 @@ parser.add_argument("-a", "--atlas_type", help="what type of atlas to use",
                     choices=allowed_atlas_types)
 parser.add_argument("-sym", "--symmetric", help="whether to use symmetric SC matrix or not",
                     action='store_true')
+parser.add_argument("-bayes", "--bayesian_optimization", help="whether to use Bayesian Optimization or not",
+                    action='store_true')
 
 args = parser.parse_args()
 
@@ -34,7 +36,7 @@ streamline_type = args.streamline_type
 species = args.species
 atlas_type = args.atlas_type
 symmetric = args.symmetric
-
+bayesian_optimization = args.bayesian_optimization
 hpc=False
 
 if not hpc:
@@ -68,6 +70,16 @@ delay = 0.1
 # Defining integration parameters
 time_simulated = 510.000 # seconds
 integration_step_size = 0.002 # seconds
+
+# Specifications of coupling strengths
+coupling_i = 0.000
+coupling_f = 0.945
+coupling_n = 64
+
+# Specifications of delays
+delay_i = 0.0
+delay_f = 47.0
+delay_n = 48
 
 # Defining rate of downsampling
 downsampling_rate = 400
@@ -146,32 +158,51 @@ if __name__ == "__main__":
     # Define start time before simulation
     print('Running Kuramoto model...')
     start_time = time.time()
+
+    if bayesian_optimization:
+        # Bayesian Optimisation
+        print("Define Bayesian Optimization parameters...")
+        bo_params = OrderedDict()
+        bo_params['coupling_strength'] = ('cont', [0.0, 1.0])
+        bo_params['delay'] = ('cont', [0.0, 20.0])
+
+        print("Define acquisition function...")
+        acq = Acquisition(mode='ExpectedImprovement')
+
+        print("Define covariance function...")
+        cov = matern52()
+
+        print("Define surrogate model...")
+        gp = GaussianProcess(covfunc=cov,
+                            optimize=True,
+                            usegrads=True)
+        
+        np.random.seed(20)
+
+        print("Define Bayesian Optimization object...")
+        gpgo = GPGO(gp, acq, kuramoto_simulator, bo_params)
+        gpgo.run(max_iter=n_iterations)
+
+        print("Get results...")
+        print(gpgo.getResult())
     
-    # Bayesian Optimisation
-    print("Define Bayesian Optimization parameters...")
-    bo_params = OrderedDict()
-    bo_params['coupling_strength'] = ('cont', [0.0, 1.0])
-    bo_params['delay'] = ('cont', [0.0, 20.0])
+    else:
+        # Determine coupling and delay arrays
+        coupling_array = np.linspace(coupling_i, coupling_f, coupling_n)
+        delay_array = np.linspace(delay_i, delay_f, delay_n)
 
-    print("Define acquisition function...")
-    acq = Acquisition(mode='ExpectedImprovement')
+        for idx, coupling_strength in enumerate(coupling_array):
+            for idx2, delay in enumerate(delay_array):
 
-    print("Define covariance function...")
-    cov = matern52()
+                # Run the simulation
+                corr = kuramoto_simulator(coupling_strength, delay)
 
-    print("Define surrogate model...")
-    gp = GaussianProcess(covfunc=cov,
-                         optimize=True,
-                         usegrads=True)
-    
-    np.random.seed(20)
+                # Print the correlation
+                print("Step {idx1} of {len1} and {idx2} of {len2} completed. Corr: {corr}".format(idx1=idx, len1=len(coupling_array), 
+                                                                                                  idx2=idx2, len2=len(delay_array), 
+                                                                                                  corr=corr))
+                
 
-    print("Define Bayesian Optimization object...")
-    gpgo = GPGO(gp, acq, kuramoto_simulator, bo_params)
-    gpgo.run(max_iter=n_iterations)
-
-    print("Get results...")
-    print(gpgo.getResult())
 
     # Define end time after simulation
     end_time = time.time()
