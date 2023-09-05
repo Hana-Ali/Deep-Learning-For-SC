@@ -164,7 +164,7 @@ if __name__ == "__main__":
         print("Define Bayesian Optimization parameters...")
         bo_params = OrderedDict()
         bo_params['coupling_strength'] = ('cont', [0.0, 1.0])
-        bo_params['delay'] = ('cont', [0.0, 50.0])
+        bo_params['delay'] = ('cont', [0.0, 20.0])
 
         print("Define acquisition function...")
         acq = Acquisition(mode='ExpectedImprovement')
@@ -191,18 +191,24 @@ if __name__ == "__main__":
         coupling_array = np.linspace(coupling_i, coupling_f, coupling_n)
         delay_array = np.linspace(delay_i, delay_f, delay_n)
 
+        # Define the max correlation
+        max_corr = 0.0
+
         for idx, coupling_strength in enumerate(coupling_array):
             for idx2, delay in enumerate(delay_array):
 
                 # Run the simulation
                 corr = kuramoto_simulator(coupling_strength, delay)
 
-                # Print the correlation
-                print("Step {idx1} of {len1} and {idx2} of {len2} completed. Corr: {corr}".format(idx1=idx, len1=len(coupling_array), 
-                                                                                                  idx2=idx2, len2=len(delay_array), 
-                                                                                                  corr=corr))
-                
+                # If the correlation is greater than the max correlation, save the coupling and delay
+                if corr > max_corr:
+                    max_corr = corr
 
+                # Print the correlation
+                print("Step {idx1} of {len1} and {idx2} of {len2} completed. Corr: {corr}, Max Corr: {max}".format(idx1=idx, len1=len(coupling_array), 
+                                                                                                                    idx2=idx2, len2=len(delay_array), 
+                                                                                                                    corr=corr, max=max_corr))
+                
 
     # Define end time after simulation
     end_time = time.time()
