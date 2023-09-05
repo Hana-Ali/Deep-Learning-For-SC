@@ -202,7 +202,7 @@ if __name__ == "__main__":
         print("Define Bayesian Optimization parameters...")
         bo_params = OrderedDict()
         bo_params['coupling_strength'] = ('cont', [0.0, 1.0])
-        bo_params['delay'] = ('cont', [0.0, 100.0])
+        bo_params['delay'] = ('cont', [0.0, 50.0])
 
         print("Define acquisition function...")
         acq = Acquisition(mode='ExpectedImprovement')
