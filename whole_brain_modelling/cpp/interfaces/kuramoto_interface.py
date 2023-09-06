@@ -179,7 +179,7 @@ def kuramoto_simulator(coupling_strength, delay):
     np.savetxt(FC_path, sim_FC, fmt="% .8f", delimiter=",")
     np.savetxt(empFC_simFC_corr_path, np.array([empFC_simFC_corr]), fmt="% .8f")
     np.savetxt(order_data_path, np.array([order_mean, order_std]), fmt="% .8f")
-    np.savetxt(bold_path, bold_filtered, fmt="% .8f", delimiter=",")
+    # np.savetxt(bold_path, bold_filtered, fmt="% .8f", delimiter=",")
 
     # Create and save images
     plt.figure()
