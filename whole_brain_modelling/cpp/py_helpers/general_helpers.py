@@ -177,11 +177,19 @@ def filter_sc_fc_data(files, streamline_type, atlas_type, what_to_filter="atlas"
         files = [file for file in files if atlas_type in file]
     # If we're filtering for the streamline type
     elif what_to_filter == "streamline":
-        # Filter for the streamline type
+        # If the streamline type is optimized
+        if streamline_type == "optimized":
+            # Filter for ones that don't have unoptimized but have optimized
+            files = [file for file in files if "unoptimized" not in file and "optimized" in file]
+        # If the streamline type is unoptimized, continue as normal
         files = [file for file in files if streamline_type in file]
     # If we're filtering for both
     elif what_to_filter == "both":
-        # Filter for the streamline type
+        # If the streamline type is optimized
+        if streamline_type == "optimized":
+            # Filter for ones that don't have unoptimized but have optimized
+            files = [file for file in files if "unoptimized" not in file and "optimized" in file]
+        # If the streamline type is unoptimized, continue as normal
         files = [file for file in files if streamline_type in file]
         # Filter for the connectome type
         files = [file for file in files if atlas_type in file]

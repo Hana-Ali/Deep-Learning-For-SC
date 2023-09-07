@@ -6,7 +6,7 @@ import os
 import argparse
 
 # Define allowed types for the streamline_type argument
-allowed_streamline_types = ["model", "traditional", "tracer"]
+allowed_streamline_types = ["model", "traditional", "tracer", "optimized", "unoptimized"]
 # Define allowed types for the species argument
 allowed_species = ["marmoset"]
 # Define allowed types for the atlas_type argument

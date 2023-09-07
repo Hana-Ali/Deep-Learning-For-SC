@@ -109,25 +109,38 @@ def get_connectome_paths(report_plots_path, optimized=False, track_name="prob", 
 # Function to perform probabilistic tractography
 def probabilistic_tractography(report_plots_path, TRACT_TCK_PATH, MBCA_atlas_path, MBM_atlas_path, optimized=False):
 
-    CONNECTOME_PATH = get_connectome_paths(report_plots_path, optimized=optimized, track_name="prob", atlas_name="MBCA")
-    if not os.path.exists(CONNECTOME_PATH + ".csv"):
-        CONNECTIVITY_CMD = "tck2connectome {tract}.tck {atlas} {connectome}.csv -zero_diagonal -symmetric \
-            -assignment_all_voxels -force".format(tract=TRACT_TCK_PATH, 
-                                                    atlas=MBCA_atlas_path, 
-                                                    connectome=CONNECTOME_PATH)
-        print("Creating connectome, optimized={}, track_name=prob, atlas_name=MBCA".format(optimized))
-        subprocess.run(CONNECTIVITY_CMD, shell=True, check=True)
-    else:
-        print("Connectome file for optimized={}, track_name=prob, atlas_name=MBCA".format(optimized))
-    # Probabilistic tractography - MBM
-    CONNECTOME_PATH = get_connectome_paths(report_plots_path, optimized=optimized, track_name="prob", atlas_name="MBM")
-    if not os.path.exists(CONNECTOME_PATH + ".csv"):
-        CONNECTIVITY_CMD = "tck2connectome {tract}.tck {atlas} {connectome}.csv -zero_diagonal -symmetric \
-            -assignment_all_voxels -force".format(tract=TRACT_TCK_PATH, 
-                                                    atlas=MBM_atlas_path, 
-                                                    connectome=CONNECTOME_PATH)
-        print("Creating connectome, optimized={}, track_name=prob, atlas_name=MBM".format(optimized))
-        subprocess.run(CONNECTIVITY_CMD, shell=True, check=True)
+    for atlas_name in ["MBCA", "MBM"]:
+
+        # Get the atlas path
+        if atlas_name == "MBCA":
+            atlas_path = MBCA_atlas_path
+        elif atlas_name == "MBM":
+            atlas_path = MBM_atlas_path
+
+        # Probabilistic tractography
+        CONNECTOME_PATH = get_connectome_paths(report_plots_path, optimized=optimized, track_name="prob", atlas_name=atlas_name)
+        if not os.path.exists(CONNECTOME_PATH + ".csv"):
+            CONNECTIVITY_CMD = "tck2connectome {tract}.tck {atlas} {connectome}.csv -zero_diagonal -symmetric \
+                -assignment_all_voxels -force".format(tract=TRACT_TCK_PATH, 
+                                                        atlas=atlas_path, 
+                                                        connectome=CONNECTOME_PATH)
+            print("Creating connectome, optimized={}, track_name=prob, atlas_name={}".format(optimized, atlas_path))
+            subprocess.run(CONNECTIVITY_CMD, shell=True, check=True)
+        else:
+            print("Connectome file for optimized={}, track_name=prob, atlas_name={}".format(optimized, atlas_path))
+
+        # PATH LENGTH STUFF
+        CONNECTOME_PATH = CONNECTOME_PATH + "_path_length"
+        if not os.path.exists(CONNECTOME_PATH + ".csv"):
+            CONNECTIVITY_CMD = "tck2connectome {tract}.tck {atlas} {connectome}.csv -zero_diagonal -symmetric \
+                -assignment_all_voxels -scale_length -force".format(tract=TRACT_TCK_PATH, 
+                                                                    atlas=atlas_path, 
+                                                                    connectome=CONNECTOME_PATH)
+            print("Creating PATH LENGTH, optimized={}, track_name=prob, atlas_name={}".format(optimized, atlas_path))
+            subprocess.run(CONNECTIVITY_CMD, shell=True, check=True)
+        else:
+            print("PATH LENGTH file for optimized={}, track_name=prob, atlas_name={}".format(optimized, atlas_path))
+
 
 # Function to perform global tractography
 def global_tractography(report_plots_path, GLOBAL_TRACT_PATH, MBCA_atlas_path, MBM_atlas_path, optimized=False):
@@ -167,6 +180,11 @@ def convert_to_trk(tck_file, template):
 
     # Define the new filepath
     new_filepath = os.path.join(output_folder, streamline_filename)
+
+    # If the file already exists, skip
+    if os.path.exists(new_filepath):
+        print("Streamline file already exists, skipping")
+        return
 
     # Load the tck
     tck = nib.streamlines.load(tck_file)
@@ -240,47 +258,47 @@ def main():
         else:
             print("Probabilistic tractography file already exists, skipping")
             
-        # 2. Global tractography
-        # Get the global tractography paths
-        (GLOBAL_FOD_PATH, GLOBAL_FISO_PATH, GLOBAL_TRACT_PATH) = get_mrtrix_global_tracking_paths(report_plots_path, optimized=optimized)
+        # # 2. Global tractography
+        # # Get the global tractography paths
+        # (GLOBAL_FOD_PATH, GLOBAL_FISO_PATH, GLOBAL_TRACT_PATH) = get_mrtrix_global_tracking_paths(report_plots_path, optimized=optimized)
 
-        # Global tractography command
-        if optimized:
-                GLOBAL_TRACT_CMD = "tckglobal {dwi}.mif {wm_response}.txt -riso {csf_response}.txt -riso \
-                        {gm_response}.txt -mask {mask}.mif -niter 1e9 -fod {gt_fod}.mif \
-                        -length {length} -weight {weight} -cpot {cpot} \
-                        -fiso {gt_fiso}.mif {output}.tck".format(dwi=INPUT_MIF_PATH, wm_response=RESPONSE_WM_PATH, 
-                                                                     csf_response=RESPONSE_CSF_PATH, gm_response=RESPONSE_GM_PATH,
-                                                                     length=0.45, weight=0.054, cpot=0.106,
-                                                                     mask=MASK_MIF_PATH, gt_fod=GLOBAL_FOD_PATH, 
-                                                                     gt_fiso=GLOBAL_FISO_PATH, output=GLOBAL_TRACT_PATH)
-        else:
-                GLOBAL_TRACT_CMD = "tckglobal {dwi}.mif {wm_response}.txt -riso {csf_response}.txt -riso \
-                        {gm_response}.txt -mask {mask}.mif -niter 1e9 \
-                        -fod {gt_fod}.mif -fiso {gt_fiso}.mif {output}.tck".format(dwi=INPUT_MIF_PATH, wm_response=RESPONSE_WM_PATH, 
-                                                                                       csf_response=RESPONSE_CSF_PATH, gm_response=RESPONSE_GM_PATH,
-                                                                                       mask=MASK_MIF_PATH, gt_fod=GLOBAL_FOD_PATH, 
-                                                                                       gt_fiso=GLOBAL_FISO_PATH, output=GLOBAL_TRACT_PATH)
+        # # Global tractography command
+        # if optimized:
+        #         GLOBAL_TRACT_CMD = "tckglobal {dwi}.mif {wm_response}.txt -riso {csf_response}.txt -riso \
+        #                 {gm_response}.txt -mask {mask}.mif -niter 1e9 -fod {gt_fod}.mif \
+        #                 -length {length} -weight {weight} -cpot {cpot} \
+        #                 -fiso {gt_fiso}.mif {output}.tck".format(dwi=INPUT_MIF_PATH, wm_response=RESPONSE_WM_PATH, 
+        #                                                              csf_response=RESPONSE_CSF_PATH, gm_response=RESPONSE_GM_PATH,
+        #                                                              length=0.45, weight=0.054, cpot=0.106,
+        #                                                              mask=MASK_MIF_PATH, gt_fod=GLOBAL_FOD_PATH, 
+        #                                                              gt_fiso=GLOBAL_FISO_PATH, output=GLOBAL_TRACT_PATH)
+        # else:
+        #         GLOBAL_TRACT_CMD = "tckglobal {dwi}.mif {wm_response}.txt -riso {csf_response}.txt -riso \
+        #                 {gm_response}.txt -mask {mask}.mif -niter 1e9 \
+        #                 -fod {gt_fod}.mif -fiso {gt_fiso}.mif {output}.tck".format(dwi=INPUT_MIF_PATH, wm_response=RESPONSE_WM_PATH, 
+        #                                                                                csf_response=RESPONSE_CSF_PATH, gm_response=RESPONSE_GM_PATH,
+        #                                                                                mask=MASK_MIF_PATH, gt_fod=GLOBAL_FOD_PATH, 
+        #                                                                                gt_fiso=GLOBAL_FISO_PATH, output=GLOBAL_TRACT_PATH)
         
-        # Run the global tractography command IF the file doesn't exist
-        if not os.path.exists(GLOBAL_TRACT_PATH + ".tck"):
-            print("Running global tractography, optimized={}".format(optimized))
-            subprocess.run(GLOBAL_TRACT_CMD, shell=True, check=True)
-        else:
-            print("Global tractography file already exists, skipping")
+        # # Run the global tractography command IF the file doesn't exist
+        # if not os.path.exists(GLOBAL_TRACT_PATH + ".tck"):
+        #     print("Running global tractography, optimized={}".format(optimized))
+        #     subprocess.run(GLOBAL_TRACT_CMD, shell=True, check=True)
+        # else:
+        #     print("Global tractography file already exists, skipping")
 
         # 3. Convert the tck files to trk files
         # Probabilistic tractography
         convert_to_trk(TRACT_TCK_PATH + ".tck", template)
-        # Global tractography
-        convert_to_trk(GLOBAL_TRACT_PATH + ".tck", template)
+        # # Global tractography
+        # convert_to_trk(GLOBAL_TRACT_PATH + ".tck", template)
 
         # 4. Create the connectomes
         # Probabilistic tractography
         probabilistic_tractography(report_plots_path, TRACT_TCK_PATH, MBCA_atlas_path, MBM_atlas_path, optimized=optimized)
 
-        # Global tractography - MBCA
-        global_tractography(report_plots_path, GLOBAL_TRACT_PATH, MBCA_atlas_path, MBM_atlas_path, optimized=optimized)
+        # # Global tractography - MBCA
+        # global_tractography(report_plots_path, GLOBAL_TRACT_PATH, MBCA_atlas_path, MBM_atlas_path, optimized=optimized)
         
         print("-"*50)
         print("Finished optimized={}".format(optimized))
