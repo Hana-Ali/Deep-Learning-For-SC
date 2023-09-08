@@ -413,8 +413,6 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
                         for i in range(batchsize):
                             wmfod_cube[i] = brain_hemisphere[i, :, x[i], y[i], z[i]]
 
-                    # print("Cube shape is", wmfod_cube.shape)
-
                     # Get model output
                     (predicted_label, loss, batch_size) = batch_loss(model, wmfod_cube, streamline_label, previous_predictions, criterion, 
                                                                      distributed=distributed, n_gpus=n_gpus, use_amp=use_amp, 
@@ -436,9 +434,9 @@ def validation_loop_nodes(val_loader, model, criterion, epoch, streamline_arrays
                             if point == 0:
                                 decoded_array[:, streamline, point] = streamlines[:, streamline, point]
                             else:
-                                predicted_node = find_next_node_points_direction(predicted_label, streamlines[:, streamline, point - 1])
+                                predicted_node = find_next_node_points_direction(predicted_label, decoded_array[:, streamline, point - 1])
                                 decoded_array[:, streamline, point] = predicted_node
-
+                                
                             # Find the angular error between prediction and label
                             angular_error = get_angular_error_points_direction(predicted_label, streamline_label)
 
