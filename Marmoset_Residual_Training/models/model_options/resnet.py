@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 
+from model_builders.network_funcs import SpatialAttention, ChannelAttention
+
 from functools import partial
 
 ##############################################################
@@ -131,74 +133,75 @@ class ResnetEncoder(nn.Module):
         self.joint_model = self.define_joint_model()
 
     # Define the model
-    def define_img_model(self):
-        """
-        Define the model architecture
-        """
+def define_img_model(self):
+    model = []
+    padding_size = 3
 
-        # Initialize the model and padding size
-        model = []
-        padding_size = 3
-        
-        # Define the stride, based on voxel_wise
-        if self.voxel_wise:
-            stride = 2
-        else:
-            stride = 1
+    if self.voxel_wise:
+        stride = 2
+    else:
+        stride = 1
 
-        # Define the padding layer
-        if self.padding_type == 'reflect':
-            padding_layer = nn.ReflectionPad3d(padding_size)
-        elif self.padding_type == 'replicate':
-            padding_layer = nn.ReplicationPad3d(padding_size)
-        elif self.padding_type == 'zero':
-            padding_layer = nn.ZeroPad3d(padding_size)
-        else:
-            raise NotImplementedError('padding [%s] is not implemented' % self.padding_type)
-        
-        # 1. Add the first block
-        model.extend([padding_layer, 
-                      nn.Conv3d(self.input_nc, self.ngf, kernel_size=7, padding=0, bias=self.use_bias), 
-                      self.norm_layer(self.ngf), nn.ReLU(True)])
-        
-        # 2. Add one convolution
-        number_downsampling = 2
-        self.number_downsampling = number_downsampling
-        mult = 2**number_downsampling
-        model += [nn.Conv3d(self.ngf, self.ngf * mult, kernel_size=3,
-                    stride=1, padding=1, bias=False),
-                        self.norm_layer(self.ngf * mult), nn.ReLU(True)]
+    if self.padding_type == 'reflect':
+        padding_layer = nn.ReflectionPad3d(padding_size)
+    elif self.padding_type == 'replicate':
+        padding_layer = nn.ReplicationPad3d(padding_size)
+    elif self.padding_type == 'zero':
+        padding_layer = nn.ZeroPad3d(padding_size)
+    else:
+        raise NotImplementedError('padding [%s] is not implemented' % self.padding_type)
 
-        # 3. Add the residual blocks
-        for i in range(self.n_blocks):
-            model += [ResnetBlock(self.ngf * mult, padding_type=self.padding_type, 
-                                  norm_layer=self.norm_layer, use_dropout=self.use_dropout, 
-                                  use_bias=self.use_bias)]
-            
-        # 4. Add more downsampling blocks
-        # Cube output: stride 1 | Voxel output: stride 2
-        for i in range(number_downsampling):
-            mult = 2**(number_downsampling - i)
-            model += [nn.Conv3d(self.ngf * mult, int(self.ngf * mult / 2), 
-                                kernel_size=3, stride=stride, padding=1, bias=self.use_bias), 
-                          self.norm_layer(int(self.ngf * mult / 2)), 
-                          nn.ReLU(True)]
-            
-        # 5. Add another convolutional block for vibes
-        # Cube output: stride 1 | Voxel output: stride 2
-        model += [nn.Conv3d(int(self.ngf * mult / 2), int(self.ngf * mult / 4),
-                            kernel_size=3, stride=stride, padding=1, bias=self.use_bias),
-                             self.norm_layer(int(self.ngf * mult / 4)), nn.ReLU(True)]
-            
-        # 4. Add the last block to make the number of channels as the output_nc and reduce spatial space
-        model += [nn.Conv3d(int(self.ngf * mult / 4), self.output_nc, kernel_size=3, stride=2, padding=1, bias=self.use_bias)]
-        
-        # Cube output: No Adaptive layer | Voxel output: Adaptive layer
-        if self.voxel_wise:
-            model += [nn.AdaptiveAvgPool3d((1, 1, 1))]
-        
-        # Return the model
-        return nn.Sequential(*model)
+    model.extend([
+        padding_layer,
+        nn.Conv3d(self.input_nc, self.ngf, kernel_size=7, padding=0, bias=self.use_bias),
+        self.norm_layer(self.ngf),
+        nn.ReLU(True)
+    ])
+
+    number_downsampling = 2
+    self.number_downsampling = number_downsampling
+    mult = 2 ** number_downsampling
+    model += [
+        nn.Conv3d(self.ngf, self.ngf * mult, kernel_size=3, stride=1, padding=1, bias=False),
+        self.norm_layer(self.ngf * mult),
+        nn.ReLU(True)
+    ]
+
+    for i in range(self.n_blocks):
+        model += [ResnetBlock(self.ngf * mult, padding_type=self.padding_type,
+                              norm_layer=self.norm_layer, use_dropout=self.use_dropout,
+                              use_bias=self.use_bias)]
+
+    spatial_attention = SpatialAttention(self.ngf * mult)
+    channel_attention = ChannelAttention(self.ngf * mult)
+
+    for i in range(self.n_blocks):
+        model += [spatial_attention, channel_attention]
+
+    for i in range(number_downsampling):
+        mult = 2 ** (number_downsampling - i)
+        model += [
+            nn.Conv3d(self.ngf * mult, int(self.ngf * mult / 2),
+                      kernel_size=3, stride=stride, padding=1, bias=self.use_bias),
+            self.norm_layer(int(self.ngf * mult / 2)),
+            nn.ReLU(True)
+        ]
+
+    model += [
+        nn.Conv3d(int(self.ngf * mult / 2), int(self.ngf * mult / 4),
+                  kernel_size=3, stride=stride, padding=1, bias=self.use_bias),
+        self.norm_layer(int(self.ngf * mult / 4)),
+        nn.ReLU(True)
+    ]
+
+    model += [
+        nn.Conv3d(int(self.ngf * mult / 4), self.output_nc, kernel_size=3, stride=2, padding=1, bias=self.use_bias)
+    ]
+
+    if self.voxel_wise:
+        model += [nn.AdaptiveAvgPool3d((1, 1, 1))]
+
+    return nn.Sequential(*model)
     
     # Define the processing for the non-image inputs
     def define_non_img_model(self):

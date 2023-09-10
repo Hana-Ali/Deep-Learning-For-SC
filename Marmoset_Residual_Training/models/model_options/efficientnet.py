@@ -20,21 +20,11 @@ from ..model_builders.efficientnet_utils import (
                                                 MemoryEfficientSwish,
                                             )
 from ..model_builders.twoinput_mlp import TwoInputMLP
+from ..model_builders.network_funcs import SpatialAttention
 
 class MBConvBlock3D(nn.Module):
-    """
-    Mobile Inverted Residual Bottleneck Block
-
-    Args:
-        block_args (namedtuple): BlockArgs, see above
-        global_params (namedtuple): GlobalParam, see above
-
-    Attributes:
-        has_se (bool): Whether the block contains a Squeeze and Excitation layer.
-    """
-
     def __init__(self, block_args, global_params, batch_norm=True):
-        super().__init__()
+        super(MBConvBlock3D, self).__init__()
         self._block_args = block_args
         self._bn_mom = 1 - global_params.batch_norm_momentum
         self._bn_eps = global_params.batch_norm_epsilon
@@ -45,8 +35,8 @@ class MBConvBlock3D(nn.Module):
         Conv3d = get_same_padding_conv3d(image_size=global_params.image_size)
 
         # Expansion phase
-        inp = self._block_args.input_filters  # number of input channels
-        oup = self._block_args.input_filters * self._block_args.expand_ratio  # number of output channels
+        inp = self._block_args.input_filters
+        oup = self._block_args.input_filters * self._block_args.expand_ratio
         if self._block_args.expand_ratio != 1:
             self._expand_conv = Conv3d(in_channels=inp, out_channels=oup, kernel_size=1, bias=False)
             if batch_norm:
@@ -58,7 +48,7 @@ class MBConvBlock3D(nn.Module):
         k = self._block_args.kernel_size
         s = self._block_args.stride
         self._depthwise_conv = Conv3d(
-            in_channels=oup, out_channels=oup, groups=oup,  # groups makes it depthwise
+            in_channels=oup, out_channels=oup, groups=oup,
             kernel_size=k, stride=s, bias=False)
         if batch_norm:
             self._bn1 = nn.BatchNorm3d(num_features=oup, momentum=self._bn_mom, eps=self._bn_eps)
@@ -80,46 +70,34 @@ class MBConvBlock3D(nn.Module):
             self._bn2 = nn.GroupNorm(num_groups=final_oup, num_channels=final_oup, eps=self._bn_eps)
         self._swish = MemoryEfficientSwish()
 
-    def forward(self, inputs, drop_connect_rate=None):
-        """
-        :param inputs: input tensor
-        :param drop_connect_rate: drop connect rate (float, between 0 and 1)
-        :return: output of block
-        """
+        self.spatial_attention = SpatialAttention(final_oup)  # Spatial attention
 
-        # Expansion and Depthwise Convolution
+    def forward(self, inputs, drop_connect_rate=None):
         x = inputs
         if self._block_args.expand_ratio != 1:
             x = self._swish(self._bn0(self._expand_conv(inputs)))
-            # print("Swish after expand x shape", x.shape)
         x = self._swish(self._bn1(self._depthwise_conv(x)))
-        # print("Swish after depthwise x shape", x.shape)
 
-        # Squeeze and Excitation
         if self.has_se:
             x_squeezed = F.adaptive_avg_pool3d(x, 1)
-            # print("Squeeze shape", x.shape)
             x_squeezed = self._se_expand(self._swish(self._se_reduce(x_squeezed)))
-            # print("Excite shape", x.shape)
             x = torch.sigmoid(x_squeezed) * x
-            # print("Sigmoid and x shape", x.shape)
 
         x = self._bn2(self._project_conv(x))
-        # print("Project conv shape", x.shape)
 
-        # Skip connection and drop connect
+        # Spatial attention
+        x = self.spatial_attention(x) * x
+
         input_filters, output_filters = self._block_args.input_filters, self._block_args.output_filters
         if self.id_skip and self._block_args.stride == 1 and input_filters == output_filters:
             if drop_connect_rate:
                 x = drop_connect(x, p=drop_connect_rate, training=self.training)
-                # print("Drop connect shape", x.shape)
-            x = x + inputs  # skip connection
-            # print("Skip connect shape", x.shape)
+            x = x + inputs
         return x
 
     def set_swish(self, memory_efficient=True):
-        """Sets swish function as memory efficient (for training) or standard (for export)"""
         self._swish = MemoryEfficientSwish() if memory_efficient else Swish()
+
 
 
 class EfficientNet3D(nn.Module):

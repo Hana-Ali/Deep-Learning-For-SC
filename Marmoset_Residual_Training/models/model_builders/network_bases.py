@@ -113,13 +113,16 @@ class UnetConv3(nn.Module):
             self.conv2 = nn.Sequential(nn.Conv3d(out_size, out_size, kernel_size, 1, padding_size),
                                        nn.ReLU(inplace=True),)
 
+        self.channel_attention = ChannelAttention(out_size)  # Add channel attention
+
         # initialise the blocks
         for m in self.children():
             init_weights(m, init_type='kaiming')
-
+            
     def forward(self, inputs):
         outputs = self.conv1(inputs)
         outputs = self.conv2(outputs)
+        outputs = self.channel_attention(outputs)  # Apply channel attention
         return outputs
 
 
@@ -263,6 +266,8 @@ class UnetUp3_CT(nn.Module):
         self.conv = UnetConv3(in_size + out_size, out_size, is_batchnorm, kernel_size=(3,3,3), padding_size=(1,1,1))
         self.up = nn.Upsample(scale_factor=(2, 2, 2), mode='trilinear')
 
+        self.channel_attention = ChannelAttention(out_size)  # Add channel attention
+
         # initialise the blocks
         for m in self.children():
             if m.__class__.__name__.find('UnetConv3') != -1: continue
@@ -273,8 +278,10 @@ class UnetUp3_CT(nn.Module):
         offset = outputs2.size()[2] - inputs1.size()[2]
         padding = 2 * [offset // 2, offset // 2, 0]
         outputs1 = F.pad(inputs1, padding)
-        return self.conv(torch.cat([outputs1, outputs2], 1))
-    
+        outputs = self.conv(torch.cat([outputs1, outputs2], 1))
+        outputs = self.channel_attention(outputs)  # Apply channel attention
+        return outputs
+        
 class UnetUp3_NoUpsample(nn.Module):
     def __init__(self, in_size, out_size, is_batchnorm=True):
         super(UnetUp3_NoUpsample, self).__init__()
