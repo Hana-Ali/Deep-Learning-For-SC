@@ -3,6 +3,8 @@ import torch.nn as nn
 
 from functools import partial
 
+from model_builders.network_funcs import SpatialAttention, ChannelAttention
+
 from ..model_builders.twoinput_mlp import TwoInputMLP
 
 ##############################################################
@@ -244,6 +246,13 @@ class ResnetEncoder_Streamlines(nn.Module):
                                   norm_layer=self.norm_layer, use_dropout=self.use_dropout, 
                                   use_bias=self.use_bias)]
             
+        spatial_attention = SpatialAttention(self.ngf * mult)
+        channel_attention = ChannelAttention(self.ngf * mult)
+
+        for i in range(self.n_blocks):
+            model += [spatial_attention, channel_attention]
+
+
         # 4. Add more downsampling blocks
         # Cube output: stride 1 | Voxel output: stride 2
         for i in range(number_downsampling):
